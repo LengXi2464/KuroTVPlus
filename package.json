@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "pnpm gen:manifest && node server.js",
-    "build": "pnpm gen:manifest && next build",
-    "build:cloudflare": "BUILD_TARGET=cloudflare pnpm gen:manifest && npx @opennextjs/cloudflare build",
+    "build": "pnpm gen:manifest && next build && npx @opennextjs/cloudflare build",
+    "build:cloudflare": "set BUILD_TARGET=cloudflare && pnpm gen:manifest && npx @opennextjs/cloudflare build",
     "start": "NODE_ENV=production node server.js",
     "preview:cloudflare": "wrangler dev",
     "deploy:cloudflare": "wrangler deploy",
