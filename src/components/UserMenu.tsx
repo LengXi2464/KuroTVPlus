@@ -17,6 +17,7 @@ import {
   KeyRound,
   LogOut,
   MessageSquare,
+  Monitor,
   MoveDown,
   MoveUp,
   Rss,
