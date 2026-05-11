@@ -36,6 +36,10 @@ export async function POST(request: NextRequest) {
       cacheMinutes,
       loginBackgroundImage,
       registerBackgroundImage,
+      homeBackgroundImage,
+      progressThumbType,
+      progressThumbPresetId,
+      progressThumbCustomUrl,
     } = body as {
       enableBuiltInTheme: boolean;
       builtInTheme: string;
@@ -44,6 +48,10 @@ export async function POST(request: NextRequest) {
       cacheMinutes: number;
       loginBackgroundImage?: string;
       registerBackgroundImage?: string;
+      homeBackgroundImage?: string;
+      progressThumbType?: 'default' | 'preset' | 'custom';
+      progressThumbPresetId?: string;
+      progressThumbCustomUrl?: string;
     };
 
     // 参数校验
@@ -90,6 +98,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (homeBackgroundImage && homeBackgroundImage.trim() !== '') {
+      const urls = homeBackgroundImage
+        .split('\n')
+        .map((url) => url.trim())
+        .filter((url) => url !== '');
+
+      for (const url of urls) {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          return NextResponse.json(
+            { error: `首页背景图URL格式错误：${url}，每个URL必须以http://或https://开头` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const adminConfig = await getConfig();
 
     // 权限校验 - 使用v2用户系统
@@ -118,6 +142,10 @@ export async function POST(request: NextRequest) {
       cacheVersion: cssChanged ? currentVersion + 1 : currentVersion,
       loginBackgroundImage: loginBackgroundImage?.trim() || undefined,
       registerBackgroundImage: registerBackgroundImage?.trim() || undefined,
+      homeBackgroundImage: homeBackgroundImage?.trim() || undefined,
+      progressThumbType: progressThumbType || 'default',
+      progressThumbPresetId: progressThumbPresetId?.trim() || undefined,
+      progressThumbCustomUrl: progressThumbCustomUrl?.trim() || undefined,
     };
 
     // 写入数据库

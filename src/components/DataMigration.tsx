@@ -142,8 +142,22 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
   const [exportPassword, setExportPassword] = useState('');
   const [importPassword, setImportPassword] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [includeMangaExport, setIncludeMangaExport] = useState(true);
+  const [includeBooksExport, setIncludeBooksExport] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<{
+    phase: string;
+    current: number;
+    total: number;
+    message: string;
+  } | null>(null);
+  const [importProgress, setImportProgress] = useState<{
+    phase: string;
+    current: number;
+    total: number;
+    message: string;
+  } | null>(null);
   const [alertModal, setAlertModal] = useState<{
     isOpen: boolean;
     type: 'success' | 'error' | 'warning';
@@ -180,8 +194,22 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
       return;
     }
 
+    let eventSource: EventSource | null = null;
+
     try {
       setIsExporting(true);
+      setExportProgress(null);
+
+      // 连接到进度 SSE 端点
+      eventSource = new EventSource('/api/admin/data_migration/progress?operation=export');
+      eventSource.onmessage = (event) => {
+        try {
+          const progress = JSON.parse(event.data);
+          setExportProgress(progress);
+        } catch (e) {
+          console.error('Failed to parse progress:', e);
+        }
+      };
 
       const response = await fetch('/api/admin/data_migration/export', {
         method: 'POST',
@@ -190,6 +218,8 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
         },
         body: JSON.stringify({
           password: exportPassword,
+          includeMangaData: includeMangaExport,
+          includeBookData: includeBooksExport,
         }),
       });
 
@@ -234,6 +264,10 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
       });
     } finally {
       setIsExporting(false);
+      setExportProgress(null);
+      if (eventSource) {
+        eventSource.close();
+      }
     }
   };
 
@@ -265,8 +299,22 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
       return;
     }
 
+    let eventSource: EventSource | null = null;
+
     try {
       setIsImporting(true);
+      setImportProgress(null);
+
+      // 连接到进度 SSE 端点
+      eventSource = new EventSource('/api/admin/data_migration/progress?operation=import');
+      eventSource.onmessage = (event) => {
+        try {
+          const progress = JSON.parse(event.data);
+          setImportProgress(progress);
+        } catch (e) {
+          console.error('Failed to parse progress:', e);
+        }
+      };
 
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -292,6 +340,8 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
             <p class="mt-2">导入的用户数量: ${result.importedUsers}</p>
             <p>备份时间: ${new Date(result.timestamp).toLocaleString('zh-CN')}</p>
             <p>服务器版本: ${result.serverVersion || '未知版本'}</p>
+            <p>漫画数据: ${result.importedMangaData ? '已导入' : '未导入'}</p>
+            <p>电子书数据: ${result.importedBookData ? '已导入' : '未导入'}</p>
             <p class="mt-3 text-orange-600">请刷新页面以查看最新数据。</p>
           </div>
         `,
@@ -322,6 +372,10 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
       });
     } finally {
       setIsImporting(false);
+      setImportProgress(null);
+      if (eventSource) {
+        eventSource.close();
+      }
     }
   };
 
@@ -371,6 +425,30 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
                   </p>
                 </div>
 
+                <div className="space-y-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">附加数据</p>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={includeMangaExport}
+                      onChange={(e) => setIncludeMangaExport(e.target.checked)}
+                      disabled={isExporting}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    漫画数据（书架 + 阅读记录）
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={includeBooksExport}
+                      onChange={(e) => setIncludeBooksExport(e.target.checked)}
+                      disabled={isExporting}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    电子书数据（书架 + 阅读记录）
+                  </label>
+                </div>
+
                 {/* 备份内容列表 */}
                 <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                   <p className="font-medium text-gray-700 dark:text-gray-300 mb-2">备份内容：</p>
@@ -379,6 +457,8 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
                     <div>• 用户数据</div>
                     <div>• 播放记录</div>
                     <div>• 收藏夹</div>
+                    <div>• 搜索历史</div>
+                    <div>• 音乐数据</div>
                   </div>
                 </div>
               </div>
@@ -393,9 +473,24 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
                   }`}
               >
                 {isExporting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    导出中...
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      导出中...
+                    </div>
+                    {exportProgress && (
+                      <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                        <div className="text-xs text-gray-900 dark:text-gray-100 font-medium">{exportProgress.message}</div>
+                        {exportProgress.total > 0 && (
+                          <div className="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-3">
+                            <div
+                              className="bg-yellow-500 h-3 rounded-full transition-all duration-300"
+                              style={{ width: `${(exportProgress.current / exportProgress.total) * 100}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
@@ -457,6 +552,7 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
                     disabled={isImporting}
                   />
                 </div>
+
               </div>
 
               {/* 导入按钮 */}
@@ -469,9 +565,24 @@ const DataMigration = ({ onRefreshConfig }: DataMigrationProps) => {
                   }`}
               >
                 {isImporting ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    导入中...
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      导入中...
+                    </div>
+                    {importProgress && (
+                      <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                        <div className="text-xs text-gray-900 dark:text-gray-100 font-medium">{importProgress.message}</div>
+                        {importProgress.total > 0 && (
+                          <div className="w-full bg-gray-300 dark:bg-gray-600 rounded-full h-3">
+                            <div
+                              className="bg-yellow-500 h-3 rounded-full transition-all duration-300"
+                              style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                            ></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">

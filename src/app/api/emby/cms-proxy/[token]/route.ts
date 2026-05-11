@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getConfig } from '@/lib/config';
 import { EmbyClient } from '@/lib/emby.client';
+import { hasFeaturePermission } from '@/lib/permissions';
 
 export const runtime = 'nodejs';
 
@@ -29,11 +30,30 @@ export async function GET(
     );
   }
 
-  // 验证 TVBox Token
+  // 验证 TVBox Token（从路径中获取）
   const requestToken = params.token;
-  const subscribeToken = process.env.TVBOX_SUBSCRIBE_TOKEN;
+  const globalToken = process.env.TVBOX_SUBSCRIBE_TOKEN;
 
-  if (!subscribeToken || requestToken !== subscribeToken) {
+  // 检查是否是全局token或用户token
+  let isValidToken = false;
+  if (globalToken && requestToken === globalToken) {
+    // 全局token
+    isValidToken = true;
+  } else {
+    // 检查是否是用户token
+    const { db } = await import('@/lib/db');
+    const username = await db.getUsernameByTvboxToken(requestToken);
+    if (username) {
+      // 检查用户是否被封禁
+      const userInfo = await db.getUserInfoV2(username);
+      const allowed = await hasFeaturePermission(username, 'emby');
+      if (userInfo && !userInfo.banned && allowed) {
+        isValidToken = true;
+      }
+    }
+  }
+
+  if (!isValidToken) {
     return NextResponse.json({
       code: 401,
       msg: '无效的访问token',
@@ -74,7 +94,7 @@ export async function GET(
       if (ac === 'detail') {
         return await handleDetailBySearch(client, wd, requestToken, embyKey, request);
       }
-      return await handleSearch(client, wd);
+      return await handleSearch(client, wd, requestToken);
     } else if (ids || ac === 'detail') {
       // 详情模式
       if (!ids) {
@@ -91,7 +111,7 @@ export async function GET(
       return await handleDetail(client, ids, requestToken, embyKey, request);
     } else {
       // 列表模式
-      return await handleSearch(client, '');
+      return await handleSearch(client, '', requestToken);
     }
   } catch (error) {
     console.error('[Emby CMS Proxy] 错误:', error);
@@ -110,7 +130,7 @@ export async function GET(
 /**
  * 处理搜索请求
  */
-async function handleSearch(client: EmbyClient, query: string) {
+async function handleSearch(client: EmbyClient, query: string, token: string) {
   const result = await client.getItems({
     searchTerm: query || undefined,
     IncludeItemTypes: 'Movie,Series',
@@ -122,7 +142,7 @@ async function handleSearch(client: EmbyClient, query: string) {
   const list = result.Items.map((item) => ({
     vod_id: item.Id,
     vod_name: item.Name,
-    vod_pic: client.getImageUrl(item.Id, 'Primary'),
+    vod_pic: client.getImageUrl(item.Id, 'Primary', undefined, token),
     vod_remarks: item.Type === 'Movie' ? '电影' : '剧集',
     vod_year: item.ProductionYear?.toString() || '',
     vod_content: item.Overview || '',
@@ -229,7 +249,7 @@ async function handleDetail(
       {
         vod_id: item.Id,
         vod_name: item.Name,
-        vod_pic: client.getImageUrl(item.Id, 'Primary'),
+        vod_pic: client.getImageUrl(item.Id, 'Primary', undefined, token),
         vod_remarks: item.Type === 'Movie' ? '电影' : '剧集',
         vod_year: item.ProductionYear?.toString() || '',
         vod_content: item.Overview || '',

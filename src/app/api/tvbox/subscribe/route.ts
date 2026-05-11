@@ -3,13 +3,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAvailableApiSites, getConfig } from '@/lib/config';
+import { db } from '@/lib/db';
 import { getCachedLiveChannels } from '@/lib/live';
+import { hasFeaturePermission } from '@/lib/permissions';
 
 export const runtime = 'nodejs';
 
 /**
  * TVBOX订阅API
  * 根据视频源和直播源生成TVBOX订阅
+ * 支持全局token（管理员）和用户token（普通用户）
  */
 export async function GET(request: NextRequest) {
   // 检查是否开启订阅功能
@@ -24,25 +27,62 @@ export async function GET(request: NextRequest) {
   // 验证token
   const searchParams = request.nextUrl.searchParams;
   const token = searchParams.get('token');
-  const subscribeToken = process.env.TVBOX_SUBSCRIBE_TOKEN;
+  const globalToken = process.env.TVBOX_SUBSCRIBE_TOKEN;
   const adFilter = searchParams.get('adFilter') === 'true'; // 获取去广告参数
+  const yellowFilter = searchParams.get('yellowFilter') === 'true';
 
-  if (!subscribeToken || token !== subscribeToken) {
+  if (!token) {
     return NextResponse.json(
-      { error: '无效的订阅token' },
+      { error: '缺少订阅token' },
       { status: 401 }
     );
+  }
+
+  // 判断是全局token还是用户token
+  let username: string | undefined;
+  let isGlobalToken = false;
+
+  if (globalToken && token === globalToken) {
+    // 全局token（管理员订阅）
+    isGlobalToken = true;
+    console.log('使用全局token访问TVBox订阅');
+  } else {
+    // 用户token，查询用户名
+    username = await db.getUsernameByTvboxToken(token) || undefined;
+    if (!username) {
+      return NextResponse.json(
+        { error: '无效的订阅token' },
+        { status: 401 }
+      );
+    }
+
+    // 检查用户是否被封禁
+    const userInfo = await db.getUserInfoV2(username);
+    if (userInfo?.banned) {
+      return NextResponse.json(
+        { error: '用户已被封禁' },
+        { status: 403 }
+      );
+    }
+
+    console.log(`用户 ${username} 访问TVBox订阅`);
   }
 
   try {
     // 获取配置
     const config = await getConfig();
 
-    // 获取视频源（TVBox客户端不会发送Cookie，直接获取所有启用的源）
-    const apiSites = await getAvailableApiSites();
+    // 获取视频源
+    // 全局token返回所有源，用户token返回该用户有权限的源
+    const apiSites = await getAvailableApiSites(username);
 
     // 获取直播源
-    const liveConfig = config.LiveConfig?.filter(live => !live.disabled) || [];
+    const canAccessLive = isGlobalToken || !username
+      ? true
+      : await hasFeaturePermission(username, 'live');
+    const liveConfig = canAccessLive
+      ? config.LiveConfig?.filter(live => !live.disabled) || []
+      : [];
 
     // 获取当前请求的 origin，用于构建代理链接
     // 优先级：SITE_BASE 环境变量 > origin 参数 > 从请求头构建
@@ -56,7 +96,7 @@ export async function GET(request: NextRequest) {
       baseUrl = `${proto}://${host}`;
     }
 
-    console.log('TVBOX 订阅 baseUrl:', baseUrl, 'adFilter:', adFilter);
+    console.log('TVBOX 订阅 baseUrl:', baseUrl, 'adFilter:', adFilter, 'yellowFilter:', yellowFilter);
 
     // 检查是否配置了 OpenList
     const hasOpenList = !!(
@@ -75,7 +115,7 @@ export async function GET(request: NextRequest) {
       key: 'openlist',
       name: '私人影库',
       type: 1,
-      api: `${baseUrl}/api/openlist/cms-proxy/${encodeURIComponent(subscribeToken)}`,
+      api: `${baseUrl}/api/openlist/cms-proxy/${encodeURIComponent(token)}`,
       searchable: 1,
       quickSearch: 1,
       filterable: 1,
@@ -87,7 +127,7 @@ export async function GET(request: NextRequest) {
       key: `emby_${source.key}`,
       name: source.name || 'Emby媒体库',
       type: 1,
-      api: `${baseUrl}/api/emby/cms-proxy/${encodeURIComponent(subscribeToken)}?embyKey=${source.key}`,
+      api: `${baseUrl}/api/emby/cms-proxy/${encodeURIComponent(token)}?embyKey=${source.key}`,
       searchable: 1,
       quickSearch: 1,
       filterable: 1,
@@ -97,7 +137,7 @@ export async function GET(request: NextRequest) {
     // 构建TVBOX订阅数据
     const tvboxSubscription = {
       // 站点配置
-      spider: '',
+      spider: `${baseUrl}/tvbox/custom_spider.jar`,
       wallpaper: '',
 
       // 视频源站点 - 根据 adFilter 参数决定是否使用代理
@@ -109,9 +149,9 @@ export async function GET(request: NextRequest) {
           key: site.key,
           name: site.name,
           type: 1,
-          // 如果开启去广告，使用 CMS 代理；否则使用原始 API
-          api: adFilter
-            ? `${baseUrl}/api/cms-proxy?api=${encodeURIComponent(site.api)}`
+          // 开启去广告或黄色过滤时使用 CMS 代理
+          api: (adFilter || yellowFilter)
+            ? `${baseUrl}/api/cms-proxy?api=${encodeURIComponent(site.api)}${adFilter ? '&adFilter=true' : ''}${yellowFilter ? '&yellowFilter=true' : ''}`
             : site.api,
           searchable: 1,
           quickSearch: 1,
