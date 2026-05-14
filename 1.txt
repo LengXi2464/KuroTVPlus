@@ -1,0 +1,383 @@
+2026-05-14T19:29:38.587Z	Initializing build environment...
+2026-05-14T19:29:41.269Z	Success: Finished initializing build environment
+2026-05-14T19:29:42.091Z	Cloning repository...
+2026-05-14T19:29:49.334Z	Detected the following tools from environment: nodejs@24.15.0, pnpm@10.14.0, npm@10.9.2
+2026-05-14T19:29:49.335Z	Installing nodejs 24.15.0
+2026-05-14T19:29:38.587Z	Initializing build environment...
+2026-05-14T19:29:41.269Z	Success: Finished initializing build environment
+2026-05-14T19:29:42.091Z	Cloning repository...
+2026-05-14T19:29:49.334Z	Detected the following tools from environment: nodejs@24.15.0, pnpm@10.14.0, npm@10.9.2
+2026-05-14T19:29:49.335Z	Installing nodejs 24.15.0
+2026-05-14T19:30:00.656Z	Installing project dependencies: pnpm install --frozen-lockfile
+2026-05-14T19:30:01.919Z	Lockfile is up to date, resolution step is skipped
+2026-05-14T19:30:02.267Z	Progress: resolved 1, reused 0, downloaded 0, added 0
+2026-05-14T19:30:02.673Z	Packages: +1813
+2026-05-14T19:30:02.675Z	++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2026-05-14T19:30:03.272Z	Progress: resolved 1813, reused 0, downloaded 0, added 0
+2026-05-14T19:30:05.927Z	Progress: resolved 1813, reused 0, downloaded 1, added 0
+2026-05-14T19:30:06.928Z	Progress: resolved 1813, reused 0, downloaded 5, added 0
+2026-05-14T19:30:09.320Z	Progress: resolved 1813, reused 0, downloaded 5, added 1
+2026-05-14T19:30:10.328Z	Progress: resolved 1813, reused 0, downloaded 30, added 8
+2026-05-14T19:30:11.332Z	Progress: resolved 1813, reused 0, downloaded 91, added 30
+2026-05-14T19:30:12.342Z	Progress: resolved 1813, reused 0, downloaded 164, added 56
+2026-05-14T19:30:13.343Z	Progress: resolved 1813, reused 0, downloaded 169, added 58
+2026-05-14T19:30:14.345Z	Progress: resolved 1813, reused 0, downloaded 179, added 61
+2026-05-14T19:30:15.876Z	Progress: resolved 1813, reused 0, downloaded 180, added 61
+2026-05-14T19:30:16.950Z	Progress: resolved 1813, reused 0, downloaded 278, added 105
+2026-05-14T19:30:17.952Z	Progress: resolved 1813, reused 0, downloaded 374, added 165
+2026-05-14T19:30:18.953Z	Progress: resolved 1813, reused 0, downloaded 383, added 166
+2026-05-14T19:30:19.954Z	Progress: resolved 1813, reused 0, downloaded 386, added 168
+2026-05-14T19:30:20.954Z	Progress: resolved 1813, reused 0, downloaded 421, added 179
+2026-05-14T19:30:21.954Z	Progress: resolved 1813, reused 0, downloaded 550, added 231
+2026-05-14T19:30:22.956Z	Progress: resolved 1813, reused 0, downloaded 601, added 247
+2026-05-14T19:30:23.956Z	Progress: resolved 1813, reused 0, downloaded 617, added 255
+2026-05-14T19:30:24.974Z	Progress: resolved 1813, reused 0, downloaded 739, added 311
+2026-05-14T19:30:25.977Z	Progress: resolved 1813, reused 0, downloaded 758, added 316
+2026-05-14T19:30:26.984Z	Progress: resolved 1813, reused 0, downloaded 847, added 388
+2026-05-14T19:30:27.977Z	Progress: resolved 1813, reused 0, downloaded 931, added 477
+2026-05-14T19:30:28.977Z	Progress: resolved 1813, reused 0, downloaded 1015, added 514
+2026-05-14T19:30:29.977Z	Progress: resolved 1813, reused 0, downloaded 1039, added 525
+2026-05-14T19:30:30.978Z	Progress: resolved 1813, reused 0, downloaded 1070, added 538
+2026-05-14T19:30:32.194Z	Progress: resolved 1813, reused 0, downloaded 1071, added 538
+2026-05-14T19:30:33.186Z	Progress: resolved 1813, reused 0, downloaded 1122, added 558
+2026-05-14T19:30:34.188Z	Progress: resolved 1813, reused 0, downloaded 1185, added 578
+2026-05-14T19:30:35.213Z	Progress: resolved 1813, reused 0, downloaded 1275, added 622
+2026-05-14T19:30:36.190Z	Progress: resolved 1813, reused 0, downloaded 1371, added 660
+2026-05-14T19:30:37.196Z	Progress: resolved 1813, reused 0, downloaded 1516, added 751
+2026-05-14T19:30:38.197Z	Progress: resolved 1813, reused 0, downloaded 1552, added 763
+2026-05-14T19:30:39.203Z	Progress: resolved 1813, reused 0, downloaded 1613, added 784
+2026-05-14T19:30:40.204Z	Progress: resolved 1813, reused 0, downloaded 1666, added 804
+2026-05-14T19:30:41.205Z	Progress: resolved 1813, reused 0, downloaded 1788, added 852
+2026-05-14T19:30:42.207Z	Progress: resolved 1813, reused 0, downloaded 1813, added 1015
+2026-05-14T19:30:43.206Z	Progress: resolved 1813, reused 0, downloaded 1813, added 1565
+2026-05-14T19:30:43.568Z	Progress: resolved 1813, reused 0, downloaded 1813, added 1813, done
+2026-05-14T19:30:44.346Z	.../node_modules/better-sqlite3 install$ prebuild-install || node-gyp rebuild --release
+2026-05-14T19:30:44.550Z	.../node_modules/better-sqlite3 install: (node:2202) [DEP0176] DeprecationWarning: fs.R_OK is deprecated, use fs.constants.R_OK instead
+2026-05-14T19:30:44.550Z	.../node_modules/better-sqlite3 install: (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-14T19:30:44.831Z	.../node_modules/better-sqlite3 install: Done
+2026-05-14T19:30:45.204Z	
+2026-05-14T19:30:45.204Z	dependencies:
+2026-05-14T19:30:45.205Z	+ @dnd-kit/core 6.3.1
+2026-05-14T19:30:45.205Z	+ @dnd-kit/modifiers 9.0.0
+2026-05-14T19:30:45.205Z	+ @dnd-kit/sortable 10.0.0
+2026-05-14T19:30:45.205Z	+ @dnd-kit/utilities 3.2.2
+2026-05-14T19:30:45.205Z	+ @headlessui/react 2.2.9
+2026-05-14T19:30:45.206Z	+ @heroicons/react 2.2.0
+2026-05-14T19:30:45.206Z	+ @types/crypto-js 4.2.2
+2026-05-14T19:30:45.206Z	+ @types/nprogress 0.2.3
+2026-05-14T19:30:45.208Z	+ @upstash/redis 1.36.0
+2026-05-14T19:30:45.208Z	+ @vercel/postgres 0.10.0
+2026-05-14T19:30:45.208Z	+ @vidstack/react 1.12.13
+2026-05-14T19:30:45.209Z	+ anime4k-webgpu 1.0.0
+2026-05-14T19:30:45.209Z	+ artplayer 5.3.0
+2026-05-14T19:30:45.209Z	+ artplayer-plugin-danmuku 5.2.0
+2026-05-14T19:30:45.209Z	+ better-sqlite3 12.6.2
+2026-05-14T19:30:45.209Z	+ bs58 6.0.0
+2026-05-14T19:30:45.209Z	+ cheerio 1.1.2
+2026-05-14T19:30:45.209Z	+ clsx 2.1.1
+2026-05-14T19:30:45.209Z	+ crypto-js 4.2.0
+2026-05-14T19:30:45.209Z	+ edge-tts-universal 1.4.0
+2026-05-14T19:30:45.209Z	+ flv.js 1.6.2
+2026-05-14T19:30:45.209Z	+ framer-motion 12.23.26
+2026-05-14T19:30:45.209Z	+ he 1.2.0
+2026-05-14T19:30:45.209Z	+ hls.js 1.6.15
+2026-05-14T19:30:45.209Z	+ https-proxy-agent 7.0.6
+2026-05-14T19:30:45.210Z	+ lucide-react 0.438.0
+2026-05-14T19:30:45.210Z	+ media-icons 1.1.5
+2026-05-14T19:30:45.210Z	+ mux.js 6.3.0
+2026-05-14T19:30:45.210Z	+ nanoid 5.1.6
+2026-05-14T19:30:45.210Z	+ next 14.2.35
+2026-05-14T19:30:45.210Z	+ next-pwa 5.6.0
+2026-05-14T19:30:45.210Z	+ next-themes 0.4.6
+2026-05-14T19:30:45.210Z	+ node-fetch 2.7.0
+2026-05-14T19:30:45.210Z	+ nodemailer 7.0.12
+2026-05-14T19:30:45.210Z	+ nprogress 0.2.0
+2026-05-14T19:30:45.210Z	+ opencc-js 1.0.5
+2026-05-14T19:30:45.210Z	+ parse-torrent-name 0.5.4
+2026-05-14T19:30:45.211Z	+ react 18.3.1
+2026-05-14T19:30:45.211Z	+ react-dom 18.3.1
+2026-05-14T19:30:45.211Z	+ react-icons 5.5.0
+2026-05-14T19:30:45.211Z	+ react-markdown 10.1.0
+2026-05-14T19:30:45.211Z	+ redis 4.7.1
+2026-05-14T19:30:45.211Z	+ remark-gfm 3.0.1
+2026-05-14T19:30:45.211Z	+ server-only 0.0.1
+2026-05-14T19:30:45.211Z	+ sharp 0.34.5
+2026-05-14T19:30:45.211Z	+ socket.io 4.8.3
+2026-05-14T19:30:45.211Z	+ socket.io-client 4.8.3
+2026-05-14T19:30:45.211Z	+ swiper 11.2.10
+2026-05-14T19:30:45.212Z	+ tailwind-merge 2.6.0
+2026-05-14T19:30:45.213Z	+ vidstack 0.6.15
+2026-05-14T19:30:45.213Z	+ xml2js 0.6.2
+2026-05-14T19:30:45.213Z	+ zod 3.25.76
+2026-05-14T19:30:45.213Z	
+2026-05-14T19:30:45.213Z	devDependencies:
+2026-05-14T19:30:45.213Z	+ @opennextjs/cloudflare 1.15.1
+2026-05-14T19:30:45.214Z	+ @svgr/webpack 8.1.0
+2026-05-14T19:30:45.214Z	+ @tailwindcss/forms 0.5.11
+2026-05-14T19:30:45.214Z	+ @tailwindcss/typography 0.5.19
+2026-05-14T19:30:45.214Z	+ @testing-library/jest-dom 5.17.0
+2026-05-14T19:30:45.214Z	+ @testing-library/react 15.0.7
+2026-05-14T19:30:45.215Z	+ @types/better-sqlite3 7.6.13
+2026-05-14T19:30:45.215Z	+ @types/bs58 5.0.0
+2026-05-14T19:30:45.215Z	+ @types/he 1.2.3
+2026-05-14T19:30:45.215Z	+ @types/node 24.0.3
+2026-05-14T19:30:45.216Z	+ @types/node-fetch 2.6.13
+2026-05-14T19:30:45.216Z	+ @types/nodemailer 7.0.5
+2026-05-14T19:30:45.216Z	+ @types/pg 8.16.0
+2026-05-14T19:30:45.216Z	+ @types/react 18.3.27
+2026-05-14T19:30:45.216Z	+ @types/react-dom 19.2.3
+2026-05-14T19:30:45.216Z	+ @types/testing-library__jest-dom 5.14.9
+2026-05-14T19:30:45.216Z	+ @types/xml2js 0.4.14
+2026-05-14T19:30:45.216Z	+ @typescript-eslint/eslint-plugin 5.62.0
+2026-05-14T19:30:45.216Z	+ @typescript-eslint/parser 5.62.0
+2026-05-14T19:30:45.216Z	+ autoprefixer 10.4.23
+2026-05-14T19:30:45.216Z	+ eslint 8.57.1
+2026-05-14T19:30:45.216Z	+ eslint-config-next 14.2.35
+2026-05-14T19:30:45.216Z	+ eslint-config-prettier 8.10.2
+2026-05-14T19:30:45.216Z	+ eslint-plugin-simple-import-sort 7.0.0
+2026-05-14T19:30:45.217Z	+ eslint-plugin-unused-imports 2.0.0
+2026-05-14T19:30:45.217Z	+ jest 27.5.1
+2026-05-14T19:30:45.217Z	+ next-router-mock 0.9.13
+2026-05-14T19:30:45.217Z	+ postcss 8.5.6
+2026-05-14T19:30:45.217Z	+ prettier 2.8.8
+2026-05-14T19:30:45.217Z	+ prettier-plugin-tailwindcss 0.5.14
+2026-05-14T19:30:45.217Z	+ tailwindcss 3.4.19
+2026-05-14T19:30:45.217Z	+ typescript 4.9.5
+2026-05-14T19:30:45.217Z	+ vercel 50.4.10
+2026-05-14T19:30:45.217Z	+ webpack-obfuscator 3.6.0
+2026-05-14T19:30:45.217Z	
+2026-05-14T19:30:45.242Z	Done in 44.3s using pnpm v10.14.0
+2026-05-14T19:30:45.515Z	Executing user build command: pnpm run build:cloudflare
+2026-05-14T19:30:46.088Z	
+2026-05-14T19:30:46.088Z	> kurotv@0.1.0 build:cloudflare /opt/buildhome/repo
+2026-05-14T19:30:46.088Z	> BUILD_TARGET=cloudflare pnpm gen:manifest && npx @opennextjs/cloudflare build
+2026-05-14T19:30:46.088Z	
+2026-05-14T19:30:46.473Z	
+2026-05-14T19:30:46.474Z	> kurotv@0.1.0 gen:manifest /opt/buildhome/repo
+2026-05-14T19:30:46.474Z	> node scripts/generate-manifest.js
+2026-05-14T19:30:46.474Z	
+2026-05-14T19:30:46.515Z	✅ Generated manifest.json with site name: MoonTVPlus
+2026-05-14T19:30:46.938Z	npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-05-14T19:30:46.938Z	npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-05-14T19:31:00.036Z	
+2026-05-14T19:31:00.037Z	┌─────────────────────────────┐
+2026-05-14T19:31:00.037Z	│ OpenNext — Cloudflare build │
+2026-05-14T19:31:00.037Z	└─────────────────────────────┘
+2026-05-14T19:31:00.037Z	
+2026-05-14T19:31:00.173Z	App directory: /opt/buildhome/repo
+2026-05-14T19:31:00.173Z	Next.js version : 14.2.35
+2026-05-14T19:31:00.175Z	@opennextjs/cloudflare version: 1.15.1
+2026-05-14T19:31:00.176Z	@opennextjs/aws version: 3.9.12
+2026-05-14T19:31:00.177Z	
+2026-05-14T19:31:00.177Z	┌─────────────────────────────────┐
+2026-05-14T19:31:00.177Z	│ OpenNext — Building Next.js app │
+2026-05-14T19:31:00.178Z	└─────────────────────────────────┘
+2026-05-14T19:31:00.178Z	
+2026-05-14T19:31:00.403Z	npm warn Unknown env config "verify-deps-before-run". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-05-14T19:31:00.403Z	npm warn Unknown env config "_jsr-registry". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+2026-05-14T19:31:00.425Z	
+2026-05-14T19:31:00.425Z	> kurotv@0.1.0 build
+2026-05-14T19:31:00.425Z	> pnpm gen:manifest && next build
+2026-05-14T19:31:00.425Z	
+2026-05-14T19:31:00.913Z	
+2026-05-14T19:31:00.913Z	> kurotv@0.1.0 gen:manifest /opt/buildhome/repo
+2026-05-14T19:31:00.914Z	> node scripts/generate-manifest.js
+2026-05-14T19:31:00.914Z	
+2026-05-14T19:31:00.952Z	✅ Generated manifest.json with site name: MoonTVPlus
+2026-05-14T19:31:02.721Z	⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-05-14T19:31:02.726Z	Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-05-14T19:31:02.726Z	This information is used to shape Next.js' roadmap and prioritize features.
+2026-05-14T19:31:02.726Z	You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-05-14T19:31:02.726Z	https://nextjs.org/telemetry
+2026-05-14T19:31:02.726Z	
+2026-05-14T19:31:02.855Z	  ▲ Next.js 14.2.35
+2026-05-14T19:31:02.856Z	  - Experiments (use with caution):
+2026-05-14T19:31:02.856Z	    · instrumentationHook
+2026-05-14T19:31:02.856Z	
+2026-05-14T19:31:02.914Z	   Creating an optimized production build ...
+2026-05-14T19:31:04.160Z	> [PWA] Compile server
+2026-05-14T19:31:04.163Z	> [PWA] Compile server
+2026-05-14T19:31:04.164Z	> [PWA] Compile client (static)
+2026-05-14T19:31:04.165Z	> [PWA] Auto register service worker with: /opt/buildhome/repo/node_modules/.pnpm/next-pwa@5.6.0_@babel+core@7.28.5_@types+babel__core@7.20.5_next@14.2.35_@babel+core@7._3501a5593ef0f1cb5ceadc66c3da8712/node_modules/next-pwa/register.js
+2026-05-14T19:31:04.165Z	> [PWA] Service worker: /opt/buildhome/repo/public/sw.js
+2026-05-14T19:31:04.166Z	> [PWA]   url: /sw.js
+2026-05-14T19:31:04.167Z	> [PWA]   scope: /
+2026-05-14T19:31:59.997Z	<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (135kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+2026-05-14T19:32:32.352Z	 ⚠ Compiled with warnings
+2026-05-14T19:32:32.354Z	
+2026-05-14T19:32:32.354Z	/_next/static/chunks/b426f651.a2601def00bb2b18.js is 3.48 MB, and won't be precached. Configure maximumFileSizeToCacheInBytes to change this limit.
+2026-05-14T19:32:32.355Z	
+2026-05-14T19:32:32.360Z	./node_modules/.pnpm/@redis+client@1.6.1/node_modules/@redis/client/dist/lib/client/socket.js
+2026-05-14T19:32:32.360Z	A Node.js API is used (setImmediate at line: 83) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.360Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.360Z	
+2026-05-14T19:32:32.360Z	Import trace for requested module:
+2026-05-14T19:32:32.360Z	./node_modules/.pnpm/@redis+client@1.6.1/node_modules/@redis/client/dist/lib/client/socket.js
+2026-05-14T19:32:32.360Z	./node_modules/.pnpm/@redis+client@1.6.1/node_modules/@redis/client/dist/lib/client/index.js
+2026-05-14T19:32:32.361Z	./node_modules/.pnpm/@redis+client@1.6.1/node_modules/@redis/client/dist/index.js
+2026-05-14T19:32:32.362Z	./node_modules/.pnpm/redis@4.7.1/node_modules/redis/dist/index.js
+2026-05-14T19:32:32.362Z	./src/lib/redis-base.db.ts
+2026-05-14T19:32:32.362Z	./src/lib/kvrocks.db.ts
+2026-05-14T19:32:32.363Z	./src/lib/db.ts
+2026-05-14T19:32:32.363Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.363Z	
+2026-05-14T19:32:32.363Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/methods/backup.js
+2026-05-14T19:32:32.363Z	A Node.js API is used (setImmediate at line: 41) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.364Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.364Z	
+2026-05-14T19:32:32.365Z	Import trace for requested module:
+2026-05-14T19:32:32.365Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/methods/backup.js
+2026-05-14T19:32:32.365Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.365Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.365Z	./src/lib/db.ts
+2026-05-14T19:32:32.365Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.367Z	
+2026-05-14T19:32:32.367Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.367Z	A Node.js API is used (process.platform at line: 25) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.368Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.368Z	
+2026-05-14T19:32:32.369Z	Import trace for requested module:
+2026-05-14T19:32:32.369Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.371Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.371Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.371Z	./src/lib/db.ts
+2026-05-14T19:32:32.371Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.371Z	
+2026-05-14T19:32:32.371Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.371Z	A Node.js API is used (process.arch at line: 26) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.371Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.371Z	
+2026-05-14T19:32:32.371Z	Import trace for requested module:
+2026-05-14T19:32:32.372Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.372Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.373Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.373Z	./src/lib/db.ts
+2026-05-14T19:32:32.373Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.373Z	
+2026-05-14T19:32:32.373Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.373Z	A Node.js API is used (process.versions at line: 29) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.373Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.373Z	
+2026-05-14T19:32:32.373Z	Import trace for requested module:
+2026-05-14T19:32:32.373Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.373Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.374Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.374Z	./src/lib/db.ts
+2026-05-14T19:32:32.375Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.375Z	
+2026-05-14T19:32:32.375Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.375Z	A Node.js API is used (process.platform at line: 31) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.375Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.375Z	
+2026-05-14T19:32:32.375Z	Import trace for requested module:
+2026-05-14T19:32:32.375Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.375Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.376Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.376Z	./src/lib/db.ts
+2026-05-14T19:32:32.376Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.376Z	
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.377Z	A Node.js API is used (process.arch at line: 33) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.377Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.377Z	
+2026-05-14T19:32:32.377Z	Import trace for requested module:
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.377Z	./src/lib/db.ts
+2026-05-14T19:32:32.377Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.377Z	
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.377Z	A Node.js API is used (process.versions at line: 34) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.377Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.377Z	
+2026-05-14T19:32:32.377Z	Import trace for requested module:
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.377Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.378Z	./src/lib/db.ts
+2026-05-14T19:32:32.378Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.378Z	
+2026-05-14T19:32:32.378Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.378Z	A Node.js API is used (process.cwd at line: 200) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.378Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.378Z	
+2026-05-14T19:32:32.378Z	Import trace for requested module:
+2026-05-14T19:32:32.378Z	./node_modules/.pnpm/bindings@1.5.0/node_modules/bindings/bindings.js
+2026-05-14T19:32:32.378Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/database.js
+2026-05-14T19:32:32.378Z	./node_modules/.pnpm/better-sqlite3@12.6.2/node_modules/better-sqlite3/lib/index.js
+2026-05-14T19:32:32.378Z	./src/lib/db.ts
+2026-05-14T19:32:32.378Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.378Z	
+2026-05-14T19:32:32.378Z	./src/lib/db.ts
+2026-05-14T19:32:32.378Z	A Node.js API is used (process.cwd at line: 84) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.378Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.378Z	
+2026-05-14T19:32:32.378Z	Import trace for requested module:
+2026-05-14T19:32:32.378Z	./src/lib/db.ts
+2026-05-14T19:32:32.378Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.378Z	
+2026-05-14T19:32:32.379Z	./node_modules/.pnpm/@upstash+redis@1.36.0/node_modules/@upstash/redis/nodejs.mjs
+2026-05-14T19:32:32.379Z	A Node.js API is used (process.version at line: 71) which is not supported in the Edge Runtime.
+2026-05-14T19:32:32.379Z	Learn more: https://nextjs.org/docs/api-reference/edge-runtime
+2026-05-14T19:32:32.379Z	
+2026-05-14T19:32:32.379Z	Import trace for requested module:
+2026-05-14T19:32:32.379Z	./node_modules/.pnpm/@upstash+redis@1.36.0/node_modules/@upstash/redis/nodejs.mjs
+2026-05-14T19:32:32.380Z	./src/lib/upstash.db.ts
+2026-05-14T19:32:32.380Z	./src/lib/db.ts
+2026-05-14T19:32:32.380Z	./src/lib/refresh-token.ts
+2026-05-14T19:32:32.380Z	
+2026-05-14T19:32:32.380Z	   Skipping linting
+2026-05-14T19:32:32.380Z	   Checking validity of types ...
+2026-05-14T19:33:29.608Z	Failed to compile.
+2026-05-14T19:33:29.610Z	
+2026-05-14T19:33:29.610Z	./src/app/components/UserMenu.tsx:42:39
+2026-05-14T19:33:29.610Z	Type error: Cannot find module './DeviceManagementPanel' or its corresponding type declarations.
+2026-05-14T19:33:29.610Z	
+2026-05-14T19:33:29.610Z	  40 | import { clearAllDanmakuCache, getDanmakuCacheStats } from '@/lib/danmaku/api';
+2026-05-14T19:33:29.610Z	  41 |
+2026-05-14T19:33:29.611Z	> 42 | import { DeviceManagementPanel } from './DeviceManagementPanel';
+2026-05-14T19:33:29.611Z	     |                                       ^
+2026-05-14T19:33:29.611Z	  43 | import { DownloadManagementPanel } from './DownloadManagementPanel';
+2026-05-14T19:33:29.611Z	  44 | import { EmailSettingsPanel } from './EmailSettingsPanel';
+2026-05-14T19:33:29.613Z	  45 | import { FavoritesPanel } from './FavoritesPanel';
+2026-05-14T19:33:29.814Z	Next.js build worker exited with code: 1 and signal: null
+2026-05-14T19:33:30.009Z	opennextjs-cloudflare build
+2026-05-14T19:33:30.009Z	
+2026-05-14T19:33:30.010Z	Build an OpenNext Cloudflare worker
+2026-05-14T19:33:30.010Z	
+2026-05-14T19:33:30.010Z	Options:
+2026-05-14T19:33:30.010Z	      --help                        Show help                          [boolean]
+2026-05-14T19:33:30.010Z	      --version                     Show version number                [boolean]
+2026-05-14T19:33:30.010Z	  -c, --config                      Path to Wrangler configuration file [string]
+2026-05-14T19:33:30.010Z	      --configPath                  Path to Wrangler configuration file
+2026-05-14T19:33:30.010Z	                                                           [deprecated] [string]
+2026-05-14T19:33:30.010Z	  -e, --env                         Wrangler environment to use for operations
+2026-05-14T19:33:30.010Z	                                                                        [string]
+2026-05-14T19:33:30.010Z	  -s, --skipNextBuild, --skipBuild  Skip building the Next.js app
+2026-05-14T19:33:30.010Z	                                                      [boolean] [default: false]
+2026-05-14T19:33:30.010Z	      --noMinify                    Disable worker minification
+2026-05-14T19:33:30.010Z	                                                      [boolean] [default: false]
+2026-05-14T19:33:30.010Z	      --skipWranglerConfigCheck     Skip checking for a Wrangler config
+2026-05-14T19:33:30.010Z	                                                      [boolean] [default: false]
+2026-05-14T19:33:30.010Z	      --openNextConfigPath          Path to the OpenNext configuration file
+2026-05-14T19:33:30.010Z	                                                                        [string]
+2026-05-14T19:33:30.012Z	
+2026-05-14T19:33:30.013Z	Error: Command failed: npm run build
+2026-05-14T19:33:30.013Z	    at genericNodeError (node:internal/errors:985:15)
+2026-05-14T19:33:30.013Z	    at wrappedFn (node:internal/errors:539:14)
+2026-05-14T19:33:30.014Z	    at checkExecSyncError (node:child_process:925:11)
+2026-05-14T19:33:30.014Z	    at Object.execSync (node:child_process:997:15)
+2026-05-14T19:33:30.014Z	    at buildNextjsApp (file:///opt/buildhome/repo/node_modules/.pnpm/@opennextjs+aws@3.9.12_next@14.2.35_@babel+core@7.28.5_react-dom@18.3.1_react@18.3.1__react@18.3.1_/node_modules/@opennextjs/aws/dist/build/buildNextApp.js:15:8)
+2026-05-14T19:33:30.014Z	    at build (file:///opt/buildhome/repo/node_modules/.pnpm/@opennextjs+cloudflare@1.15.1_next@14.2.35_@babel+core@7.28.5_react-dom@18.3.1_react@18_717cb6cbd55da02b8be163864df0144d/node_modules/@opennextjs/cloudflare/dist/cli/build/build.js:48:9)
+2026-05-14T19:33:30.014Z	    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-05-14T19:33:30.014Z	    at async buildCommand (file:///opt/buildhome/repo/node_modules/.pnpm/@opennextjs+cloudflare@1.15.1_next@14.2.35_@babel+core@7.28.5_react-dom@18.3.1_react@18_717cb6cbd55da02b8be163864df0144d/node_modules/@opennextjs/cloudflare/dist/cli/commands/build.js:21:5) {
+2026-05-14T19:33:30.014Z	  status: 1,
+2026-05-14T19:33:30.014Z	  signal: null,
+2026-05-14T19:33:30.015Z	  output: [ null, null, null ],
+2026-05-14T19:33:30.015Z	  pid: 2382,
+2026-05-14T19:33:30.015Z	  stdout: null,
+2026-05-14T19:33:30.015Z	  stderr: null
+2026-05-14T19:33:30.015Z	}
+2026-05-14T19:33:30.115Z	 ELIFECYCLE  Command failed with exit code 1.
+2026-05-14T19:33:30.162Z	Failed: error occurred while running build command
