@@ -1514,8 +1514,8 @@ export const UserMenu: React.FC = () => {
               onClick={handleOpenProfileCenter}
               className='flex items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-white/70 dark:hover:bg-gray-700/40 transition-colors'
             >
-              <div className='relative flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-lg font-semibold text-white shadow-sm'>
-                <span>{avatarText}</span>
+              <div className='relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 shadow-sm overflow-hidden'>
+                <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
                 {shouldShowRoleBadge && (
                   <span
                     className={`absolute left-1/2 top-[calc(100%-6px)] z-10 -translate-x-1/2 inline-flex min-w-[26px] items-center justify-center whitespace-nowrap rounded-full px-1.5 py-[2px] text-[8px] leading-none font-medium shadow-sm ${roleBadgeClassName}`}

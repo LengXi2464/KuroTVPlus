@@ -63,8 +63,8 @@ export function PersonalCenterPanel({
             >
               <X className='w-5 h-5' />
             </button>
-            <div className='mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-blue-500 text-3xl font-semibold text-white shadow-md'>
-              {avatarText}
+            <div className='mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 shadow-md overflow-hidden'>
+              <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
             </div>
             {showRoleBadge && (
               <span

@@ -417,16 +417,14 @@ export default function AIChatPanel({
                 >
                   {/* 头像 */}
                   <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full overflow-hidden ${
                       message.role === 'user'
-                        ? 'bg-blue-500'
+                        ? 'bg-gray-200 dark:bg-gray-700'
                         : 'bg-purple-500'
                     }`}
                   >
                     {message.role === 'user' ? (
-                      <span className='text-xs font-semibold text-white'>
-                        {userAvatarText}
-                      </span>
+                      <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                       <Bot size={16} className='text-white' />
                     )}
@@ -623,16 +621,14 @@ export default function AIChatPanel({
                 >
                   {/* 头像 */}
                   <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full overflow-hidden ${
                       message.role === 'user'
-                        ? 'bg-blue-500'
+                        ? 'bg-gray-200 dark:bg-gray-700'
                         : 'bg-purple-500'
                     }`}
                   >
                     {message.role === 'user' ? (
-                      <span className='text-xs font-semibold text-white'>
-                        {userAvatarText}
-                      </span>
+                      <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                       <Bot size={16} className='text-white' />
                     )}
