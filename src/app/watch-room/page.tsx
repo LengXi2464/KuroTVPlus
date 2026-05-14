@@ -479,8 +479,8 @@ export default function WatchRoomPage() {
                             className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                                {getAvatarText(member.name)}
+                              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
                               </div>
                               <span className="font-medium text-gray-900 dark:text-gray-100">
                                 {member.name}
@@ -675,8 +675,8 @@ export default function WatchRoomPage() {
                             className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                                {getAvatarText(member.name)}
+                              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                                <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
                               </div>
                               <span className="font-medium text-gray-900 dark:text-gray-100">
                                 {member.name}
