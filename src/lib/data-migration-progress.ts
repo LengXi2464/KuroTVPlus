@@ -1,4 +1,4 @@
-// 存储进度信息的 Map
+// 存储进度信息�?Map
 const progressStore = new Map<string, {
   phase: string;
   current: number;
@@ -7,8 +7,7 @@ const progressStore = new Map<string, {
   timestamp: number;
 }>();
 
-// 清理过期的进度信息（超过5分钟）
-setInterval(() => {
+// 清理过期的进度信息（超过5分钟�?setInterval(() => {
   const now = Date.now();
   const entries = Array.from(progressStore.entries());
   for (const [key, value] of entries) {
@@ -18,8 +17,7 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-// 辅助函数：更新进度
-export function updateProgress(
+// 辅助函数：更新进�?export function updateProgress(
   username: string,
   operation: 'export' | 'import',
   phase: string,
@@ -37,14 +35,12 @@ export function updateProgress(
   });
 }
 
-// 辅助函数：清除进度
-export function clearProgress(username: string, operation: 'export' | 'import') {
+// 辅助函数：清除进�?export function clearProgress(username: string, operation: 'export' | 'import') {
   const progressKey = `${username}:${operation}`;
   progressStore.delete(progressKey);
 }
 
-// 辅助函数：获取进度
-export function getProgress(username: string, operation: 'export' | 'import') {
+// 辅助函数：获取进�?export function getProgress(username: string, operation: 'export' | 'import') {
   const progressKey = `${username}:${operation}`;
   return progressStore.get(progressKey);
 }

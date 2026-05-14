@@ -12,7 +12,7 @@ export async function resolvePan115Session(id: string) {
   const config = await getConfig();
   const pan115Config = config.NetDiskConfig?.Pan115;
   if (!pan115Config?.Enabled || !pan115Config.Cookie) {
-    throw new Error('115网盘未配置或未启用');
+    throw new Error('115网盘未配置或未启�?);
   }
 
   let session = refreshPan115NetdiskSession(id) || getPan115NetdiskSession(id);

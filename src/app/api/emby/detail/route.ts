@@ -18,13 +18,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const authResult = await requireFeaturePermission(request, 'emby', '无权限访问 Emby');
+    const authResult = await requireFeaturePermission(request, 'emby', '无权限访�?Emby');
     if (authResult instanceof NextResponse) return authResult;
-    // 获取Emby客户端
-    const client = await embyManager.getClient(embyKey);
+    // 获取Emby客户�?    const client = await embyManager.getClient(embyKey);
 
-    // 获取代理 token（如果启用了代理）
-    const proxyToken = client.isProxyEnabled() ? await getProxyToken(request) : null;
+    // 获取代理 token（如果启用了代理�?    const proxyToken = client.isProxyEnabled() ? await getProxyToken(request) : null;
 
     // 获取媒体详情
     const item = await client.getItem(itemId);
@@ -32,8 +30,7 @@ export async function GET(request: NextRequest) {
     let episodes: any[] = [];
 
     if (item.Type === 'Series') {
-      // 获取所有剧集
-      const allEpisodes = await client.getEpisodes(itemId);
+      // 获取所有剧�?      const allEpisodes = await client.getEpisodes(itemId);
 
       episodes = await Promise.all(
         allEpisodes

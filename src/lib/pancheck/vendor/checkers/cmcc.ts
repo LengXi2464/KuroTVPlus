@@ -80,11 +80,11 @@ export async function checkCMCC(link) {
       return { valid: true, reason: '' };
     }
 
-    const failReason = response.desc || (response.resultCode ? `错误码: ${response.resultCode}` : '获取分享信息失败');
+    const failReason = response.desc || (response.resultCode ? `错误�? ${response.resultCode}` : '获取分享信息失败');
     return { valid: false, reason: failReason };
   } catch (err) {
     if (err.message === '请求超时') return { valid: false, reason: '请求超时' };
-    return { valid: false, reason: `检测失败: ${err.message}` };
+    return { valid: false, reason: `检测失�? ${err.message}` };
   }
 }
 

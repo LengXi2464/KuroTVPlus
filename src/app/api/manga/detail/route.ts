@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const sourceId = searchParams.get('sourceId')?.trim();
 
     if (!mangaId || !sourceId) {
-      return NextResponse.json({ error: '缺少 mangaId 或 sourceId' }, { status: 400 });
+      return NextResponse.json({ error: '缺少 mangaId �?sourceId' }, { status: 400 });
     }
 
     const detail = await suwayomiClient.getMangaDetail({

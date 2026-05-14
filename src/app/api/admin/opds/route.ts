@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const inputSources = (body?.Sources || []) as TestSourceInput[];
     if (!Array.isArray(inputSources) || inputSources.length === 0) {
-      return NextResponse.json({ success: false, message: '请至少填写一个 OPDS 书源' }, { status: 400 });
+      return NextResponse.json({ success: false, message: '请至少填写一�?OPDS 书源' }, { status: 400 });
     }
 
     const sources: BookSource[] = inputSources
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
     const successCount = results.filter((item) => item.capability.catalogSupported || item.capability.searchSupported).length;
     return NextResponse.json({
       success: successCount > 0,
-      message: `测试完成，${successCount}/${results.length} 个书源可用`,
+      message: `测试完成�?{successCount}/${results.length} 个书源可用`,
       results,
     });
   } catch (error) {

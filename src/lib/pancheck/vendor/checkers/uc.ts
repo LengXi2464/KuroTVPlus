@@ -21,14 +21,14 @@ export async function checkUC(link) {
     }
 
     const pageText = body.toLowerCase();
-    for (const keyword of ['失效', '不存在', '违规', '删除', '已过期', '被取消']) {
-      if (pageText.includes(keyword)) return { valid: false, reason: '链接已失效' };
+    for (const keyword of ['失效', '不存�?, '违规', '删除', '已过�?, '被取�?]) {
+      if (pageText.includes(keyword)) return { valid: false, reason: '链接已失�? };
     }
     for (const keyword of ['文件', '分享']) {
       if (pageText.includes(keyword)) return { valid: true, reason: '' };
     }
 
-    return { valid: false, reason: '无法判断链接有效性' };
+    return { valid: false, reason: '无法判断链接有效�? };
   } catch (err) {
     if (err.message === '请求超时') return { valid: true, reason: '' };
     return { valid: true, reason: '' };

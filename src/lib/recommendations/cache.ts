@@ -194,7 +194,7 @@ export function initRecommendationCacheModule(): void {
     void clearExpiredRecommendationCaches()
       .then((count) => {
         if (count > 0) {
-          console.log(`[推荐缓存] 启动清理: 已删除 ${count} 个过期缓存`);
+          console.log(`[推荐缓存] 启动清理: 已删�?${count} 个过期缓存`);
         }
       })
       .catch((error) => {

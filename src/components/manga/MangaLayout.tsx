@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 
 import { BookOpen, ChevronLeft, Compass, History, List, Search, Settings2 } from 'lucide-react';
 import Link from 'next/link';
@@ -14,43 +14,43 @@ interface MangaLayoutProps {
 }
 
 const sectionTabs = [
-  { href: '/manga', label: 'æ¨è', icon: Compass },
-  { href: '/manga/search', label: 'æœç´¢', icon: Search },
-  { href: '/manga/shelf', label: 'ä¹¦æ¶', icon: BookOpen },
-  { href: '/manga/history', label: 'å†å²', icon: History },
+  { href: '/manga', label: 'ÍÆ¼ö', icon: Compass },
+  { href: '/manga/search', label: 'ËÑË÷', icon: Search },
+  { href: '/manga/shelf', label: 'Êé¼Ü', icon: BookOpen },
+  { href: '/manga/history', label: 'ÀúÊ·', icon: History },
 ];
 
 function getMeta(pathname: string, searchParams: ReturnType<typeof useSearchParams>) {
   if (pathname === '/manga/shelf') {
-    return { title: 'æ¼«ç”»ä¹¦æ¶', subtitle: 'é›†ä¸­ç®¡ç†æ”¶è—çš„æ¼«ç”»' };
+    return { title: 'Âş»­Êé¼Ü', subtitle: '¼¯ÖĞ¹ÜÀíÊÕ²ØµÄÂş»­' };
   }
   if (pathname === '/manga/history') {
-    return { title: 'æ¼«ç”»å†å²', subtitle: 'ä»ä¸Šæ¬¡é˜…è¯»çš„ä½ç½®ç»§ç»­' };
+    return { title: 'Âş»­ÀúÊ·', subtitle: '´ÓÉÏ´ÎÔÄ¶ÁµÄÎ»ÖÃ¼ÌĞø' };
   }
   if (pathname === '/manga/search') {
-    return { title: 'æ¼«ç”»æœç´¢', subtitle: 'æŒ‰æ ‡é¢˜å’Œæ¥æºæœç´¢æ¼«ç”»' };
+    return { title: 'Âş»­ËÑË÷', subtitle: '°´±êÌâºÍÀ´Ô´ËÑË÷Âş»­' };
   }
   if (pathname === '/manga/detail') {
     return {
-      title: searchParams.get('title') || 'æ¼«ç”»è¯¦æƒ…',
-      subtitle: searchParams.get('sourceName') || 'æ¼«ç”»è¯¦æƒ…',
+      title: searchParams.get('title') || 'Âş»­ÏêÇé',
+      subtitle: searchParams.get('sourceName') || 'Âş»­ÏêÇé',
       backHref: searchParams.get('returnTo') || '/manga',
     };
   }
   if (pathname === '/manga/read') {
     const mangaId = searchParams.get('mangaId') || '';
     const sourceId = searchParams.get('sourceId') || '';
-    const title = searchParams.get('title') || 'æ¼«ç”»é˜…è¯»';
+    const title = searchParams.get('title') || 'Âş»­ÔÄ¶Á';
     const cover = searchParams.get('cover') || '';
     const sourceName = searchParams.get('sourceName') || sourceId;
     const returnTo = searchParams.get('returnTo') || '/manga';
     return {
       title,
-      subtitle: searchParams.get('chapterName') || 'ç« èŠ‚',
+      subtitle: searchParams.get('chapterName') || 'ÕÂ½Ú',
       backHref: `/manga/detail?mangaId=${encodeURIComponent(mangaId)}&sourceId=${encodeURIComponent(sourceId)}&title=${encodeURIComponent(title)}&cover=${encodeURIComponent(cover)}&sourceName=${encodeURIComponent(sourceName)}&returnTo=${encodeURIComponent(returnTo)}`,
     };
   }
-  return { title: 'æ¼«ç”»æ¨è', subtitle: 'æŒ‰æ¥æºæŸ¥çœ‹çƒ­é—¨ä¸æœ€æ–°æ¼«ç”»' };
+  return { title: 'Âş»­ÍÆ¼ö', subtitle: '°´À´Ô´²é¿´ÈÈÃÅÓë×îĞÂÂş»­' };
 }
 
 export default function MangaLayout({ children }: MangaLayoutProps) {
@@ -127,7 +127,7 @@ export default function MangaLayout({ children }: MangaLayoutProps) {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('manga-read-toggle-chapters'));
                   }}
-                  aria-label='ç« èŠ‚åˆ—è¡¨'
+                  aria-label='ÕÂ½ÚÁĞ±í'
                 >
                   <List className='h-5 w-5' />
                 </button>
@@ -137,7 +137,7 @@ export default function MangaLayout({ children }: MangaLayoutProps) {
                   onClick={() => {
                     window.dispatchEvent(new CustomEvent('manga-read-toggle-settings'));
                   }}
-                  aria-label='é˜…è¯»è®¾ç½®'
+                  aria-label='ÔÄ¶ÁÉèÖÃ'
                 >
                   <Settings2 className='h-5 w-5' />
                 </button>

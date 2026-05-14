@@ -29,8 +29,7 @@ export default function EpisodeFilterSettings({
   const [saving, setSaving] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [inputKey, setInputKey] = useState(0); // 用于强制重新渲染输入框
-  const inputRef = useRef<HTMLInputElement>(null); // 用于直接操作输入框 DOM
+  const [inputKey, setInputKey] = useState(0); // 用于强制重新渲染输入�?  const inputRef = useRef<HTMLInputElement>(null); // 用于直接操作输入�?DOM
   const [mounted, setMounted] = useState(false);
 
   // 确保组件在客户端挂载后才渲染 Portal
@@ -38,8 +37,7 @@ export default function EpisodeFilterSettings({
     setMounted(true);
   }, []);
 
-  // 控制动画状态
-  useEffect(() => {
+  // 控制动画状�?  useEffect(() => {
     let animationId: number;
     let timer: NodeJS.Timeout;
 
@@ -53,8 +51,7 @@ export default function EpisodeFilterSettings({
       });
     } else {
       setIsAnimating(false);
-      // 等待动画完成后隐藏组件
-      timer = setTimeout(() => {
+      // 等待动画完成后隐藏组�?      timer = setTimeout(() => {
         setIsVisible(false);
       }, 300);
     }
@@ -78,8 +75,7 @@ export default function EpisodeFilterSettings({
       const body = document.body;
       const html = document.documentElement;
 
-      // 获取滚动条宽度
-      const scrollBarWidth = window.innerWidth - html.clientWidth;
+      // 获取滚动条宽�?      const scrollBarWidth = window.innerWidth - html.clientWidth;
 
       // 保存原始样式
       const originalBodyStyle = {
@@ -102,8 +98,7 @@ export default function EpisodeFilterSettings({
       body.style.paddingRight = `${scrollBarWidth}px`;
 
       return () => {
-        // 恢复所有原始样式
-        body.style.position = originalBodyStyle.position;
+        // 恢复所有原始样�?        body.style.position = originalBodyStyle.position;
         body.style.top = originalBodyStyle.top;
         body.style.left = originalBodyStyle.left;
         body.style.right = originalBodyStyle.right;
@@ -157,7 +152,7 @@ export default function EpisodeFilterSettings({
     const normalizedConfig = normalizeEpisodeFilterConfig(config);
     if (normalizedConfig.reverseMode && normalizedConfig.rules.length === 0) {
       if (onShowToast) {
-        onShowToast('启用相反模式时，至少需要添加一条规则', 'info');
+        onShowToast('启用相反模式时，至少需要添加一条规�?, 'info');
       }
       return;
     }
@@ -169,7 +164,7 @@ export default function EpisodeFilterSettings({
         onConfigUpdate(normalizedConfig);
       }
       if (onShowToast) {
-        onShowToast('保存成功！', 'success');
+        onShowToast('保存成功�?, 'success');
       }
       // 延迟关闭面板，让用户看到toast
       setTimeout(() => {
@@ -215,11 +210,8 @@ export default function EpisodeFilterSettings({
     // 使用 setTimeout 确保在状态更新后操作 DOM
     setTimeout(() => {
       if (inputRef.current) {
-        inputRef.current.value = ''; // 直接清空 DOM 值
-        inputRef.current.blur(); // 失去焦点，阻止自动填充
-      }
-      setInputKey(prev => prev + 1); // 强制重新渲染输入框
-    }, 0);
+        inputRef.current.value = ''; // 直接清空 DOM �?        inputRef.current.blur(); // 失去焦点，阻止自动填�?      }
+      setInputKey(prev => prev + 1); // 强制重新渲染输入�?    }, 0);
   };
 
   // 删除规则
@@ -234,8 +226,7 @@ export default function EpisodeFilterSettings({
     });
   };
 
-  // 切换规则启用状态
-  const handleToggleRule = (id: string | undefined) => {
+  // 切换规则启用状�?  const handleToggleRule = (id: string | undefined) => {
     if (!id) return;
     setConfig((prev) => {
       const normalizedConfig = normalizeEpisodeFilterConfig(prev);
@@ -259,8 +250,7 @@ export default function EpisodeFilterSettings({
         e.stopPropagation();
       }}
       style={{
-        touchAction: 'none', // 禁用所有触摸操作
-      }}
+        touchAction: 'none', // 禁用所有触摸操�?      }}
     >
       {/* 背景遮罩 */}
       <div
@@ -279,8 +269,7 @@ export default function EpisodeFilterSettings({
         style={{
           backdropFilter: 'blur(4px)',
           willChange: 'opacity',
-          touchAction: 'none', // 禁用所有触摸操作
-        }}
+          touchAction: 'none', // 禁用所有触摸操�?        }}
       />
 
       {/* 弹窗主体 */}
@@ -296,12 +285,11 @@ export default function EpisodeFilterSettings({
           backfaceVisibility: 'hidden', // 避免闪烁
           transform: isAnimating
             ? 'translateY(0) translateZ(0)'
-            : 'translateY(100%) translateZ(0)', // 组合变换保持滑入效果和硬件加速
-          opacity: isAnimating ? 1 : 0,
+            : 'translateY(100%) translateZ(0)', // 组合变换保持滑入效果和硬件加�?          opacity: isAnimating ? 1 : 0,
           touchAction: 'auto', // 允许弹窗内的正常触摸操作
         }}
       >
-        {/* 顶部拖拽指示器 */}
+        {/* 顶部拖拽指示�?*/}
         <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 pt-3 pb-2">
           <div className="flex justify-center">
             <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
@@ -331,16 +319,14 @@ export default function EpisodeFilterSettings({
                   相反模式
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                  开启后，将屏蔽改为仅显示符合规则的集数。
-                </p>
+                  开启后，将屏蔽改为仅显示符合规则的集数�?                </p>
                 <p className="mt-1 text-xs leading-relaxed text-amber-600 dark:text-amber-400">
-                  启用时必须至少保留一条规则才能保存。
-                </p>
+                  启用时必须至少保留一条规则才能保存�?                </p>
               </div>
               <button
                 onClick={handleToggleReverseMode}
                 className="flex-shrink-0 active:scale-95 transition-transform duration-150"
-                title={config.reverseMode ? '关闭相反模式' : '开启相反模式'}
+                title={config.reverseMode ? '关闭相反模式' : '开启相反模�?}
               >
                 {config.reverseMode ? (
                   <ToggleRight
@@ -382,7 +368,7 @@ export default function EpisodeFilterSettings({
                   onChange={(e) => setNewType(e.target.value as 'normal' | 'regex')}
                   className="flex-1 px-4 py-3 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg border border-gray-200 dark:border-gray-600 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all duration-200"
                 >
-                  <option value="normal">普通模式</option>
+                  <option value="normal">普通模�?/option>
                   <option value="regex">正则模式</option>
                 </select>
                 <button
@@ -396,9 +382,8 @@ export default function EpisodeFilterSettings({
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
               💡 普通模式：集数标题包含关键字即命中规则<br/>
-              🔄 相反模式：仅显示命中规则的集数<br/>
-              🔧 正则模式：支持正则表达式匹配（如：^预告.*匹配以"预告"开头的集数）
-            </p>
+              🔄 相反模式：仅显示命中规则的集�?br/>
+              🔧 正则模式：支持正则表达式匹配（如：^预告.*匹配�?预告"开头的集数�?            </p>
           </div>
 
           {/* 规则列表 */}
@@ -416,7 +401,7 @@ export default function EpisodeFilterSettings({
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <div className="inline-flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-gray-300 border-t-green-500 rounded-full animate-spin"></div>
-                  <span>加载中...</span>
+                  <span>加载�?..</span>
                 </div>
               </div>
             ) : config.rules.length === 0 ? (
@@ -427,7 +412,7 @@ export default function EpisodeFilterSettings({
                   </div>
                   <div>
                     <p className="font-medium">暂无屏蔽规则</p>
-                    <p className="text-sm mt-1">点击上方添加关键字</p>
+                    <p className="text-sm mt-1">点击上方添加关键�?/p>
                   </div>
                 </div>
               </div>
@@ -456,7 +441,7 @@ export default function EpisodeFilterSettings({
                       )}
                     </button>
 
-                    {/* 关键字 */}
+                    {/* 关键�?*/}
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col gap-1.5">
                         <span
@@ -473,7 +458,7 @@ export default function EpisodeFilterSettings({
                               : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                           }`}
                         >
-                          {rule.type === 'regex' ? '🔧 正则' : '💬 普通'}
+                          {rule.type === 'regex' ? '🔧 正则' : '💬 普�?}
                         </span>
                       </div>
                     </div>
@@ -509,7 +494,7 @@ export default function EpisodeFilterSettings({
               {saving ? (
                 <span className="inline-flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  保存中...
+                  保存�?..
                 </span>
               ) : (
                 '保存'

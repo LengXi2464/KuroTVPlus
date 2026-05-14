@@ -25,8 +25,7 @@ export function useWebLiveSync({
   const watchRoom = useWatchRoomContextSafe();
   const syncingRef = useRef(false); // 防止循环同步
 
-  // 检查是否在房间内
-  const isInRoom = !!(watchRoom && watchRoom.currentRoom);
+  // 检查是否在房间�?  const isInRoom = !!(watchRoom && watchRoom.currentRoom);
   const isOwner = watchRoom?.isOwner || false;
   const currentRoom = watchRoom?.currentRoom;
   const socket = watchRoom?.socket;
@@ -60,7 +59,7 @@ export function useWebLiveSync({
       syncingRef.current = true;
 
       try {
-        // 解析 channelUrl 获取 platform 和 roomId
+        // 解析 channelUrl 获取 platform �?roomId
         const [platform, roomId] = state.channelUrl.split(':');
 
         // 调用回调函数来切换直播源
@@ -90,15 +89,12 @@ export function useWebLiveSync({
 
     const timer = setTimeout(() => {
       broadcastSourceChange();
-    }, 500); // 延迟广播，避免频繁触发
-
+    }, 500); // 延迟广播，避免频繁触�?
     return () => clearTimeout(timer);
   }, [isOwner, currentSourceKey, currentSourcePlatform, currentSourceRoomId, broadcastSourceChange, isInRoom]);
 
   return {
     isInRoom,
     isOwner,
-    shouldDisableControls: isInRoom && !isOwner, // 房员禁用直播源切换
-    broadcastSourceChange, // 导出供手动调用
-  };
+    shouldDisableControls: isInRoom && !isOwner, // 房员禁用直播源切�?    broadcastSourceChange, // 导出供手动调�?  };
 }

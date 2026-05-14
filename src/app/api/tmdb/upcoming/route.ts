@@ -14,26 +14,23 @@ const CACHE_DURATION = 60 * 60 * 1000; // 1小时（毫秒）
 
 export async function GET(request: NextRequest) {
   try {
-    // 检查缓存是否存在且未过期
-    const now = Date.now();
+    // 检查缓存是否存在且未过�?    const now = Date.now();
     if (cache && now - cache.timestamp < CACHE_DURATION) {
       return NextResponse.json({
         code: 200,
         data: cache.data,
         cached: true,
-        cacheAge: Math.floor((now - cache.timestamp) / 1000), // 缓存年龄（秒）
-      });
+        cacheAge: Math.floor((now - cache.timestamp) / 1000), // 缓存年龄（秒�?      });
     }
 
-    // 缓存不存在或已过期，获取新数据
-    const config = await getConfig();
+    // 缓存不存在或已过期，获取新数�?    const config = await getConfig();
     const tmdbApiKey = config.SiteConfig?.TMDBApiKey;
     const tmdbProxy = config.SiteConfig?.TMDBProxy;
     const tmdbReverseProxy = config.SiteConfig?.TMDBReverseProxy;
 
     if (!tmdbApiKey) {
       return NextResponse.json(
-        { code: 400, message: 'TMDB API Key 未配置' },
+        { code: 400, message: 'TMDB API Key 未配�? },
         { status: 400 }
       );
     }
@@ -62,7 +59,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('获取TMDB即将上映数据失败:', error);
     return NextResponse.json(
-      { code: 500, message: '服务器内部错误' },
+      { code: 500, message: '服务器内部错�? },
       { status: 500 }
     );
   }

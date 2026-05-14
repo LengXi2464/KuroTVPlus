@@ -41,7 +41,7 @@ export default function AdvancedRecommendationPage() {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || '获取脚本源失败');
+          throw new Error(data.error || '获取脚本源失�?);
         }
 
         const nextSources: ScriptSourceOption[] = Array.isArray(data.sources)
@@ -57,7 +57,7 @@ export default function AdvancedRecommendationPage() {
 
         setSelectedSource(initialSource);
       } catch (err) {
-        setError(err instanceof Error ? err.message : '获取脚本源失败');
+        setError(err instanceof Error ? err.message : '获取脚本源失�?);
       } finally {
         setIsLoadingSources(false);
         initializedRef.current = true;
@@ -151,8 +151,7 @@ export default function AdvancedRecommendationPage() {
         <div className='max-w-6xl mx-auto space-y-6'>
           <div>
             <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
-              选择脚本源
-            </label>
+              选择脚本�?            </label>
             {isLoadingSources ? (
               <div className='flex items-center justify-center h-12 bg-gray-50/80 rounded-lg border border-gray-200/50 dark:bg-gray-800 dark:border-gray-700'>
                 <Loader2 className='h-5 w-5 animate-spin text-gray-400' />

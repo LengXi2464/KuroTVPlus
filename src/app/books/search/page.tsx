@@ -146,7 +146,7 @@ export default function BooksSearchPage() {
     <div className='space-y-6'>
       <section className='rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950'>
         <form onSubmit={async (e) => { e.preventDefault(); const trimmed = q.trim(); if (!trimmed) return; const params = new URLSearchParams(); params.set('q', trimmed); if (sourceId) params.set('sourceId', sourceId); router.replace(`/books/search?${params.toString()}`); await performSearch(trimmed, sourceId, { forceRefresh: true }); }} className='space-y-3'>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='搜索书名 / 作者' className='w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none dark:border-gray-700 dark:bg-gray-900' />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder='搜索书名 / 作�? className='w-full rounded-2xl border border-gray-200 px-4 py-3 outline-none dark:border-gray-700 dark:bg-gray-900' />
           <select value={sourceId} onChange={(e) => setSourceId(e.target.value)} className='w-full rounded-2xl border border-gray-200 px-4 py-3 dark:border-gray-700 dark:bg-gray-900'>
             <option value=''>全部书源</option>
             {sources.map((source) => <option key={source.id} value={source.id}>{source.name}</option>)}
@@ -156,7 +156,7 @@ export default function BooksSearchPage() {
       </section>
       {loading ? <SearchSkeleton /> : null}
       {error ? <div className='rounded-2xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/20 dark:text-red-300'>{error}</div> : null}
-      {result.failedSources.length > 0 ? <div className='rounded-2xl bg-amber-50 p-4 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300'>{result.failedSources.map((item) => `${item.sourceName}: ${item.error}`).join('；')}</div> : null}
+      {result.failedSources.length > 0 ? <div className='rounded-2xl bg-amber-50 p-4 text-sm text-amber-700 dark:bg-amber-950/20 dark:text-amber-300'>{result.failedSources.map((item) => `${item.sourceName}: ${item.error}`).join('�?)}</div> : null}
       <section className='grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6'>
         {result.results.map((item) => <BookCard key={`${item.sourceId}-${item.id}`} item={item} href={detailHref(item)} onNavigate={() => cacheBookListItem(item)} />)}
       </section>

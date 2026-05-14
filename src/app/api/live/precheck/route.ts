@@ -8,7 +8,7 @@ import { requireFeaturePermission } from '@/lib/permissions';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
-  const authResult = await requireFeaturePermission(request, 'live', '无权限访问电视直播');
+  const authResult = await requireFeaturePermission(request, 'live', '无权限访问电视直�?);
   if (authResult instanceof NextResponse) return authResult;
   const { searchParams } = new URL(request.url);
   const url = searchParams.get('url');

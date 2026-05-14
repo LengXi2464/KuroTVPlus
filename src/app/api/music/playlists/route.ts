@@ -9,22 +9,20 @@ import { requireFeaturePermission } from '@/lib/permissions';
 
 export const runtime = 'nodejs';
 
-// GET - 获取用户的所有歌单
-export async function GET(request: NextRequest) {
+// GET - 获取用户的所有歌�?export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功能');
+    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功�?);
     if (authResult instanceof NextResponse) return authResult;
-    // 从 cookie 获取用户信息
+    // �?cookie 获取用户信息
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 检查用户状态
-    if (authInfo.username !== process.env.USERNAME) {
+    // 检查用户状�?    if (authInfo.username !== process.env.USERNAME) {
       const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -43,22 +41,20 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - 创建新歌单
-export async function POST(request: NextRequest) {
+// POST - 创建新歌�?export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功能');
+    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功�?);
     if (authResult instanceof NextResponse) return authResult;
-    // 从 cookie 获取用户信息
+    // �?cookie 获取用户信息
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 检查用户状态
-    if (authInfo.username !== process.env.USERNAME) {
+    // 检查用户状�?    if (authInfo.username !== process.env.USERNAME) {
       const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -98,19 +94,18 @@ export async function POST(request: NextRequest) {
 // PUT - 更新歌单信息
 export async function PUT(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功能');
+    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功�?);
     if (authResult instanceof NextResponse) return authResult;
-    // 从 cookie 获取用户信息
+    // �?cookie 获取用户信息
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 检查用户状态
-    if (authInfo.username !== process.env.USERNAME) {
+    // 检查用户状�?    if (authInfo.username !== process.env.USERNAME) {
       const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -130,7 +125,7 @@ export async function PUT(request: NextRequest) {
     // 检查歌单是否存在且属于当前用户
     const playlist = await db.getMusicPlaylist(playlistId);
     if (!playlist) {
-      return NextResponse.json({ error: '歌单不存在' }, { status: 404 });
+      return NextResponse.json({ error: '歌单不存�? }, { status: 404 });
     }
     if (playlist.username !== authInfo.username) {
       return NextResponse.json({ error: '无权限操作此歌单' }, { status: 403 });
@@ -158,19 +153,18 @@ export async function PUT(request: NextRequest) {
 // DELETE - 删除歌单
 export async function DELETE(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功能');
+    const authResult = await requireFeaturePermission(request, 'music', '无权限访问音乐功�?);
     if (authResult instanceof NextResponse) return authResult;
-    // 从 cookie 获取用户信息
+    // �?cookie 获取用户信息
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 检查用户状态
-    if (authInfo.username !== process.env.USERNAME) {
+    // 检查用户状�?    if (authInfo.username !== process.env.USERNAME) {
       const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -190,7 +184,7 @@ export async function DELETE(request: NextRequest) {
     // 检查歌单是否存在且属于当前用户
     const playlist = await db.getMusicPlaylist(playlistId);
     if (!playlist) {
-      return NextResponse.json({ error: '歌单不存在' }, { status: 404 });
+      return NextResponse.json({ error: '歌单不存�? }, { status: 404 });
     }
     if (playlist.username !== authInfo.username) {
       return NextResponse.json({ error: '无权限操作此歌单' }, { status: 403 });

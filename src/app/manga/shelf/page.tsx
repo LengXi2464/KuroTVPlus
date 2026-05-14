@@ -63,8 +63,7 @@ export default function MangaShelfPage() {
   return (
     <section className='mx-auto max-w-6xl'>
       <div className='mb-4 flex items-center gap-2 text-sm text-gray-500'>
-        <BookOpen className='h-4 w-4 text-emerald-500' /> 共 {shelfList.length} 本漫画
-      </div>
+        <BookOpen className='h-4 w-4 text-emerald-500' /> �?{shelfList.length} 本漫�?      </div>
       {loading ? (
         <MangaShelfSkeleton />
       ) : shelfList.length === 0 ? (
@@ -80,7 +79,7 @@ export default function MangaShelfPage() {
                 href={`/manga/detail?mangaId=${item.mangaId}&sourceId=${item.sourceId}&title=${encodeURIComponent(item.title)}&cover=${encodeURIComponent(item.cover)}&sourceName=${encodeURIComponent(item.sourceName)}`}
                 subtitle={
                   item.unreadChapterCount && item.unreadChapterCount > 0
-                    ? `更新至 ${item.latestChapterName || '最新章节'} · 新增 ${item.unreadChapterCount} 话`
+                    ? `更新�?${item.latestChapterName || '最新章�?} · 新增 ${item.unreadChapterCount} 话`
                     : item.lastChapterName || item.author || item.status
                 }
                 updateCount={item.unreadChapterCount}

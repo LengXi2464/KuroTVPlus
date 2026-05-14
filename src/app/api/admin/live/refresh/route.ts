@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    // 权限检查 - 使用v2用户系统
+    // 权限检�?- 使用v2用户系统
     const authInfo = getAuthInfoFromCookie(request);
     const username = authInfo?.username;
     const config = await getConfig();
@@ -22,8 +22,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 并发刷新所有启用的直播源
-    const refreshPromises = (config.LiveConfig || [])
+    // 并发刷新所有启用的直播�?    const refreshPromises = (config.LiveConfig || [])
       .filter(liveInfo => !liveInfo.disabled)
       .map(async (liveInfo) => {
         try {
@@ -34,18 +33,17 @@ export async function POST(request: NextRequest) {
         }
       });
 
-    // 等待所有刷新任务完成
-    await Promise.all(refreshPromises);
+    // 等待所有刷新任务完�?    await Promise.all(refreshPromises);
 
     // 保存配置
     await db.saveAdminConfig(config);
 
     return NextResponse.json({
       success: true,
-      message: '直播源刷新成功',
+      message: '直播源刷新成�?,
     });
   } catch (error) {
-    console.error('直播源刷新失败:', error);
+    console.error('直播源刷新失�?', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : '刷新失败' },
       { status: 500 }

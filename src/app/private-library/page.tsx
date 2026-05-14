@@ -44,16 +44,14 @@ export default function PrivateLibraryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 获取运行时配置
-  const runtimeConfig = useMemo(() => {
+  // 获取运行时配�?  const runtimeConfig = useMemo(() => {
     if (typeof window !== 'undefined' && (window as any).RUNTIME_CONFIG) {
       return (window as any).RUNTIME_CONFIG;
     }
     return { OPENLIST_ENABLED: false, EMBY_ENABLED: false, XIAOYA_ENABLED: false };
   }, []);
 
-  // 解析URL中的source参数（支持 emby:emby1 格式）
-  const parseSourceParam = (sourceParam: string | null): { sourceType: LibrarySourceType; embyKey?: string } => {
+  // 解析URL中的source参数（支�?emby:emby1 格式�?  const parseSourceParam = (sourceParam: string | null): { sourceType: LibrarySourceType; embyKey?: string } => {
     if (!sourceParam) return { sourceType: 'openlist' };
 
     if (sourceParam.includes(':')) {
@@ -76,15 +74,13 @@ export default function PrivateLibraryPage() {
   const [embyViews, setEmbyViews] = useState<EmbyView[]>([]);
   const [selectedView, setSelectedView] = useState<string>('all');
   const [loadingViews, setLoadingViews] = useState(false);
-  // Emby排序状态
-  const [sortBy, setSortBy] = useState<string>('SortName');
+  // Emby排序状�?  const [sortBy, setSortBy] = useState<string>('SortName');
   const [sortOrder, setSortOrder] = useState<'Ascending' | 'Descending'>('Ascending');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [sortDropdownPosition, setSortDropdownPosition] = useState<{ x: number; y: number; width: number }>({ x: 0, y: 0, width: 0 });
   const sortButtonRef = useRef<HTMLDivElement | null>(null);
   const sortDropdownRef = useRef<HTMLDivElement | null>(null);
-  // 小雅相关状态
-  const [xiaoyaPath, setXiaoyaPath] = useState<string>('/');
+  // 小雅相关状�?  const [xiaoyaPath, setXiaoyaPath] = useState<string>('/');
   const [xiaoyaFolders, setXiaoyaFolders] = useState<Array<{ name: string; path: string }>>([]);
   const [xiaoyaFiles, setXiaoyaFiles] = useState<Array<{ name: string; path: string }>>([]);
   const [xiaoyaSearchKeyword, setXiaoyaSearchKeyword] = useState<string>('');
@@ -103,8 +99,7 @@ export default function PrivateLibraryPage() {
   const isInitializedRef = useRef(false);
   const hasRestoredViewRef = useRef(false);
 
-  // 客户端挂载标记
-  useEffect(() => {
+  // 客户端挂载标�?  useEffect(() => {
     setMounted(true);
   }, []);
 
@@ -141,8 +136,7 @@ export default function PrivateLibraryPage() {
     }
   };
 
-  // 从URL初始化状态，并检查配置自动跳转
-  useEffect(() => {
+  // 从URL初始化状态，并检查配置自动跳�?  useEffect(() => {
     const urlSourceParam = searchParams.get('source');
 
     // 解析source参数
@@ -161,8 +155,7 @@ export default function PrivateLibraryPage() {
     isInitializedRef.current = true;
   }, [searchParams, runtimeConfig]);
 
-  // 获取Emby源列表
-  useEffect(() => {
+  // 获取Emby源列�?  useEffect(() => {
     const fetchEmbySources = async () => {
       try {
         const response = await fetch('/api/emby/sources');
@@ -176,7 +169,7 @@ export default function PrivateLibraryPage() {
           }
         }
       } catch (error) {
-        console.error('获取Emby源列表失败:', error);
+        console.error('获取Emby源列表失�?', error);
       }
     };
 
@@ -246,8 +239,7 @@ export default function PrivateLibraryPage() {
     isFetchingRef.current = false;
   }, [sortBy, sortOrder, sourceType]);
 
-  // 获取 Emby 媒体库列表
-  useEffect(() => {
+  // 获取 Emby 媒体库列�?  useEffect(() => {
     if (sourceType !== 'emby' || !embyKey) return;
 
     const fetchEmbyViews = async () => {
@@ -258,13 +250,12 @@ export default function PrivateLibraryPage() {
         const data = await response.json();
 
         if (data.error) {
-          console.error('获取 Emby 媒体库列表失败:', data.error);
+          console.error('获取 Emby 媒体库列表失�?', data.error);
           setEmbyViews([]);
         } else {
           setEmbyViews(data.views || []);
 
-          // 分类加载完成后，检查URL中是否有view参数（只在第一次加载时恢复）
-          if (!hasRestoredViewRef.current) {
+          // 分类加载完成后，检查URL中是否有view参数（只在第一次加载时恢复�?          if (!hasRestoredViewRef.current) {
             const urlView = searchParams.get('view');
             if (urlView && data.views && data.views.length > 0) {
               // 检查该view是否存在于分类列表中
@@ -277,7 +268,7 @@ export default function PrivateLibraryPage() {
           }
         }
       } catch (err) {
-        console.error('获取 Emby 媒体库列表失败:', err);
+        console.error('获取 Emby 媒体库列表失�?', err);
         setEmbyViews([]);
       } finally {
         setLoadingViews(false);
@@ -385,8 +376,7 @@ export default function PrivateLibraryPage() {
     setSortOrder(sortOrder === 'Ascending' ? 'Descending' : 'Ascending');
   };
 
-  // 点击外部关闭排序下拉框
-  useEffect(() => {
+  // 点击外部关闭排序下拉�?  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         sortDropdownRef.current &&
@@ -414,29 +404,27 @@ export default function PrivateLibraryPage() {
     };
   }, [showSortDropdown]);
 
-  // 加载数据的函数
-  useEffect(() => {
+  // 加载数据的函�?  useEffect(() => {
     const fetchVideos = async () => {
       const isInitial = page === 1;
 
-      // 取消之前的请求
-      if (abortControllerRef.current) {
+      // 取消之前的请�?      if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // 如果选择了 openlist 但未配置，不发起请求
+      // 如果选择�?openlist 但未配置，不发起请求
       if (sourceType === 'openlist' && !runtimeConfig.OPENLIST_ENABLED) {
         setLoading(false);
         return;
       }
 
-      // 如果选择了 emby 但未配置或没有embyKey，不发起请求
+      // 如果选择�?emby 但未配置或没有embyKey，不发起请求
       if (sourceType === 'emby' && (!runtimeConfig.EMBY_ENABLED || !embyKey)) {
         setLoading(false);
         return;
       }
 
-      // 如果选择了 xiaoya 但未配置，不发起请求
+      // 如果选择�?xiaoya 但未配置，不发起请求
       if (sourceType === 'xiaoya' && !runtimeConfig.XIAOYA_ENABLED) {
         setLoading(false);
         return;
@@ -479,9 +467,7 @@ export default function PrivateLibraryPage() {
           if (sourceType === 'xiaoya') {
             setXiaoyaFolders(data.folders || []);
             setXiaoyaFiles(data.files || []);
-            setVideos([]); // 小雅不使用 videos 状态
-            setHasMore(false); // 小雅不需要分页
-          } else {
+            setVideos([]); // 小雅不使�?videos 状�?            setHasMore(false); // 小雅不需要分�?          } else {
             const newVideos = data.list || [];
 
             if (isInitial) {
@@ -490,16 +476,14 @@ export default function PrivateLibraryPage() {
               setVideos((prev) => [...prev, ...newVideos]);
             }
 
-            // 检查是否还有更多数据
-            const currentPage = data.page || page;
+            // 检查是否还有更多数�?            const currentPage = data.page || page;
             const totalPages = data.totalPages || 1;
             const hasMoreData = currentPage < totalPages;
             setHasMore(hasMoreData);
           }
         }
       } catch (err: any) {
-        // 忽略取消请求的错误
-        if (err.name === 'AbortError') {
+        // 忽略取消请求的错�?        if (err.name === 'AbortError') {
           return;
         }
         console.error('获取视频列表失败:', err);
@@ -508,8 +492,7 @@ export default function PrivateLibraryPage() {
           setVideos([]);
         }
       } finally {
-        // 只有当这个请求没有被取消时才更新状态
-        if (!abortController.signal.aborted) {
+        // 只有当这个请求没有被取消时才更新状�?        if (!abortController.signal.aborted) {
           if (isInitial) {
             setLoading(false);
           } else {
@@ -537,8 +520,7 @@ export default function PrivateLibraryPage() {
       sourceParam = `emby:${embyKey}`;
     }
 
-    // 跳转到播放页面
-    router.push(`/play?source=${sourceParam}&id=${encodeURIComponent(video.id)}`);
+    // 跳转到播放页�?    router.push(`/play?source=${sourceParam}&id=${encodeURIComponent(video.id)}`);
   };
 
   // 使用 Intersection Observer 监听滚动
@@ -551,8 +533,7 @@ export default function PrivateLibraryPage() {
       (entries) => {
         const entry = entries[0];
 
-        // 当目标元素可见且还有更多数据且没有正在加载时，加载下一页
-        if (entry.isIntersecting && hasMore && !loadingMore && !loading && !isFetchingRef.current) {
+        // 当目标元素可见且还有更多数据且没有正在加载时，加载下一�?        if (entry.isIntersecting && hasMore && !loadingMore && !loading && !isFetchingRef.current) {
           setPage((prev) => prev + 1);
         }
       },
@@ -593,7 +574,7 @@ export default function PrivateLibraryPage() {
           )}
         </div>
 
-        {/* 第一级：源类型选择（OpenList / Emby / 小雅） */}
+        {/* 第一级：源类型选择（OpenList / Emby / 小雅�?*/}
         {mounted && (
           <div className='mb-6 flex justify-center'>
             <CapsuleSwitch
@@ -608,7 +589,7 @@ export default function PrivateLibraryPage() {
           </div>
         )}
 
-        {/* 第二级：Emby源选择（仅当选择Emby且有多个源时显示） */}
+        {/* 第二级：Emby源选择（仅当选择Emby且有多个源时显示�?*/}
         {sourceType === 'emby' && embySourceOptions.length > 1 && (
           <div className='mb-6'>
             <div className='text-xs text-gray-500 dark:text-gray-400 mb-2 px-4'>
@@ -666,7 +647,7 @@ export default function PrivateLibraryPage() {
           </div>
         )}
 
-        {/* 第三级：Emby 媒体库分类选择器 */}
+        {/* 第三级：Emby 媒体库分类选择�?*/}
         {sourceType === 'emby' && (
           <div className='mb-6'>
             <div className='text-xs text-gray-500 dark:text-gray-400 mb-2 px-4'>
@@ -717,7 +698,7 @@ export default function PrivateLibraryPage() {
           </div>
         )}
 
-        {/* Emby 排序选择器 */}
+        {/* Emby 排序选择�?*/}
         {sourceType === 'emby' && (
           <div className='mb-6'>
             <div className='text-xs text-gray-500 dark:text-gray-400 mb-2 px-4'>
@@ -776,7 +757,7 @@ export default function PrivateLibraryPage() {
           </div>
         )}
 
-        {/* 排序下拉框 Portal */}
+        {/* 排序下拉�?Portal */}
         {mounted && showSortDropdown && createPortal(
           <div
             ref={sortDropdownRef}
@@ -818,8 +799,7 @@ export default function PrivateLibraryPage() {
 
         {loading ? (
           sourceType === 'xiaoya' ? (
-            // 小雅加载骨架屏 - 文件夹列表样式
-            <div className='space-y-4'>
+            // 小雅加载骨架�?- 文件夹列表样�?            <div className='space-y-4'>
               {/* 文件夹骨架屏 */}
               <div className='space-y-2'>
                 <div className='h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse' />
@@ -834,7 +814,7 @@ export default function PrivateLibraryPage() {
               </div>
             </div>
           ) : (
-            // OpenList/Emby 加载骨架屏 - 海报卡片样式
+            // OpenList/Emby 加载骨架�?- 海报卡片样式
             <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4'>
               {Array.from({ length: pageSize }).map((_, index) => (
                 <div
@@ -847,7 +827,7 @@ export default function PrivateLibraryPage() {
         ) : sourceType === 'xiaoya' ? (
           // 小雅浏览模式
           <div className='space-y-4'>
-            {/* 搜索框 */}
+            {/* 搜索�?*/}
             <div className='flex justify-center md:justify-end'>
               <div className='relative w-full max-w-md'>
                 <input
@@ -907,8 +887,7 @@ export default function PrivateLibraryPage() {
                 </div>
                 <div className='grid grid-cols-1 gap-2'>
                   {xiaoyaSearchResults.map((item) => {
-                    // 判断是否为视频文件
-                    const videoExtensions = ['.mp4', '.mkv', '.avi', '.m3u8', '.flv', '.ts', '.mov', '.wmv', '.webm'];
+                    // 判断是否为视频文�?                    const videoExtensions = ['.mp4', '.mkv', '.avi', '.m3u8', '.flv', '.ts', '.mov', '.wmv', '.webm'];
                     const isVideoFile = videoExtensions.some(ext => item.name.toLowerCase().endsWith(ext));
 
                     // 从路径中提取文件夹名作为标题
@@ -960,19 +939,18 @@ export default function PrivateLibraryPage() {
               <div className='flex justify-center py-8'>
                 <div className='flex items-center gap-2 text-gray-600 dark:text-gray-400'>
                   <div className='w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin' />
-                  <span>搜索中...</span>
+                  <span>搜索�?..</span>
                 </div>
               </div>
             ) : (
               <>
-            {/* 面包屑导航 */}
+            {/* 面包屑导�?*/}
             <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400'>
               <button
                 onClick={() => setXiaoyaPath('/')}
                 className='hover:text-blue-600 dark:hover:text-blue-400'
               >
-                根目录
-              </button>
+                根目�?              </button>
               {xiaoyaPath.split('/').filter(Boolean).map((part, index, arr) => {
                 const path = '/' + arr.slice(0, index + 1).join('/');
                 return (
@@ -989,10 +967,10 @@ export default function PrivateLibraryPage() {
               })}
             </div>
 
-            {/* 文件夹列表 */}
+            {/* 文件夹列�?*/}
             {xiaoyaFolders.length > 0 && (
               <div className='space-y-2'>
-                <h3 className='text-sm font-medium text-gray-700 dark:text-gray-300'>文件夹</h3>
+                <h3 className='text-sm font-medium text-gray-700 dark:text-gray-300'>文件�?/h3>
                 <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2'>
                   {xiaoyaFolders.map((folder) => (
                     <button
@@ -1016,11 +994,9 @@ export default function PrivateLibraryPage() {
                 <h3 className='text-sm font-medium text-gray-700 dark:text-gray-300'>视频文件</h3>
                 <div className='grid grid-cols-1 gap-2'>
                   {xiaoyaFiles.map((file) => {
-                    // 从当前路径提取文件夹名作为标题
-                    const pathParts = xiaoyaPath.split('/').filter(Boolean);
+                    // 从当前路径提取文件夹名作为标�?                    const pathParts = xiaoyaPath.split('/').filter(Boolean);
                     const folderName = pathParts[pathParts.length - 1] || '';
-                    // 清理文件夹名（移除年份和 TMDb ID）
-                    const title = folderName
+                    // 清理文件夹名（移除年份和 TMDb ID�?                    const title = folderName
                       .replace(/\s*\(\d{4}\)\s*\{tmdb-\d+\}$/i, '')
                       .trim() || file.name;
 
@@ -1047,7 +1023,7 @@ export default function PrivateLibraryPage() {
 
             {xiaoyaFolders.length === 0 && xiaoyaFiles.length === 0 && (
               <div className='text-center py-12'>
-                <p className='text-gray-500 dark:text-gray-400'>此目录为空</p>
+                <p className='text-gray-500 dark:text-gray-400'>此目录为�?/p>
               </div>
             )}
               </>
@@ -1057,8 +1033,8 @@ export default function PrivateLibraryPage() {
           <div className='text-center py-12'>
             <p className='text-gray-500 dark:text-gray-400'>
               {sourceType === 'openlist'
-                ? '暂无视频，请在管理面板配置 OpenList 并刷新'
-                : '暂无视频，请在管理面板配置 Emby'}
+                ? '暂无视频，请在管理面板配�?OpenList 并刷�?
+                : '暂无视频，请在管理面板配�?Emby'}
             </p>
           </div>
         ) : (
@@ -1093,18 +1069,17 @@ export default function PrivateLibraryPage() {
               })}
             </div>
 
-            {/* 滚动加载指示器 - 始终渲染以便 observer 可以监听 */}
+            {/* 滚动加载指示�?- 始终渲染以便 observer 可以监听 */}
             <div ref={observerTarget} className='flex justify-center items-center py-8 min-h-[100px]'>
               {loadingMore && (
                 <div className='flex items-center gap-2 text-gray-600 dark:text-gray-400'>
                   <div className='w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin' />
-                  <span>加载中...</span>
+                  <span>加载�?..</span>
                 </div>
               )}
               {!hasMore && videos.length > 0 && !loadingMore && (
                 <div className='text-gray-500 dark:text-gray-400'>
-                  已加载全部内容
-                </div>
+                  已加载全部内�?                </div>
               )}
             </div>
           </>

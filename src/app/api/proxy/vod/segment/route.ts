@@ -45,7 +45,7 @@ export async function GET(request: Request) {
   try {
     const decodedUrl = decodeURIComponent(url);
 
-    // 安全校验：防 SSRF 拦截请求内网或非法 URL (强制检查所有代理请求)
+    // 安全校验：防 SSRF 拦截请求内网或非�?URL (强制检查所有代理请�?
     const isSafeUrl = await validateProxyUrlServerSide(decodedUrl);
     if (!isSafeUrl) {
       return NextResponse.json({ error: 'Proxy request to local or invalid network is forbidden' }, { status: 403 });
@@ -66,8 +66,7 @@ export async function GET(request: Request) {
       response.headers.get('content-length')
     );
 
-    // 使用流式传输，避免占用内存
-    let isCancelled = false;
+    // 使用流式传输，避免占用内�?    let isCancelled = false;
 
     const stream = new ReadableStream({
       start(controller) {
@@ -119,8 +118,7 @@ export async function GET(request: Request) {
       },
       cancel() {
         isCancelled = true;
-        // 当流被取消时，确保释放所有资源
-        if (reader) {
+        // 当流被取消时，确保释放所有资�?        if (reader) {
           try {
             reader.releaseLock();
           } catch (e) {
@@ -141,8 +139,7 @@ export async function GET(request: Request) {
 
     return new Response(stream, { headers });
   } catch (error) {
-    // 确保在错误情况下也释放资源
-    if (reader) {
+    // 确保在错误情况下也释放资�?    if (reader) {
       try {
         (reader as ReadableStreamDefaultReader<Uint8Array>).releaseLock();
       } catch (e) {

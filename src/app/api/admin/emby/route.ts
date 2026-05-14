@@ -38,8 +38,7 @@ export async function POST(request: NextRequest) {
     // 获取配置
     const adminConfig = await getConfig();
 
-    // 权限检查
-    if (username !== process.env.USERNAME) {
+    // 权限检�?    if (username !== process.env.USERNAME) {
       const userInfo = await db.getUserInfoV2(username);
       if (!userInfo || userInfo.role !== 'admin' || userInfo.banned) {
         return NextResponse.json({ error: '权限不足' }, { status: 401 });
@@ -49,12 +48,12 @@ export async function POST(request: NextRequest) {
     if (action === 'test') {
       // 测试连接
       if (!ServerURL) {
-        return NextResponse.json({ error: '请填写 Emby 服务器地址' }, { status: 400 });
+        return NextResponse.json({ error: '请填�?Emby 服务器地址' }, { status: 400 });
       }
 
       if (!ApiKey && !Username) {
         return NextResponse.json(
-          { error: '请填写 API Key 或用户名' },
+          { error: '请填�?API Key 或用户名' },
           { status: 400 }
         );
       }
@@ -68,8 +67,7 @@ export async function POST(request: NextRequest) {
 
       const client = new EmbyClient(testConfig);
 
-      // 如果使用用户名密码，先认证
-      if (!ApiKey && Username) {
+      // 如果使用用户名密码，先认�?      if (!ApiKey && Username) {
         try {
           await client.authenticate(Username, Password || '');
         } catch (error) {
@@ -84,7 +82,7 @@ export async function POST(request: NextRequest) {
       const isConnected = await client.checkConnectivity();
       if (!isConnected) {
         return NextResponse.json(
-          { success: false, message: 'Emby 连接失败，请检查服务器地址和认证信息' },
+          { success: false, message: 'Emby 连接失败，请检查服务器地址和认证信�? },
           { status: 200 }
         );
       }
@@ -100,7 +98,7 @@ export async function POST(request: NextRequest) {
       const result = clearEmbyCache();
       return NextResponse.json({
         success: true,
-        message: `已清除 ${result.cleared} 条 Emby 缓存`,
+        message: `已清�?${result.cleared} �?Emby 缓存`,
         cleared: result.cleared,
       });
     }

@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const authResult = await requireFeaturePermission(
       request,
       'netdisk_search',
-      '无权限使用网盘有效性检测'
+      '无权限使用网盘有效性检�?
     );
     if (authResult instanceof NextResponse) return authResult;
 
@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
     }
     const task = cancelNetdiskCheckTask(taskId);
     if (!task) {
-      return NextResponse.json({ error: '任务不存在' }, { status: 404 });
+      return NextResponse.json({ error: '任务不存�? }, { status: 404 });
     }
     return NextResponse.json({ task });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : '取消检测任务失败' },
+      { error: error instanceof Error ? error.message : '取消检测任务失�? },
       { status: 500 }
     );
   }

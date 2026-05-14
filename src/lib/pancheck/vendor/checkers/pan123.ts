@@ -30,7 +30,7 @@ export async function check123(link) {
       return { valid: true, reason: '' };
     }
 
-    return { valid: false, reason: '链接已失效' };
+    return { valid: false, reason: '链接已失�? };
   } catch (_) {
     return { valid: true, reason: '' };
   }

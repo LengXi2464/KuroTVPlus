@@ -46,7 +46,7 @@ function assertSafe(value: string, label: string) {
 }
 
 export function normalizePan115Cookie(cookie: string) {
-  return assertSafe(cookie.replace(/；/g, ';').replace(/：/g, ':').replace(/，/g, ','), '115 Cookie');
+  return assertSafe(cookie.replace(/�?g, ';').replace(/�?g, ':').replace(/�?g, ','), '115 Cookie');
 }
 
 export function assertPan115CookieHeaderSafe(cookie: string) {
@@ -59,7 +59,7 @@ function isMediaFile(filename: string) {
 }
 
 export function parsePan115ShareUrl(shareUrl: string, passcode = '') {
-  const cleaned = decodeURIComponent(shareUrl.trim()).replace(/[#.,，/\s]+$/, '');
+  const cleaned = decodeURIComponent(shareUrl.trim()).replace(/[#.,�?\s]+$/, '');
   const matches = /https:\/\/(?:115|anxia|115cdn)\.com\/s\/([a-zA-Z0-9]+)(?:\?password=([^&#\s]+))?/i.exec(cleaned);
   if (!matches) throw new Error('无法解析115分享链接');
   return {
@@ -73,7 +73,7 @@ async function parseJson(response: Response) {
   try {
     return typeof text === 'string' ? JSON.parse(text) : text;
   } catch {
-    throw new Error(`115接口返回异常：${text.slice(0, 200)}`);
+    throw new Error(`115接口返回异常�?{text.slice(0, 200)}`);
   }
 }
 
@@ -95,7 +95,7 @@ async function collectFilesRecursive(shareCode: string, receiveCode: string, cid
   const responseData = await fetchShareDir(shareCode, receiveCode, cid);
   if (!responseData?.data) return;
   if (responseData.data.share_state === 7) {
-    throw new Error(responseData.data.shareinfo?.forbid_reason || '链接已过期');
+    throw new Error(responseData.data.shareinfo?.forbid_reason || '链接已过�?);
   }
 
   const list = Array.isArray(responseData.data.list) ? responseData.data.list : [];
@@ -123,7 +123,7 @@ export async function listPan115ShareVideos(shareUrl: string, passcode = ''): Pr
   await collectFilesRecursive(shareCode, receiveCode, shareCode, files);
   files.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-CN', { numeric: true, sensitivity: 'base' }));
   if (files.length === 0) {
-    throw new Error('115分享中没有可播放的视频文件');
+    throw new Error('115分享中没有可播放的视频文�?);
   }
   return {
     title: files.length === 1 ? files[0].name.replace(/\.[^.]+$/, '') : '115网盘立即播放',
@@ -283,7 +283,7 @@ export async function getPan115PlayUrl(file: Pan115ShareVideoFile, cookie: strin
     if (String(errorMsg).includes('登录')) {
       throw new Error('115 Cookie 无效，请重新填写');
     }
-    throw new Error(`115盘错误: ${errorMsg}`);
+    throw new Error(`115盘错�? ${errorMsg}`);
   }
   if (!responseData.data || typeof responseData.data !== 'string') {
     throw new Error('115 Cookie 无效，请重新填写');

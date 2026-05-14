@@ -15,13 +15,13 @@ import {
   Gauge,
   Globe,
   Home,
-  KeyRound,
   LogOut,
   MessageSquare,
   Monitor,
   MoveDown,
   MoveUp,
   Package,
+  Router as RouterIcon,
   Rss,
   Settings,
   Shield,
@@ -38,6 +38,8 @@ import { createPortal } from 'react-dom';
 
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { clearAllDanmakuCache, getDanmakuCacheStats } from '@/lib/danmaku/api';
+import { CURRENT_VERSION } from '@/lib/version';
+import { UpdateStatus } from '@/lib/version_check';
 
 import { DeviceManagementPanel } from './DeviceManagementPanel';
 import { DownloadManagementPanel } from './DownloadManagementPanel';
@@ -46,6 +48,8 @@ import { FavoritesPanel } from './FavoritesPanel';
 import { NotificationPanel } from './NotificationPanel';
 import { OfflineDownloadPanel } from './OfflineDownloadPanel';
 import { PersonalCenterPanel } from './PersonalCenterPanel';
+import { useVersionCheck } from './VersionCheckProvider';
+import { VersionPanel } from './VersionPanel';
 
 interface AuthInfo {
   username?: string;
@@ -54,16 +58,19 @@ interface AuthInfo {
 
 export const UserMenu: React.FC = () => {
   const router = useRouter();
+  const { updateStatus, isChecking } = useVersionCheck();
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileCenterOpen, setIsProfileCenterOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
+  const [isVersionPanelOpen, setIsVersionPanelOpen] = useState(false);
   const [isOfflineDownloadPanelOpen, setIsOfflineDownloadPanelOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const [isFavoritesPanelOpen, setIsFavoritesPanelOpen] = useState(false);
   const [isEmailSettingsOpen, setIsEmailSettingsOpen] = useState(false);
   const [isDeviceManagementOpen, setIsDeviceManagementOpen] = useState(false);
+  const [isEcoAppsOpen, setIsEcoAppsOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isDownloadManagementOpen, setIsDownloadManagementOpen] = useState(false);
   const [authInfo, setAuthInfo] = useState<AuthInfo | null>(null);
@@ -72,8 +79,7 @@ export const UserMenu: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 订阅相关状态
-  const [subscribeEnabled, setSubscribeEnabled] = useState(false);
+  // 订阅相关状�?  const [subscribeEnabled, setSubscribeEnabled] = useState(false);
   const [subscribeUrl, setSubscribeUrl] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [tvboxToken, setTvboxToken] = useState('');
@@ -84,7 +90,7 @@ export const UserMenu: React.FC = () => {
 
   // Body 滚动锁定 - 使用 overflow 方式避免布局问题
   useEffect(() => {
-    if (isProfileCenterOpen || isSettingsOpen || isChangePasswordOpen || isSubscribeOpen || isOfflineDownloadPanelOpen || isEmailSettingsOpen || isDeviceManagementOpen || isReportOpen || isDownloadManagementOpen) {
+    if (isProfileCenterOpen || isSettingsOpen || isChangePasswordOpen || isSubscribeOpen || isOfflineDownloadPanelOpen || isEmailSettingsOpen || isDeviceManagementOpen || isEcoAppsOpen || isReportOpen || isDownloadManagementOpen) {
       const body = document.body;
       const html = document.documentElement;
 
@@ -92,26 +98,22 @@ export const UserMenu: React.FC = () => {
       const originalBodyOverflow = body.style.overflow;
       const originalHtmlOverflow = html.style.overflow;
 
-      // 只设置 overflow 来阻止滚动
-      body.style.overflow = 'hidden';
+      // 只设�?overflow 来阻止滚�?      body.style.overflow = 'hidden';
       html.style.overflow = 'hidden';
 
       return () => {
 
-        // 恢复所有原始样式
-        body.style.overflow = originalBodyOverflow;
+        // 恢复所有原始样�?        body.style.overflow = originalBodyOverflow;
         html.style.overflow = originalHtmlOverflow;
       };
     }
-  }, [isProfileCenterOpen, isSettingsOpen, isChangePasswordOpen, isSubscribeOpen, isOfflineDownloadPanelOpen, isEmailSettingsOpen, isDeviceManagementOpen, isReportOpen, isDownloadManagementOpen]);
+  }, [isProfileCenterOpen, isSettingsOpen, isChangePasswordOpen, isSubscribeOpen, isOfflineDownloadPanelOpen, isEmailSettingsOpen, isDeviceManagementOpen, isEcoAppsOpen, isReportOpen, isDownloadManagementOpen]);
 
-  // 设置相关状态
-  const [defaultAggregateSearch, setDefaultAggregateSearch] = useState(true);
+  // 设置相关状�?  const [defaultAggregateSearch, setDefaultAggregateSearch] = useState(true);
   const [doubanProxyUrl, setDoubanProxyUrl] = useState('');
   const [enableOptimization, setEnableOptimization] = useState(true);
   const [preferStrategy, setPreferStrategy] = useState<'fast' | 'full'>('fast');
-  const [speedTestTimeout, setSpeedTestTimeout] = useState(4000); // 测速超时时间（毫秒）
-  const [fluidSearch, setFluidSearch] = useState(true);
+  const [speedTestTimeout, setSpeedTestTimeout] = useState(4000); // 测速超时时间（毫秒�?  const [fluidSearch, setFluidSearch] = useState(true);
   const [tmdbBackdropDisabled, setTmdbBackdropDisabled] = useState(false);
   const [enableTrailers, setEnableTrailers] = useState(false);
   const [doubanDataSource, setDoubanDataSource] = useState('cmliussss-cdn-tencent');
@@ -150,13 +152,11 @@ export const UserMenu: React.FC = () => {
     'success' | 'error' | null
   >(null);
 
-  // 设备管理状态
-  const [devices, setDevices] = useState<any[]>([]);
+  // 设备管理状�?  const [devices, setDevices] = useState<any[]>([]);
   const [devicesLoading, setDevicesLoading] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
-  // 确认对话框状态
-  const [confirmDialog, setConfirmDialog] = useState<{
+  // 确认对话框状�?  const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
     message: string;
@@ -168,8 +168,7 @@ export const UserMenu: React.FC = () => {
     onConfirm: () => undefined,
   });
 
-  // 折叠面板状态
-  const [isDoubanSectionOpen, setIsDoubanSectionOpen] = useState(false);
+  // 折叠面板状�?  const [isDoubanSectionOpen, setIsDoubanSectionOpen] = useState(false);
 
   // TMDB 图片设置
   const [tmdbImageBaseUrl, setTmdbImageBaseUrl] = useState('https://image.tmdb.org');
@@ -190,7 +189,7 @@ export const UserMenu: React.FC = () => {
   const defaultHomeModules: HomeModule[] = [
     { id: 'hotMovies', name: '热门电影', enabled: true, order: 0 },
     { id: 'hotDuanju', name: '热播短剧', enabled: true, order: 1 },
-    { id: 'bangumiCalendar', name: '新番放送', enabled: true, order: 2 },
+    { id: 'bangumiCalendar', name: '新番放�?, enabled: true, order: 2 },
     { id: 'hotTvShows', name: '热门剧集', enabled: true, order: 3 },
     { id: 'hotVarietyShows', name: '热门综艺', enabled: true, order: 4 },
     { id: 'upcomingContent', name: '即将上映', enabled: true, order: 5 },
@@ -202,51 +201,48 @@ export const UserMenu: React.FC = () => {
 
   // 豆瓣数据源选项
   const doubanDataSourceOptions = [
-    { value: 'direct', label: '直连（服务器直接请求豆瓣）' },
+    { value: 'direct', label: '直连（服务器直接请求豆瓣�? },
     { value: 'cors-proxy-zwei', label: 'Cors Proxy By Zwei' },
     {
       value: 'cmliussss-cdn-tencent',
-      label: '豆瓣 CDN By CMLiussss（腾讯云）',
+      label: '豆瓣 CDN By CMLiussss（腾讯云�?,
     },
-    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
-    { value: 'custom', label: '自定义代理' },
+    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云�? },
+    { value: 'custom', label: '自定义代�? },
   ];
 
   // 豆瓣图片代理选项
   const doubanImageProxyTypeOptions = [
-    { value: 'server', label: '服务器代理（由服务器代理请求豆瓣）' },
+    { value: 'server', label: '服务器代理（由服务器代理请求豆瓣�? },
     {
       value: 'cmliussss-cdn-tencent',
-      label: '豆瓣 CDN By CMLiussss（腾讯云）',
+      label: '豆瓣 CDN By CMLiussss（腾讯云�?,
     },
-    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云）' },
+    { value: 'cmliussss-cdn-ali', label: '豆瓣 CDN By CMLiussss（阿里云�? },
     { value: 'baidu', label: '百度图片代理' },
-    { value: 'custom', label: '自定义代理' },
-    { value: 'direct', label: '直连（浏览器直接请求豆瓣，可能需要浏览器插件才能正常显示）' },
-    { value: 'img3', label: '豆瓣官方精品 CDN（阿里云，可能需要浏览器插件才能正常显示）' },
+    { value: 'custom', label: '自定义代�? },
+    { value: 'direct', label: '直连（浏览器直接请求豆瓣，可能需要浏览器插件才能正常显示�? },
+    { value: 'img3', label: '豆瓣官方精品 CDN（阿里云，可能需要浏览器插件才能正常显示�? },
   ];
 
   // 缓冲策略选项
   const bufferStrategyOptions = [
     { value: 'low', label: '低缓冲（省流量）' },
-    { value: 'medium', label: '中缓冲（推荐）' },
-    { value: 'high', label: '高缓冲（流畅播放）' },
+    { value: 'medium', label: '中缓冲（推荐�? },
+    { value: 'high', label: '高缓冲（流畅播放�? },
     { value: 'ultra', label: '超高缓冲（极速体验）' },
   ];
 
-  // 修改密码相关状态
-  const [newPassword, setNewPassword] = useState('');
+  // 修改密码相关状�?  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
 
-  // 清除弹幕缓存相关状态
-  const [isClearingCache, setIsClearingCache] = useState(false);
+  // 清除弹幕缓存相关状�?  const [isClearingCache, setIsClearingCache] = useState(false);
   const [clearCacheMessage, setClearCacheMessage] = useState<string | null>(null);
-  const [danmakuCacheUsage, setDanmakuCacheUsage] = useState('计算中...');
+  const [danmakuCacheUsage, setDanmakuCacheUsage] = useState('计算�?..');
 
-  // 确保组件已挂载
-  useEffect(() => {
+  // 确保组件已挂�?  useEffect(() => {
     setMounted(true);
   }, []);
 
@@ -284,12 +280,10 @@ export const UserMenu: React.FC = () => {
     }
   }, [formatCacheSize]);
 
-  // 首次加载时检查未读通知数量（使用全局标记避免多个实例重复请求）
-  useEffect(() => {
+  // 首次加载时检查未读通知数量（使用全局标记避免多个实例重复请求�?  useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 检查是否已经有其他实例在加载
-    const globalWindow = window as any;
+    // 检查是否已经有其他实例在加�?    const globalWindow = window as any;
     if (globalWindow.__loadingNotifications) {
       // 如果正在加载，等待加载完成后获取结果
       const checkInterval = setInterval(() => {
@@ -324,8 +318,7 @@ export const UserMenu: React.FC = () => {
   // 监听通知更新事件
   useEffect(() => {
     const handleNotificationsUpdated = () => {
-      // 清除缓存，强制重新加载
-      if (typeof window !== 'undefined') {
+      // 清除缓存，强制重新加�?      if (typeof window !== 'undefined') {
         delete (window as any).__unreadNotificationCount;
       }
       loadUnreadCount();
@@ -345,11 +338,10 @@ export const UserMenu: React.FC = () => {
     }
   }, []);
 
-  // 懒加载订阅 URL - 只在打开订阅面板时请求
-  const fetchSubscribeUrl = async () => {
+  // 懒加载订�?URL - 只在打开订阅面板时请�?  const fetchSubscribeUrl = async () => {
     setIsLoadingSubscribeUrl(true);
     try {
-      // 获取用户的 TVBox token
+      // 获取用户�?TVBox token
       const response = await fetch('/api/user/tvbox-token');
       if (response.ok) {
         const data = await response.json();
@@ -370,7 +362,7 @@ export const UserMenu: React.FC = () => {
     setConfirmDialog({
       isOpen: true,
       title: '重置订阅Token',
-      message: '确定要重置订阅token吗？重置后旧的订阅链接将失效。',
+      message: '确定要重置订阅token吗？重置后旧的订阅链接将失效�?,
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         setIsResettingToken(true);
@@ -432,8 +424,7 @@ export const UserMenu: React.FC = () => {
     return url.toString();
   };
 
-  // 获取认证信息和存储类型
-  useEffect(() => {
+  // 获取认证信息和存储类�?  useEffect(() => {
     if (typeof window !== 'undefined') {
       const auth = getAuthInfoFromBrowserCookie();
       setAuthInfo(auth);
@@ -446,7 +437,7 @@ export const UserMenu: React.FC = () => {
     }
   }, []);
 
-  // 从 localStorage 读取设置
+  // �?localStorage 读取设置
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedAggregateSearch = localStorage.getItem(
@@ -610,8 +601,7 @@ export const UserMenu: React.FC = () => {
         }
       }
 
-      // 加载搜索繁体转简体设置
-      const savedSearchTraditionalToSimplified = localStorage.getItem('searchTraditionalToSimplified');
+      // 加载搜索繁体转简体设�?      const savedSearchTraditionalToSimplified = localStorage.getItem('searchTraditionalToSimplified');
       if (savedSearchTraditionalToSimplified !== null) {
         setSearchTraditionalToSimplified(savedSearchTraditionalToSimplified === 'true');
       }
@@ -622,8 +612,7 @@ export const UserMenu: React.FC = () => {
         setExactSearch(savedExactSearch === 'true');
       }
 
-      // 加载最大同时下载限制设置
-      const savedMaxConcurrentDownloads = localStorage.getItem('maxConcurrentDownloads');
+      // 加载最大同时下载限制设�?      const savedMaxConcurrentDownloads = localStorage.getItem('maxConcurrentDownloads');
       if (savedMaxConcurrentDownloads !== null) {
         setMaxConcurrentDownloads(Number(savedMaxConcurrentDownloads));
       }
@@ -683,7 +672,7 @@ export const UserMenu: React.FC = () => {
       });
 
       if (response.ok) {
-        setEmailSettingsMessage('保存成功！');
+        setEmailSettingsMessage('保存成功�?);
         setEmailSettingsMessageType('success');
         setTimeout(() => {
           setEmailSettingsMessage('');
@@ -751,12 +740,11 @@ export const UserMenu: React.FC = () => {
     });
   };
 
-  // 撤销所有设备
-  const handleRevokeAllDevices = async () => {
+  // 撤销所有设�?  const handleRevokeAllDevices = async () => {
     setConfirmDialog({
       isOpen: true,
-      title: '登出所有设备',
-      message: '确定要登出所有设备吗？这将清除所有设备的登录状态（包括当前设备）。',
+      title: '登出所有设�?,
+      message: '确定要登出所有设备吗？这将清除所有设备的登录状态（包括当前设备）�?,
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         try {
@@ -765,21 +753,19 @@ export const UserMenu: React.FC = () => {
           });
 
           if (response.ok) {
-            // 登出所有设备后，重定向到首页
-            window.location.href = '/';
+            // 登出所有设备后，重定向到首�?            window.location.href = '/';
           } else {
             alert('操作失败，请重试');
           }
         } catch (error) {
-          console.error('登出所有设备失败:', error);
+          console.error('登出所有设备失�?', error);
           alert('操作失败，请重试');
         }
       },
     });
   };
 
-  // 根据设备类型返回对应的图标
-  const getDeviceIcon = (deviceInfo: string) => {
+  // 根据设备类型返回对应的图�?  const getDeviceIcon = (deviceInfo: string) => {
     const info = deviceInfo.toLowerCase();
 
     if (info.includes('mobile') || info.includes('iphone') || info.includes('android')) {
@@ -793,8 +779,7 @@ export const UserMenu: React.FC = () => {
     return Monitor;
   };
 
-  // 点击外部区域关闭下拉框
-  useEffect(() => {
+  // 点击外部区域关闭下拉�?  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isDoubanDropdownOpen) {
         const target = event.target as Element;
@@ -905,7 +890,7 @@ export const UserMenu: React.FC = () => {
     setIsOpen(false);
     setIsSubscribeOpen(true);
     setCopySuccess(false);
-    // 懒加载:打开面板时才请求订阅URL
+    // 懒加�?打开面板时才请求订阅URL
     await fetchSubscribeUrl();
   };
 
@@ -936,12 +921,12 @@ export const UserMenu: React.FC = () => {
 
     // 验证密码
     if (!newPassword) {
-      setPasswordError('新密码不得为空');
+      setPasswordError('新密码不得为�?);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('两次输入的密码不一致');
+      setPasswordError('两次输入的密码不一�?);
       return;
     }
 
@@ -984,8 +969,7 @@ export const UserMenu: React.FC = () => {
     setIsSettingsOpen(false);
   };
 
-  // 设置相关的处理函数
-  const handleAggregateToggle = (value: boolean) => {
+  // 设置相关的处理函�?  const handleAggregateToggle = (value: boolean) => {
     setDefaultAggregateSearch(value);
     if (typeof window !== 'undefined') {
       localStorage.setItem('defaultAggregateSearch', JSON.stringify(value));
@@ -1040,7 +1024,7 @@ export const UserMenu: React.FC = () => {
       setConfirmDialog({
         isOpen: true,
         title: '浏览器不支持',
-        message: '您的浏览器不支持 File System Access API，请使用 Chrome 86+ 或 Edge 86+',
+        message: '您的浏览器不支持 File System Access API，请使用 Chrome 86+ �?Edge 86+',
         onConfirm: () => {
           setConfirmDialog({ ...confirmDialog, isOpen: false });
         },
@@ -1060,14 +1044,13 @@ export const UserMenu: React.FC = () => {
       setFilesystemSavePath(dirHandle.name);
       localStorage.setItem('filesystemSavePath', dirHandle.name);
 
-      // 保存目录句柄到 IndexedDB
-      const dbName = 'MoonTVPlus';
+      // 保存目录句柄�?IndexedDB
+      const dbName = 'KuroTVPlus';
       const storeName = 'dirHandles';
 
       // 使用 Promise 包装 IndexedDB 操作
       await new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open(dbName, 2); // 使用版本 2，与 download-db.ts 保持一致
-
+        const request = indexedDB.open(dbName, 2); // 使用版本 2，与 download-db.ts 保持一�?
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
 
@@ -1203,14 +1186,12 @@ export const UserMenu: React.FC = () => {
     }
   };
 
-  // 将滑块值转换为策略值
-  const getBufferStrategyFromSlider = (sliderValue: number): string => {
+  // 将滑块值转换为策略�?  const getBufferStrategyFromSlider = (sliderValue: number): string => {
     const strategies = ['low', 'medium', 'high', 'ultra'];
     return strategies[sliderValue] || 'medium';
   };
 
-  // 将策略值转换为滑块值
-  const getSliderValueFromStrategy = (strategy: string): number => {
+  // 将策略值转换为滑块�?  const getSliderValueFromStrategy = (strategy: string): number => {
     const strategies = ['low', 'medium', 'high', 'ultra'];
     const index = strategies.indexOf(strategy);
     return index >= 0 ? index : 1; // 默认返回 1 (medium)
@@ -1430,7 +1411,7 @@ export const UserMenu: React.FC = () => {
       await clearAllDanmakuCache();
       setClearCacheMessage('弹幕缓存已清除成功！');
       setDanmakuCacheUsage('0 B');
-      console.log('弹幕缓存已清除');
+      console.log('弹幕缓存已清�?);
 
       // 3秒后自动清除提示
       setTimeout(() => {
@@ -1449,19 +1430,16 @@ export const UserMenu: React.FC = () => {
     }
   };
 
-  // 检查是否显示管理面板按钮
-  const showAdminPanel =
+  // 检查是否显示管理面板按�?  const showAdminPanel =
     (authInfo?.role === 'owner' || authInfo?.role === 'admin') &&
     storageType !== 'localstorage';
 
-  // 检查是否显示离线下载按钮
-  const showOfflineDownload =
+  // 检查是否显示离线下载按�?  const showOfflineDownload =
     (authInfo?.role === 'owner' || authInfo?.role === 'admin') &&
     typeof window !== 'undefined' &&
     (window as any).RUNTIME_CONFIG?.ENABLE_OFFLINE_DOWNLOAD === true;
 
-  // 检查是否显示修改密码按钮
-  const showChangePassword =
+  // 检查是否显示修改密码按�?  const showChangePassword =
     authInfo?.role !== 'owner' && storageType !== 'localstorage';
 
   // 角色中文映射
@@ -1470,7 +1448,7 @@ export const UserMenu: React.FC = () => {
       case 'owner':
         return '站长';
       case 'admin':
-        return '管理员';
+        return '管理�?;
       case 'user':
         return '用户';
       default:
@@ -1514,8 +1492,8 @@ export const UserMenu: React.FC = () => {
               onClick={handleOpenProfileCenter}
               className='flex items-center gap-3 rounded-xl px-2 py-1 text-left hover:bg-white/70 dark:hover:bg-gray-700/40 transition-colors'
             >
-              <div className='relative flex h-11 w-11 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 shadow-sm overflow-hidden'>
-                <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
+              <div className='relative flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-lg font-semibold text-white shadow-sm'>
+                <span>{avatarText}</span>
                 {shouldShowRoleBadge && (
                   <span
                     className={`absolute left-1/2 top-[calc(100%-6px)] z-10 -translate-x-1/2 inline-flex min-w-[26px] items-center justify-center whitespace-nowrap rounded-full px-1.5 py-[2px] text-[8px] leading-none font-medium shadow-sm ${roleBadgeClassName}`}
@@ -1542,7 +1520,7 @@ export const UserMenu: React.FC = () => {
           </div>
         </div>
 
-        {/* 菜单项 */}
+        {/* 菜单�?*/}
         <div className='py-1'>
           {/* 通知按钮 */}
           <button
@@ -1607,17 +1585,6 @@ export const UserMenu: React.FC = () => {
             </button>
           )}
 
-          {/* 修改密码按钮 */}
-          {showChangePassword && (
-            <button
-              onClick={handleChangePassword}
-              className='w-full px-3 py-2 text-left flex items-center gap-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm'
-            >
-              <KeyRound className='w-4 h-4 text-gray-500 dark:text-gray-400' />
-              <span className='font-medium'>修改密码</span>
-            </button>
-          )}
-
           {/* 订阅按钮 */}
           {subscribeEnabled && (
             <button
@@ -1629,7 +1596,7 @@ export const UserMenu: React.FC = () => {
             </button>
           )}
 
-          {/* 分割线 */}
+          {/* 分割�?*/}
           <div className='my-1 border-t border-gray-200 dark:border-gray-700'></div>
 
           {/* 登出按钮 */}
@@ -1641,6 +1608,33 @@ export const UserMenu: React.FC = () => {
             <span className='font-medium'>登出</span>
           </button>
 
+          {/* 分割�?*/}
+          <div className='my-1 border-t border-gray-200 dark:border-gray-700'></div>
+
+          {/* 版本信息 */}
+          <button
+            onClick={() => {
+              setIsVersionPanelOpen(true);
+              handleCloseMenu();
+            }}
+            className='w-full px-3 py-2 text-center flex items-center justify-center text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors text-xs'
+          >
+            <div className='flex items-center gap-1'>
+              <span className='font-mono'>v{CURRENT_VERSION}</span>
+              {!isChecking &&
+                updateStatus &&
+                updateStatus !== UpdateStatus.FETCH_FAILED && (
+                  <div
+                    className={`w-2 h-2 rounded-full -translate-y-2 ${updateStatus === UpdateStatus.HAS_UPDATE
+                      ? 'bg-yellow-500'
+                      : updateStatus === UpdateStatus.NO_UPDATE
+                        ? 'bg-green-400'
+                        : ''
+                      }`}
+                  ></div>
+                )}
+            </div>
+          </button>
         </div>
       </div>
     </>
@@ -1670,16 +1664,15 @@ export const UserMenu: React.FC = () => {
       <div
         className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[1001] flex flex-col'
       >
-        {/* 内容容器 - 独立的滚动区域 */}
+        {/* 内容容器 - 独立的滚动区�?*/}
         <div
           className='flex-1 px-4 py-6 md:p-6 overflow-y-auto'
           data-panel-content
           style={{
-            touchAction: 'pan-y', // 只允许垂直滚动
-            overscrollBehavior: 'contain', // 防止滚动冒泡
+            touchAction: 'pan-y', // 只允许垂直滚�?            overscrollBehavior: 'contain', // 防止滚动冒泡
           }}
         >
-          {/* 标题栏 */}
+          {/* 标题�?*/}
           <div className='flex items-center justify-between mb-6'>
             <div className='flex items-center gap-3'>
               <h3 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
@@ -1688,7 +1681,7 @@ export const UserMenu: React.FC = () => {
               <button
                 onClick={handleResetSettings}
                 className='px-2 py-1 text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 border border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors'
-                title='重置为默认设置'
+                title='重置为默认设�?
               >
                 恢复默认
               </button>
@@ -1702,7 +1695,7 @@ export const UserMenu: React.FC = () => {
             </button>
           </div>
 
-          {/* 设置项 */}
+          {/* 设置�?*/}
           <div className='space-y-3 md:space-y-4'>
             {/* 豆瓣设置 */}
             <div className='border border-gray-200 dark:border-gray-700 rounded-lg overflow-visible'>
@@ -1713,8 +1706,7 @@ export const UserMenu: React.FC = () => {
                 <div className='flex items-center gap-2'>
                   <Globe className='w-5 h-5 text-gray-600 dark:text-gray-400' />
                   <h3 className='text-base font-semibold text-gray-800 dark:text-gray-200'>
-                    数据源设置
-                  </h3>
+                    数据源设�?                  </h3>
                 </div>
                 {isDoubanSectionOpen ? (
                   <ChevronUp className='w-5 h-5 text-gray-600 dark:text-gray-400' />
@@ -1731,11 +1723,10 @@ export const UserMenu: React.FC = () => {
                         豆瓣数据代理
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        选择获取豆瓣数据的方式
-                      </p>
+                        选择获取豆瓣数据的方�?                      </p>
                     </div>
                     <div className='relative' data-dropdown='douban-datasource'>
-                      {/* 自定义下拉选择框 */}
+                      {/* 自定义下拉选择�?*/}
                       <button
                         type='button'
                         onClick={() => setIsDoubanDropdownOpen(!isDoubanDropdownOpen)}
@@ -1821,8 +1812,7 @@ export const UserMenu: React.FC = () => {
                       />
                       {!doubanProxyUrl.trim() && (
                         <p className='text-xs text-amber-600 dark:text-amber-400 mt-1'>
-                          未填写地址时将自动按直连处理
-                        </p>
+                          未填写地址时将自动按直连处�?                        </p>
                       )}
                     </div>
                   )}
@@ -1833,8 +1823,7 @@ export const UserMenu: React.FC = () => {
                         豆瓣数据备用渠道
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        主渠道失败后自动切换，默认直连
-                      </p>
+                        主渠道失败后自动切换，默认直�?                      </p>
                     </div>
                     <div
                       className='relative'
@@ -1892,8 +1881,7 @@ export const UserMenu: React.FC = () => {
                           豆瓣备用代理地址
                         </h4>
                         <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                          备用渠道为自定义代理时生效
-                        </p>
+                          备用渠道为自定义代理时生�?                        </p>
                       </div>
                       <input
                         type='text'
@@ -1906,13 +1894,12 @@ export const UserMenu: React.FC = () => {
                       />
                       {!doubanProxyUrlBackup.trim() && (
                         <p className='text-xs text-amber-600 dark:text-amber-400 mt-1'>
-                          未填写地址时备用渠道将自动按直连处理
-                        </p>
+                          未填写地址时备用渠道将自动按直连处�?                        </p>
                       )}
                     </div>
                   )}
 
-                  {/* 分割线 */}
+                  {/* 分割�?*/}
                   <div className='border-t border-gray-200 dark:border-gray-700'></div>
 
                   {/* 豆瓣图片代理设置 */}
@@ -1922,11 +1909,10 @@ export const UserMenu: React.FC = () => {
                         豆瓣图片代理
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        选择获取豆瓣图片的方式
-                      </p>
+                        选择获取豆瓣图片的方�?                      </p>
                     </div>
                     <div className='relative' data-dropdown='douban-image-proxy'>
-                      {/* 自定义下拉选择框 */}
+                      {/* 自定义下拉选择�?*/}
                       <button
                         type='button'
                         onClick={() =>
@@ -2094,8 +2080,7 @@ export const UserMenu: React.FC = () => {
                           豆瓣图片备用代理地址
                         </h4>
                         <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                          备用图片渠道为自定义代理时生效
-                        </p>
+                          备用图片渠道为自定义代理时生�?                        </p>
                       </div>
                       <input
                         type='text'
@@ -2114,7 +2099,7 @@ export const UserMenu: React.FC = () => {
                     </div>
                   )}
 
-                  {/* 分割线 */}
+                  {/* 分割�?*/}
                   <div className='border-t border-gray-200 dark:border-gray-700'></div>
 
                   {/* TMDB 图片网络请求地址设置 */}
@@ -2124,8 +2109,7 @@ export const UserMenu: React.FC = () => {
                         TMDB 图片网络请求地址
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        TMDB 图片的 Base URL（默认: https://image.tmdb.org）
-                      </p>
+                        TMDB 图片�?Base URL（默�? https://image.tmdb.org�?                      </p>
                     </div>
                     <input
                       type='text'
@@ -2167,8 +2151,7 @@ export const UserMenu: React.FC = () => {
                         默认聚合搜索结果
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        搜索时默认按标题和年份聚合显示结果
-                      </p>
+                        搜索时默认按标题和年份聚合显示结�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2184,15 +2167,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 优选和测速 */}
+                  {/* 优选和测�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        优选和测速
-                      </h4>
+                        优选和测�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        如出现播放器劫持问题可关闭
-                      </p>
+                        如出现播放器劫持问题可关�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2208,14 +2189,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 测速超时设置 */}
+                  {/* 测速超时设�?*/}
                   {enableOptimization && (
                     <div className='ml-4 mt-2 space-y-2'>
                       <div className='space-y-2'>
                         <div className='flex items-center justify-between gap-3'>
                           <span className='text-xs text-gray-600 dark:text-gray-400'>
-                            优选策略
-                          </span>
+                            优选策�?                          </span>
                           <div className='inline-flex rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-700 dark:bg-gray-800'>
                             <button
                               type='button'
@@ -2226,8 +2206,7 @@ export const UserMenu: React.FC = () => {
                                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                               }`}
                             >
-                              快速优选
-                            </button>
+                              快速优�?                            </button>
                             <button
                               type='button'
                               onClick={() => handlePreferStrategyChange('full')}
@@ -2237,19 +2216,16 @@ export const UserMenu: React.FC = () => {
                                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                               }`}
                             >
-                              全量优选
-                            </button>
+                              全量优�?                            </button>
                           </div>
                         </div>
                       </div>
 
                       <div className='flex items-center justify-between'>
                         <span className='text-xs text-gray-600 dark:text-gray-400'>
-                          换源面板测速超时
-                        </span>
+                          换源面板测速超�?                        </span>
                         <span className='text-xs font-medium text-gray-700 dark:text-gray-300'>
-                          {speedTestTimeout / 1000}秒
-                        </span>
+                          {speedTestTimeout / 1000}�?                        </span>
                       </div>
                       <div className='flex items-center gap-2'>
                         <input
@@ -2270,30 +2246,25 @@ export const UserMenu: React.FC = () => {
                           onClick={() => handleSpeedTestTimeoutChange(4000)}
                           className={`px-2 py-0.5 rounded ${speedTestTimeout === 4000 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                         >
-                          4秒
-                        </button>
+                          4�?                        </button>
                         <button
                           onClick={() => handleSpeedTestTimeoutChange(10000)}
                           className={`px-2 py-0.5 rounded ${speedTestTimeout === 10000 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                         >
-                          10秒
-                        </button>
+                          10�?                        </button>
                         <button
                           onClick={() => handleSpeedTestTimeoutChange(20000)}
                           className={`px-2 py-0.5 rounded ${speedTestTimeout === 20000 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                         >
-                          20秒
-                        </button>
+                          20�?                        </button>
                         <button
                           onClick={() => handleSpeedTestTimeoutChange(30000)}
                           className={`px-2 py-0.5 rounded ${speedTestTimeout === 30000 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                         >
-                          30秒
-                        </button>
+                          30�?                        </button>
                       </div>
                       <p className='text-xs text-gray-500 dark:text-gray-400 italic'>
-                        注：此设置仅对换源面板测速生效，优选播放源时仍使用4秒超时
-                      </p>
+                        注：此设置仅对换源面板测速生效，优选播放源时仍使用4秒超�?                      </p>
                     </div>
                   )}
 
@@ -2304,8 +2275,7 @@ export const UserMenu: React.FC = () => {
                         流式搜索输出
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        启用搜索结果实时流式输出，关闭后使用传统一次性搜索
-                      </p>
+                        启用搜索结果实时流式输出，关闭后使用传统一次性搜�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2321,15 +2291,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 禁用背景图渲染 */}
+                  {/* 禁用背景图渲�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        禁用背景图渲染
-                      </h4>
+                        禁用背景图渲�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        关闭播放页面的TMDB背景图显示（需手动刷新页面生效）
-                      </p>
+                        关闭播放页面的TMDB背景图显示（需手动刷新页面生效�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2345,15 +2313,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 启用预告片 */}
+                  {/* 启用预告�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        首页预告片
-                      </h4>
+                        首页预告�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        在首页轮播图中显示视频预告片（需刷新页面生效）
-                      </p>
+                        在首页轮播图中显示视频预告片（需刷新页面生效�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2369,15 +2335,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 搜索繁体转简体 */}
+                  {/* 搜索繁体转简�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        搜索繁体转简体
-                      </h4>
+                        搜索繁体转简�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        搜索时自动将繁体中文转换为简体中文
-                      </p>
+                        搜索时自动将繁体中文转换为简体中�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2440,12 +2404,11 @@ export const UserMenu: React.FC = () => {
               </button>
               {isDownloadSectionOpen && (
                 <div className='p-3 md:p-4 space-y-4 md:space-y-6'>
-                  {/* 最大同时下载限制 */}
+                  {/* 最大同时下载限�?*/}
                   <div className='space-y-2'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        最大同时下载限制
-                      </h4>
+                        最大同时下载限�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
                         控制播放页面下载时的同时下载数量
                       </p>
@@ -2455,8 +2418,7 @@ export const UserMenu: React.FC = () => {
                         同时下载数量
                       </span>
                       <span className='text-xs font-medium text-gray-700 dark:text-gray-300'>
-                        {maxConcurrentDownloads}个
-                      </span>
+                        {maxConcurrentDownloads}�?                      </span>
                     </div>
                     <div className='flex items-center gap-2'>
                       <input
@@ -2477,14 +2439,12 @@ export const UserMenu: React.FC = () => {
                         onClick={() => handleMaxConcurrentDownloadsChange(1)}
                         className={`px-2 py-0.5 rounded ${maxConcurrentDownloads === 1 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                       >
-                        1个
-                      </button>
+                        1�?                      </button>
                       <button
                         onClick={() => handleMaxConcurrentDownloadsChange(10)}
                         className={`px-2 py-0.5 rounded ${maxConcurrentDownloads === 10 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                       >
-                        10个
-                      </button>
+                        10�?                      </button>
                     </div>
                   </div>
 
@@ -2495,16 +2455,14 @@ export const UserMenu: React.FC = () => {
                         单任务线程数
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        控制每个下载任务使用的线程数量，线程越多下载越快但占用资源越多
-                      </p>
+                        控制每个下载任务使用的线程数量，线程越多下载越快但占用资源越�?                      </p>
                     </div>
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-600 dark:text-gray-400'>
                         线程数量
                       </span>
                       <span className='text-xs font-medium text-gray-700 dark:text-gray-300'>
-                        {downloadThreadsPerTask}个
-                      </span>
+                        {downloadThreadsPerTask}�?                      </span>
                     </div>
                     <div className='flex items-center gap-2'>
                       <input
@@ -2525,14 +2483,12 @@ export const UserMenu: React.FC = () => {
                         onClick={() => handleDownloadThreadsPerTaskChange(1)}
                         className={`px-2 py-0.5 rounded ${downloadThreadsPerTask === 1 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                       >
-                        1个
-                      </button>
+                        1�?                      </button>
                       <button
                         onClick={() => handleDownloadThreadsPerTaskChange(32)}
                         className={`px-2 py-0.5 rounded ${downloadThreadsPerTask === 32 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                       >
-                        32个
-                      </button>
+                        32�?                      </button>
                     </div>
                   </div>
 
@@ -2554,8 +2510,7 @@ export const UserMenu: React.FC = () => {
                           className='w-4 h-4 text-green-500'
                         />
                         <span className='text-sm text-gray-700 dark:text-gray-300'>
-                          浏览器下载（合并为单文件）
-                        </span>
+                          浏览器下载（合并为单文件�?                        </span>
                       </label>
                       <label className='flex items-center gap-2 cursor-pointer'>
                         <input
@@ -2567,12 +2522,11 @@ export const UserMenu: React.FC = () => {
                           className='w-4 h-4 text-green-500'
                         />
                         <span className='text-sm text-gray-700 dark:text-gray-300'>
-                          File System API（保存分片到本地目录）
-                        </span>
+                          File System API（保存分片到本地目录�?                        </span>
                       </label>
                     </div>
 
-                    {/* 保存路径选择（仅在 filesystem 模式显示） */}
+                    {/* 保存路径选择（仅�?filesystem 模式显示�?*/}
                     {downloadMode === 'filesystem' && (
                       <div className='mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2'>
                         <label className='block text-xs font-medium text-gray-700 dark:text-gray-300'>
@@ -2594,8 +2548,7 @@ export const UserMenu: React.FC = () => {
                           </button>
                         </div>
                         <p className='text-xs text-gray-500 dark:text-gray-400'>
-                          需要 Chrome 86+ 或 Edge 86+ 浏览器支持
-                        </p>
+                          需�?Chrome 86+ �?Edge 86+ 浏览器支�?                        </p>
                       </div>
                     )}
                   </div>
@@ -2636,8 +2589,7 @@ export const UserMenu: React.FC = () => {
                 <div className='p-3 md:p-4 space-y-4 md:space-y-6'>
                   <div>
                     <p className='text-xs text-gray-500 dark:text-gray-400'>
-                      调整播放器缓冲策略（仅在播放页面生效）
-                    </p>
+                      调整播放器缓冲策略（仅在播放页面生效�?                    </p>
                   </div>
 
                   {/* 缓冲策略 */}
@@ -2647,8 +2599,7 @@ export const UserMenu: React.FC = () => {
                         缓冲策略
                       </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        设置视频缓冲块大小，影响播放流畅度和流量消耗
-                      </p>
+                        设置视频缓冲块大小，影响播放流畅度和流量消�?                      </p>
                     </div>
 
                     {/* 滑块控件 */}
@@ -2673,20 +2624,17 @@ export const UserMenu: React.FC = () => {
                       {/* 标签显示 */}
                       <div className='flex justify-between text-xs text-gray-500 dark:text-gray-400 px-1'>
                         <span className={bufferStrategy === 'low' ? 'font-semibold text-green-600 dark:text-green-400' : ''}>
-                          低缓冲
-                        </span>
+                          低缓�?                        </span>
                         <span className={bufferStrategy === 'medium' ? 'font-semibold text-green-600 dark:text-green-400' : ''}>
-                          中缓冲
-                        </span>
+                          中缓�?                        </span>
                         <span className={bufferStrategy === 'high' ? 'font-semibold text-green-600 dark:text-green-400' : ''}>
-                          高缓冲
-                        </span>
+                          高缓�?                        </span>
                         <span className={bufferStrategy === 'ultra' ? 'font-semibold text-green-600 dark:text-green-400' : ''}>
                           超高缓冲
                         </span>
                       </div>
 
-                      {/* 当前选择的说明 */}
+                      {/* 当前选择的说�?*/}
                       <div className='text-center text-sm font-medium text-gray-700 dark:text-gray-300 mt-2'>
                         {
                           bufferStrategyOptions.find(
@@ -2697,15 +2645,13 @@ export const UserMenu: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 下集预缓冲 */}
+                  {/* 下集预缓�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        下集预缓冲
-                      </h4>
+                        下集预缓�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        播放进度达到90%时，自动预缓冲下一集内容
-                      </p>
+                        播放进度达到90%时，自动预缓冲下一集内�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2768,15 +2714,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 下集弹幕预加载 */}
+                  {/* 下集弹幕预加�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        下集弹幕预加载
-                      </h4>
+                        下集弹幕预加�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        播放进度达到90%时，自动预加载下一集弹幕
-                      </p>
+                        播放进度达到90%时，自动预加载下一集弹�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2792,15 +2736,13 @@ export const UserMenu: React.FC = () => {
                     </label>
                   </div>
 
-                  {/* 禁用弹幕热力图 */}
+                  {/* 禁用弹幕热力�?*/}
                   <div className='flex items-center justify-between'>
                     <div>
                       <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-                        禁用弹幕热力图
-                      </h4>
+                        禁用弹幕热力�?                      </h4>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        开启后不显示弹幕热力图和热力图开关
-                      </p>
+                        开启后不显示弹幕热力图和热力图开�?                      </p>
                     </div>
                     <label className='flex items-center cursor-pointer'>
                       <div className='relative'>
@@ -2823,7 +2765,7 @@ export const UserMenu: React.FC = () => {
                         弹幕加载上限
                       </span>
                       <span className='text-xs font-medium text-gray-700 dark:text-gray-300'>
-                        {danmakuMaxCount === 0 ? '无上限' : `${danmakuMaxCount} 条`}
+                        {danmakuMaxCount === 0 ? '无上�? : `${danmakuMaxCount} 条`}
                       </span>
                     </div>
                     <div className='flex items-center gap-2'>
@@ -2846,8 +2788,7 @@ export const UserMenu: React.FC = () => {
                         className={`absolute px-2 py-0.5 rounded ${danmakuMaxCount === 0 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
                         style={{ left: '0%', transform: 'translateX(0%)' }}
                       >
-                        无上限
-                      </button>
+                        无上�?                      </button>
                       <button
                         onClick={() => handleDanmakuMaxCountChange(3000)}
                         className={`absolute px-2 py-0.5 rounded ${danmakuMaxCount === 3000 ? 'bg-green-500 text-white' : 'hover:bg-gray-200 dark:hover:bg-gray-700'}`}
@@ -2871,8 +2812,7 @@ export const UserMenu: React.FC = () => {
                       </button>
                     </div>
                     <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                      限制加载的弹幕数量，减少性能消耗
-                    </p>
+                      限制加载的弹幕数量，减少性能消�?                    </p>
                   </div>
 
                   {/* 清除弹幕缓存 */}
@@ -2885,8 +2825,7 @@ export const UserMenu: React.FC = () => {
                         弹幕缓存空间占用：{danmakuCacheUsage}
                       </p>
                       <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        清除所有已缓存的弹幕数据
-                      </p>
+                        清除所有已缓存的弹幕数�?                      </p>
                     </div>
                     <button
                       onClick={handleClearDanmakuCache}
@@ -2896,7 +2835,7 @@ export const UserMenu: React.FC = () => {
                       {isClearingCache ? (
                         <>
                           <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin'></div>
-                          <span>清除中...</span>
+                          <span>清除�?..</span>
                         </>
                       ) : (
                         <>
@@ -2945,8 +2884,7 @@ export const UserMenu: React.FC = () => {
                 <div className='p-3 md:p-4 space-y-4 md:space-y-6'>
                   <div>
                     <p className='text-xs text-gray-500 dark:text-gray-400 mb-3'>
-                      配置首页模块的显示顺序和可见性
-                    </p>
+                      配置首页模块的显示顺序和可见�?                    </p>
                   </div>
 
                   {/* 首页顶部组件显示 */}
@@ -2969,8 +2907,7 @@ export const UserMenu: React.FC = () => {
                             ? 'text-gray-900 dark:text-gray-100'
                             : 'text-gray-400 dark:text-gray-500'
                         }`}>
-                          首页轮播图
-                        </span>
+                          首页轮播�?                        </span>
                       </div>
                     </div>
 
@@ -3005,7 +2942,7 @@ export const UserMenu: React.FC = () => {
                         key={module.id}
                         className='flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700'
                       >
-                        {/* 左侧：显示/隐藏开关 */}
+                        {/* 左侧：显�?隐藏开�?*/}
                         <button
                           onClick={() => handleHomeModuleToggle(module.id, !module.enabled)}
                           className='flex-shrink-0'
@@ -3018,7 +2955,7 @@ export const UserMenu: React.FC = () => {
                           )}
                         </button>
 
-                        {/* 中间：模块名称 */}
+                        {/* 中间：模块名�?*/}
                         <div className='flex-1'>
                           <span className={`text-sm font-medium ${
                             module.enabled
@@ -3029,7 +2966,7 @@ export const UserMenu: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* 右侧：上下移动按钮 */}
+                        {/* 右侧：上下移动按�?*/}
                         <div className='flex gap-1'>
                           <button
                             onClick={() => handleHomeModuleMoveUp(index)}
@@ -3072,7 +3009,7 @@ export const UserMenu: React.FC = () => {
 
                   {/* 提示信息 */}
                   <div className='text-xs text-gray-500 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg'>
-                    <p>💡 提示：点击眼睛图标可显示/隐藏模块，使用箭头按钮调整模块顺序</p>
+                    <p>💡 提示：点击眼睛图标可显示/隐藏模块，使用箭头按钮调整模块顺�?/p>
                   </div>
                 </div>
               )}
@@ -3082,8 +3019,7 @@ export const UserMenu: React.FC = () => {
           {/* 底部说明 */}
           <div className='mt-6 pt-4 border-t border-gray-200 dark:border-gray-700'>
             <p className='text-xs text-gray-500 dark:text-gray-400 text-center'>
-              这些设置保存在本地浏览器中
-            </p>
+              这些设置保存在本地浏览器�?            </p>
           </div>
         </div>
       </div>
@@ -3122,7 +3058,7 @@ export const UserMenu: React.FC = () => {
             touchAction: 'auto',
           }}
         >
-          {/* 标题栏 */}
+          {/* 标题�?*/}
           <div className='flex items-center justify-between mb-6'>
             <h3 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
               TVBox订阅
@@ -3140,7 +3076,7 @@ export const UserMenu: React.FC = () => {
           <div className='space-y-4'>
             {isLoadingSubscribeUrl ? (
               <>
-                {/* 加载骨架 - 开关 */}
+                {/* 加载骨架 - 开�?*/}
                 <div>
                   <div className='h-5 w-24 bg-gray-200 dark:bg-gray-700 rounded mb-3 animate-pulse'></div>
                   <div className='space-y-2'>
@@ -3179,11 +3115,9 @@ export const UserMenu: React.FC = () => {
                   >
                     <div>
                       <div className='text-sm font-medium text-gray-800 dark:text-gray-200'>
-                        去广告
-                      </div>
+                        去广�?                      </div>
                       <div className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        开启后通过代理处理播放链接，兼容性可能略低
-                      </div>
+                        开启后通过代理处理播放链接，兼容性可能略�?                      </div>
                     </div>
                     <div className={`relative h-6 w-11 rounded-full transition-colors ${subscribeAdFilterEnabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
                       <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${subscribeAdFilterEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -3200,8 +3134,7 @@ export const UserMenu: React.FC = () => {
                         黄色过滤
                       </div>
                       <div className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                        开启后同样走代理，并在代理搜索时过滤黄色内容
-                      </div>
+                        开启后同样走代理，并在代理搜索时过滤黄色内�?                      </div>
                     </div>
                     <div className={`relative h-6 w-11 rounded-full transition-colors ${subscribeYellowFilterEnabled ? 'bg-yellow-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
                       <div className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${subscribeYellowFilterEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
@@ -3225,7 +3158,7 @@ export const UserMenu: React.FC = () => {
                       className='px-4 py-2 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white text-sm font-medium rounded-md transition-colors flex items-center gap-2 whitespace-nowrap'
                     >
                       <Copy className='w-4 h-4' />
-                      {copySuccess ? '已复制' : '复制'}
+                      {copySuccess ? '已复�? : '复制'}
                     </button>
                   </div>
                   {(subscribeAdFilterEnabled || subscribeYellowFilterEnabled) && (
@@ -3242,11 +3175,10 @@ export const UserMenu: React.FC = () => {
                     disabled={isResettingToken}
                     className='w-full px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                   >
-                    {isResettingToken ? '重置中...' : '重置订阅Token'}
+                    {isResettingToken ? '重置�?..' : '重置订阅Token'}
                   </button>
                   <p className='text-xs text-gray-500 dark:text-gray-400 mt-2 text-center'>
-                    ⚠️ 重置后旧链接将失效
-                  </p>
+                    ⚠️ 重置后旧链接将失�?                  </p>
                   {/* 消息提示 */}
                   <p id='tvbox-token-message' className='text-xs text-center hidden'></p>
                 </div>
@@ -3257,8 +3189,7 @@ export const UserMenu: React.FC = () => {
           {/* 底部说明 */}
           <div className='mt-6 pt-4 border-t border-gray-200 dark:border-gray-700'>
             <p className='text-xs text-gray-500 dark:text-gray-400 text-center'>
-              将订阅链接复制到TVBox应用中使用
-            </p>
+              将订阅链接复制到TVBox应用中使�?            </p>
           </div>
         </div>
       </div>
@@ -3289,7 +3220,7 @@ export const UserMenu: React.FC = () => {
       <div
         className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[1001] overflow-hidden'
       >
-        {/* 内容容器 - 独立的滚动区域 */}
+        {/* 内容容器 - 独立的滚动区�?*/}
         <div
           className='h-full p-6'
           data-panel-content
@@ -3298,10 +3229,9 @@ export const UserMenu: React.FC = () => {
             e.stopPropagation();
           }}
           style={{
-            touchAction: 'auto', // 允许所有触摸操作
-          }}
+            touchAction: 'auto', // 允许所有触摸操�?          }}
         >
-          {/* 标题栏 */}
+          {/* 标题�?*/}
           <div className='flex items-center justify-between mb-6'>
             <h3 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
               修改密码
@@ -3317,11 +3247,10 @@ export const UserMenu: React.FC = () => {
 
           {/* 表单 */}
           <div className='space-y-4'>
-            {/* 新密码输入 */}
+            {/* 新密码输�?*/}
             <div>
               <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                新密码
-              </label>
+                新密�?              </label>
               <input
                 type='password'
                 className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400'
@@ -3369,15 +3298,14 @@ export const UserMenu: React.FC = () => {
               className='flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
               disabled={passwordLoading || !newPassword || !confirmPassword}
             >
-              {passwordLoading ? '修改中...' : '确认修改'}
+              {passwordLoading ? '修改�?..' : '确认修改'}
             </button>
           </div>
 
           {/* 底部说明 */}
           <div className='mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
             <p className='text-xs text-gray-500 dark:text-gray-400 text-center'>
-              修改密码后需要重新登录
-            </p>
+              修改密码后需要重新登�?            </p>
           </div>
         </div>
       </div>
@@ -3416,11 +3344,10 @@ export const UserMenu: React.FC = () => {
             touchAction: 'auto',
           }}
         >
-          {/* 标题栏 */}
+          {/* 标题�?*/}
           <div className='flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700'>
             <h3 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-              耻辱柱
-            </h3>
+              耻辱�?            </h3>
             <button
               onClick={() => setIsReportOpen(false)}
               className='w-8 h-8 p-1 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
@@ -3434,13 +3361,11 @@ export const UserMenu: React.FC = () => {
           <div className='flex-1 overflow-y-auto p-6'>
             <div className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4'>
               <p className='text-gray-800 dark:text-gray-200 leading-relaxed'>
-                抄袭狗<span className='font-bold text-red-600 dark:text-red-400'>SzeMeng76</span>毫无廉耻，盯着本项目的commit区，疯狂抄袭。警告亦全当看不见，实为开源界耻辱。
-              </p>
+                抄袭�?span className='font-bold text-red-600 dark:text-red-400'>SzeMeng76</span>毫无廉耻，盯着本项目的commit区，疯狂抄袭。警告亦全当看不见，实为开源界耻辱�?              </p>
               <p className='text-gray-800 dark:text-gray-200 leading-relaxed mt-3'>
-                超分，观影室，豆瓣反爬，精确搜索等等等等，直接抄袭，最不要脸的就是，刚更新一版，几小时后直接抄走。
-              </p>
+                超分，观影室，豆瓣反爬，精确搜索等等等等，直接抄袭，最不要脸的就是，刚更新一版，几小时后直接抄走�?              </p>
               <p className='text-gray-800 dark:text-gray-200 leading-relaxed mt-3'>
-                <span className='font-semibold text-red-600 dark:text-red-400'>2026-02-25：</span>抄袭emby功能
+                <span className='font-semibold text-red-600 dark:text-red-400'>2026-02-25�?/span>抄袭emby功能
               </p>
             </div>
           </div>
@@ -3459,6 +3384,209 @@ export const UserMenu: React.FC = () => {
     </>
   );
 
+  // 生态应用面板内�?  const ecoAppsPanel = (
+    <>
+      {/* 背景遮罩 */}
+      <div
+        className='fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]'
+        onClick={() => setIsEcoAppsOpen(false)}
+        onTouchMove={(e) => {
+          e.preventDefault();
+        }}
+        onWheel={(e) => {
+          e.preventDefault();
+        }}
+        style={{
+          touchAction: 'none',
+        }}
+      />
+
+      {/* 生态应用面�?*/}
+      <div
+        className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[1001] overflow-hidden'
+      >
+        <div
+          className='h-full max-h-[85vh] flex flex-col'
+          data-panel-content
+          onTouchMove={(e) => {
+            e.stopPropagation();
+          }}
+          style={{
+            touchAction: 'auto',
+          }}
+        >
+          {/* 标题�?*/}
+          <div className='flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700'>
+            <h3 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
+              生态应�?            </h3>
+            <div className='flex items-center gap-2'>
+              {/* 举报按钮 */}
+              <button
+                onClick={() => setIsReportOpen(true)}
+                className='w-8 h-8 p-1 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-lg'
+                aria-label='Report'
+                title='举报抄袭'
+              >
+                🐶
+              </button>
+              {/* 关闭按钮 */}
+              <button
+                onClick={() => setIsEcoAppsOpen(false)}
+                className='w-8 h-8 p-1 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
+                aria-label='Close'
+              >
+                <X className='w-full h-full' />
+              </button>
+            </div>
+          </div>
+
+          {/* 应用列表 */}
+          <div className='flex-1 overflow-y-auto p-6'>
+            <div className='grid gap-6 md:grid-cols-1'>
+              {/* KuroTVPlus-PC 客户�?*/}
+              <div className='bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700'>
+                <div className='flex items-start gap-4'>
+                  <div className='flex-shrink-0 relative'>
+                    <img
+                      src='/logo.png'
+                      alt='KuroTVPlus-PC'
+                      className='w-16 h-16 rounded-xl object-cover'
+                    />
+                    <div className='absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center shadow-lg'>
+                      <Monitor className='w-3.5 h-3.5 text-white' />
+                    </div>
+                  </div>
+                  <div className='flex-1 min-w-0'>
+                    <h4 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2'>
+                      KuroTVPlus-PC客户�?                    </h4>
+                    <p className='text-sm text-gray-600 dark:text-gray-400 mb-3'>
+                      专为Windows开发的客户端，完美支持私人影库mkv视频
+                    </p>
+                    <a
+                      href='https://github.com/mtvpls/KuroTVPlus-PC/releases'
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors'
+                    >
+                      <Download className='w-4 h-4' />
+                      下载
+                      <ExternalLink className='w-3 h-3' />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selene 跨平台客户端 */}
+              <div className='bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700'>
+                <div className='flex items-start gap-4'>
+                  <div className='flex-shrink-0 relative'>
+                    <img
+                      src='/icons/Selene.png'
+                      alt='Selene'
+                      className='w-16 h-16 rounded-xl object-cover'
+                    />
+                    <span className='absolute -top-1 -right-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded'>
+                      二开
+                    </span>
+                  </div>
+                  <div className='flex-1 min-w-0'>
+                    <h4 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2'>
+                      Selene 跨平台客户端
+                    </h4>
+                    <p className='text-sm text-gray-600 dark:text-gray-400 mb-3'>
+                      多平台客户端
+                    </p>
+                    <div className='flex flex-wrap gap-2'>
+                      <a
+                        href='https://github.com/mtvpls/Selene-Build/releases'
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='inline-flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors'
+                      >
+                        <Download className='w-4 h-4' />
+                        下载
+                        <ExternalLink className='w-3 h-3' />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* OrionTV TV专用客户�?*/}
+              <div className='bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700'>
+                <div className='flex items-start gap-4'>
+                  <div className='flex-shrink-0 relative'>
+                    <img
+                      src='/icons/OrionTV.png'
+                      alt='OrionTV'
+                      className='w-16 h-16 rounded-xl object-cover'
+                    />
+                    <span className='absolute -top-1 -right-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded'>
+                      二开
+                    </span>
+                  </div>
+                  <div className='flex-1 min-w-0'>
+                    <h4 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2'>
+                      OrionTV TV专用客户�?                    </h4>
+                    <p className='text-sm text-gray-600 dark:text-gray-400 mb-3'>
+                      tv专用
+                    </p>
+                    <a
+                      href='https://github.com/mtvpls/OrionTV_Build/tags'
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors'
+                    >
+                      <Download className='w-4 h-4' />
+                      下载
+                      <ExternalLink className='w-3 h-3' />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* 私人影库转码�?*/}
+              <div className='bg-gray-50 dark:bg-gray-800 rounded-lg p-5 border border-gray-200 dark:border-gray-700'>
+                <div className='flex items-start gap-4'>
+                  <div className='flex-shrink-0 relative'>
+                    <div className='w-16 h-16 rounded-xl bg-amber-500 flex items-center justify-center shadow-sm'>
+                      <RouterIcon className='w-8 h-8 text-white' />
+                    </div>
+                    <span className='absolute -top-1 -right-1 px-1.5 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded'>
+                      MKV转码
+                    </span>
+                  </div>
+                  <div className='flex-1 min-w-0'>
+                    <h4 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2'>
+                      私人影库转码�?                    </h4>
+                    <p className='text-sm text-gray-600 dark:text-gray-400 mb-3'>
+                      为私人影库中�?MKV 视频提供转码播放能力，可解析内封字幕并解决部分视频无音频问题，但通常需要较高的本机性能配置�?                    </p>
+                    <a
+                      href='https://github.com/mtvpls/KuroTVPlus-transcoder/tags'
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors'
+                    >
+                      <Download className='w-4 h-4' />
+                      下载
+                      <ExternalLink className='w-3 h-3' />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 底部说明 */}
+          <div className='p-6 pt-4 border-t border-gray-200 dark:border-gray-700'>
+            <p className='text-xs text-gray-500 dark:text-gray-400 text-center'>
+              选择适合您设备的客户端下载使�?            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <>
       <div className='relative'>
@@ -3469,6 +3597,10 @@ export const UserMenu: React.FC = () => {
         >
           <User className='w-full h-full' />
         </button>
+        {/* 版本更新红点 */}
+        {updateStatus === UpdateStatus.HAS_UPDATE && (
+          <div className='absolute top-[2px] right-[2px] w-2 h-2 bg-yellow-500 rounded-full'></div>
+        )}
         {/* 未读通知红点 */}
         {unreadCount > 0 && (
           <div className='absolute top-[2px] right-[2px] w-2 h-2 bg-red-500 rounded-full'></div>
@@ -3488,6 +3620,7 @@ export const UserMenu: React.FC = () => {
         avatarText={avatarText}
         roleBadgeClassName={roleBadgeClassName}
         showDeviceManagement={storageType !== 'localstorage'}
+        showChangePassword={showChangePassword}
         onOpenEmailSettings={() => {
           setIsProfileCenterOpen(false);
           setIsEmailSettingsOpen(true);
@@ -3497,6 +3630,10 @@ export const UserMenu: React.FC = () => {
           setIsProfileCenterOpen(false);
           setIsDeviceManagementOpen(true);
           loadDevices();
+        }}
+        onOpenChangePassword={() => {
+          setIsProfileCenterOpen(false);
+          handleChangePassword();
         }}
       />
 
@@ -3513,13 +3650,19 @@ export const UserMenu: React.FC = () => {
         mounted &&
         createPortal(subscribePanel, document.body)}
 
+      {/* 版本面板 */}
+      <VersionPanel
+        isOpen={isVersionPanelOpen}
+        onClose={() => setIsVersionPanelOpen(false)}
+      />
+
       {/* 离线下载面板 */}
       <OfflineDownloadPanel
         isOpen={isOfflineDownloadPanelOpen}
         onClose={() => setIsOfflineDownloadPanelOpen(false)}
       />
 
-      {/* 使用 Portal 将通知面板渲染到 document.body */}
+      {/* 使用 Portal 将通知面板渲染�?document.body */}
       {isNotificationPanelOpen &&
         mounted &&
         createPortal(
@@ -3527,8 +3670,7 @@ export const UserMenu: React.FC = () => {
             isOpen={isNotificationPanelOpen}
             onClose={() => {
               setIsNotificationPanelOpen(false);
-              // 不需要在这里刷新，NotificationPanel 内部会触发事件
-            }}
+              // 不需要在这里刷新，NotificationPanel 内部会触发事�?            }}
           />,
           document.body
         )}
@@ -3582,12 +3724,17 @@ export const UserMenu: React.FC = () => {
         getDeviceIcon={getDeviceIcon}
       />
 
+      {/* 使用 Portal 将生态应用面板渲染到 document.body */}
+      {isEcoAppsOpen &&
+        mounted &&
+        createPortal(ecoAppsPanel, document.body)}
+
       {/* 使用 Portal 将举报信息面板渲染到 document.body */}
       {isReportOpen &&
         mounted &&
         createPortal(reportPanel, document.body)}
 
-      {/* 确认对话框 */}
+      {/* 确认对话�?*/}
       {confirmDialog.isOpen &&
         mounted &&
         createPortal(

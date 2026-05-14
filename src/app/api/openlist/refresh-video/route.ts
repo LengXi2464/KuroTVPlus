@@ -12,15 +12,15 @@ export const runtime = 'nodejs';
 
 /**
  * POST /api/openlist/refresh-video
- * 刷新单个视频的 videoinfo.json
+ * 刷新单个视频�?videoinfo.json
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'private_library', '无权限访问私人影库');
+    const authResult = await requireFeaturePermission(request, 'private_library', '无权限访问私人影�?);
     if (authResult instanceof NextResponse) return authResult;
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
+      return NextResponse.json({ error: '未授�? }, { status: 401 });
     }
 
     const body = await request.json();
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       !openListConfig.Username ||
       !openListConfig.Password
     ) {
-      return NextResponse.json({ error: 'OpenList 未配置或未启用' }, { status: 400 });
+      return NextResponse.json({ error: 'OpenList 未配置或未启�? }, { status: 400 });
     }
 
     // folder 已经是完整路径，直接使用

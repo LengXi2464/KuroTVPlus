@@ -2,8 +2,8 @@ import { NextRequest } from 'next/server';
 import { getAuthInfoFromCookie } from './auth';
 
 /**
- * 获取用于代理的 token
- * 优先级：全局 token > 用户 token（从 cookie 获取）> null
+ * 获取用于代理�?token
+ * 优先级：全局 token > 用户 token（从 cookie 获取�? null
  */
 export async function getProxyToken(request?: NextRequest): Promise<string | null> {
   // 1. 尝试获取全局 token
@@ -12,7 +12,7 @@ export async function getProxyToken(request?: NextRequest): Promise<string | nul
     return globalToken;
   }
 
-  // 2. 如果提供了 request，尝试从用户登录信息获取用户的 tvbox token
+  // 2. 如果提供�?request，尝试从用户登录信息获取用户�?tvbox token
   if (request) {
     const authInfo = getAuthInfoFromCookie(request);
     if (authInfo && authInfo.username) {
@@ -24,11 +24,10 @@ export async function getProxyToken(request?: NextRequest): Promise<string | nul
           return userToken;
         }
       } catch (error) {
-        // 忽略错误，继续
-      }
+        // 忽略错误，继�?      }
     }
   }
 
-  // 3. 没有可用的 token
+  // 3. 没有可用�?token
   return null;
 }

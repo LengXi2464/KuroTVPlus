@@ -5,8 +5,7 @@ import { Redis } from '@upstash/redis';
 import { UpstashRedisAdapter } from './redis-adapter';
 import { BaseRedisStorage } from './redis-base.db';
 
-// 添加Upstash Redis操作重试包装器
-async function withRetry<T>(
+// 添加Upstash Redis操作重试包装�?async function withRetry<T>(
   operation: () => Promise<T>,
   maxRetries = 3
 ): Promise<T> {
@@ -49,8 +48,7 @@ export class UpstashRedisStorage extends BaseRedisStorage {
   }
 }
 
-// 单例 Upstash Redis 客户端
-function getUpstashRedisClient(): Redis {
+// 单例 Upstash Redis 客户�?function getUpstashRedisClient(): Redis {
   const globalKey = Symbol.for('__MOONTV_UPSTASH_REDIS_CLIENT__');
   let client: Redis | undefined = (global as any)[globalKey];
 
@@ -64,12 +62,10 @@ function getUpstashRedisClient(): Redis {
       );
     }
 
-    // 创建 Upstash Redis 客户端
-    client = new Redis({
+    // 创建 Upstash Redis 客户�?    client = new Redis({
       url: upstashUrl,
       token: upstashToken,
-      // 可选配置
-      retry: {
+      // 可选配�?      retry: {
         retries: 3,
         backoff: (retryCount: number) =>
           Math.min(1000 * Math.pow(2, retryCount), 30000),

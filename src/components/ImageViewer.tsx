@@ -28,8 +28,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     setMounted(true);
   }, []);
 
-  // 控制动画状态
-  useEffect(() => {
+  // 控制动画状�?  useEffect(() => {
     let animationId: number;
     let timer: NodeJS.Timeout;
 
@@ -101,8 +100,7 @@ const ImageViewer: React.FC<ImageViewerProps> = ({
     }
   }, [isVisible]);
 
-  // ESC键关闭
-  useEffect(() => {
+  // ESC键关�?  useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();

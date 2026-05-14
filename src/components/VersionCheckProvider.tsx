@@ -28,7 +28,7 @@ export const VersionCheckProvider: React.FC<{ children: React.ReactNode }> = ({
         const status = await checkForUpdates();
         setUpdateStatus(status);
       } catch (error) {
-        console.warn('版本检查失败:', error);
+        console.warn('版本检查失�?', error);
       } finally {
         setIsChecking(false);
       }

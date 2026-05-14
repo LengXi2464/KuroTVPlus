@@ -18,7 +18,7 @@ export default function BookShelfPage() {
 
   return (
     <div className='space-y-4'>
-      <div className='text-sm text-gray-500'>共 {items.length} 本电子书</div>
+      <div className='text-sm text-gray-500'>�?{items.length} 本电子书</div>
       <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
         {items.map((item) => (
           <div key={`${item.sourceId}-${item.bookId}`} className='rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950'>

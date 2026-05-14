@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return NextResponse.json(
-          { error: '邮箱格式不正确' },
+          { error: '邮箱格式不正�? },
           { status: 400 }
         );
       }

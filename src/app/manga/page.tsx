@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 
 import { Flame, Sparkles } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -90,7 +90,7 @@ export default function MangaRecommendPage() {
       });
       const res = await fetch(`/api/manga/recommend?${params.toString()}`);
       const data = (await res.json()) as MangaRecommendResult & { error?: string };
-      if (!res.ok) throw new Error(data.error || 'è·å–æ¨èå¤±è´¥');
+      if (!res.ok) throw new Error(data.error || '»ñÈ¡ÍÆ¼öÊ§°Ü');
 
       setPage(nextPage);
       setResult((prev) => ({
@@ -142,8 +142,8 @@ export default function MangaRecommendPage() {
   );
 
   const recommendOptions = [
-    { label: 'çƒ­é—¨', value: 'POPULAR', icon: <Flame className='h-3.5 w-3.5' /> },
-    { label: 'æœ€æ–°', value: 'LATEST', icon: <Sparkles className='h-3.5 w-3.5' /> },
+    { label: 'ÈÈÃÅ', value: 'POPULAR', icon: <Flame className='h-3.5 w-3.5' /> },
+    { label: '×îĞÂ', value: 'LATEST', icon: <Sparkles className='h-3.5 w-3.5' /> },
   ];
 
   const toggleShelf = async (item: MangaSearchItem) => {
@@ -177,18 +177,18 @@ export default function MangaRecommendPage() {
     <div className='mx-auto max-w-6xl space-y-6'>
       <section className='space-y-4 rounded-3xl border border-gray-200/70 bg-white/80 p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950/70 sm:p-5'>
         <div className='space-y-2'>
-          <div className='text-sm font-medium text-gray-700 dark:text-gray-200'>æ¼«ç”»æº</div>
+          <div className='text-sm font-medium text-gray-700 dark:text-gray-200'>Âş»­Ô´</div>
           {sourceOptions.length > 0 ? (
             <CapsuleSwitch options={sourceOptions} active={sourceId} onChange={setSourceId} className='max-w-full' />
           ) : (
             <div className='rounded-2xl bg-gray-100 px-4 py-3 text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400'>
-              æš‚æ— å¯ç”¨æ¼«ç”»æº
+              ÔİÎŞ¿ÉÓÃÂş»­Ô´
             </div>
           )}
         </div>
 
         <div className='space-y-2'>
-          <div className='text-sm font-medium text-gray-700 dark:text-gray-200'>æ¨èç±»å‹</div>
+          <div className='text-sm font-medium text-gray-700 dark:text-gray-200'>ÍÆ¼öÀàĞÍ</div>
           <CapsuleSwitch
             options={recommendOptions}
             active={recommendType}
@@ -199,7 +199,7 @@ export default function MangaRecommendPage() {
 
       <section>
         <div className='mb-4 flex items-center justify-between'>
-          <h2 className='text-lg font-semibold'>æ¨èå†…å®¹</h2>
+          <h2 className='text-lg font-semibold'>ÍÆ¼öÄÚÈİ</h2>
         </div>
 
         {error && <div className='mb-4 text-sm text-red-500'>{error}</div>}
@@ -212,7 +212,7 @@ export default function MangaRecommendPage() {
           </div>
         ) : result.mangas.length === 0 ? (
           <div className='rounded-2xl bg-gray-50 p-10 text-center text-sm text-gray-500 dark:bg-gray-900/50'>
-            {sourceId ? 'å½“å‰æºæš‚æ— æ¨èå†…å®¹' : 'è¯·å…ˆé€‰æ‹©æ¼«ç”»æº'}
+            {sourceId ? 'µ±Ç°Ô´ÔİÎŞÍÆ¼öÄÚÈİ' : 'ÇëÏÈÑ¡ÔñÂş»­Ô´'}
           </div>
         ) : (
           <>
@@ -225,13 +225,13 @@ export default function MangaRecommendPage() {
                       item={item}
                       href={`/manga/detail?mangaId=${item.id}&sourceId=${item.sourceId}&title=${encodeURIComponent(item.title)}&cover=${encodeURIComponent(item.cover)}&sourceName=${encodeURIComponent(item.sourceName)}&description=${encodeURIComponent(item.description || '')}&author=${encodeURIComponent(item.author || '')}&status=${encodeURIComponent(item.status || '')}&returnTo=${encodeURIComponent('/manga')}`}
                       subtitle={item.author || item.status || item.description}
-                      badge={recommendType === 'POPULAR' ? 'çƒ­é—¨' : 'æœ€æ–°'}
+                      badge={recommendType === 'POPULAR' ? 'ÈÈÃÅ' : '×îĞÂ'}
                     />
                     <button
                       onClick={() => toggleShelf(item)}
                       className='w-full rounded-2xl border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-sky-500 hover:text-sky-600 dark:border-gray-700 dark:text-gray-200'
                     >
-                      {shelf[key] ? 'ç§»å‡ºä¹¦æ¶' : 'åŠ å…¥ä¹¦æ¶'}
+                      {shelf[key] ? 'ÒÆ³öÊé¼Ü' : '¼ÓÈëÊé¼Ü'}
                     </button>
                   </div>
                 );
@@ -239,7 +239,7 @@ export default function MangaRecommendPage() {
             </div>
 
             <div ref={loadMoreRef} className='mt-6 flex min-h-10 items-center justify-center text-sm text-gray-500 dark:text-gray-400'>
-              {loadingMore ? 'æ­£åœ¨åŠ è½½æ›´å¤š...' : result.hasNextPage ? 'ç»§ç»­ä¸‹æ»‘åŠ è½½æ›´å¤š' : 'æ²¡æœ‰æ›´å¤šäº†'}
+              {loadingMore ? 'ÕıÔÚ¼ÓÔØ¸ü¶à...' : result.hasNextPage ? '¼ÌĞøÏÂ»¬¼ÓÔØ¸ü¶à' : 'Ã»ÓĞ¸ü¶àÁË'}
             </div>
           </>
         )}

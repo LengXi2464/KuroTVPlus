@@ -21,8 +21,7 @@ export function extractEpisode(title: string): number | null {
   // 备用正则匹配
   const patterns = [
     /\[(\d+)\]/, // [01]
-    /第(\d+)[集话]/, // 第01集
-    /EP?(\d+)/i, // EP01, E01
+    /�?\d+)[集话]/, // �?1�?    /EP?(\d+)/i, // EP01, E01
     /\s(\d+)\s/, // 空格01空格
   ];
 
@@ -37,20 +36,17 @@ export function extractEpisode(title: string): number | null {
 }
 
 /**
- * 检查标题是否匹配过滤条件
- */
+ * 检查标题是否匹配过滤条�? */
 export function matchesFilter(title: string, filterText: string): boolean {
   if (!filterText) return true;
 
-  // 支持多个关键词，用逗号分隔，必须全部匹配
-  const keywords = filterText.split(',').map((k) => k.trim()).filter(Boolean);
+  // 支持多个关键词，用逗号分隔，必须全部匹�?  const keywords = filterText.split(',').map((k) => k.trim()).filter(Boolean);
 
   return keywords.every((keyword) => title.includes(keyword));
 }
 
 /**
- * 搜索 ACG 资源（直接调用搜索逻辑，不通过 HTTP）
- */
+ * 搜索 ACG 资源（直接调用搜索逻辑，不通过 HTTP�? */
 export async function searchACG(
   keyword: string,
   source: 'acgrip' | 'mikan' | 'dmhy'
@@ -123,7 +119,7 @@ export async function addOfflineDownload(
   const openlistConfig = config.OpenListConfig;
 
   if (!openlistConfig?.Enabled) {
-    throw new Error('私人影库功能未启用');
+    throw new Error('私人影库功能未启�?);
   }
 
   if (
@@ -131,7 +127,7 @@ export async function addOfflineDownload(
     !openlistConfig.Username ||
     !openlistConfig.Password
   ) {
-    throw new Error('OpenList 配置不完整');
+    throw new Error('OpenList 配置不完�?);
   }
 
   const client = new OpenListClient(
@@ -164,8 +160,7 @@ export async function addOfflineDownload(
 }
 
 /**
- * 发送追番更新通知和邮件
- */
+ * 发送追番更新通知和邮�? */
 async function sendAnimeUpdateNotifications(
   subscription: AnimeSubscription,
   episodes: number[]
@@ -173,7 +168,7 @@ async function sendAnimeUpdateNotifications(
   const config = await getConfig();
   const storage = getStorage();
 
-  // 获取站长用户名 - 从用户列表中查找 owner 角色
+  // 获取站长用户�?- 从用户列表中查找 owner 角色
   let ownerUsername: string | null = null;
   try {
     const allUsers = await db.getAllUsers();
@@ -185,7 +180,7 @@ async function sendAnimeUpdateNotifications(
       }
     }
   } catch (error) {
-    console.error('[AnimeSubscription] 获取站长用户名失败:', error);
+    console.error('[AnimeSubscription] 获取站长用户名失�?', error);
   }
 
   if (!ownerUsername) {
@@ -194,15 +189,13 @@ async function sendAnimeUpdateNotifications(
   }
 
   // 准备通知内容
-  const episodeList = episodes.join('、');
-  const notificationTitle = `追番更新：${subscription.title}`;
-  const notificationMessage = `您订阅的番剧《${subscription.title}》有新集数更新：第 ${episodeList} 集，已下载到私人影库`;
+  const episodeList = episodes.join('�?);
+  const notificationTitle = `追番更新�?{subscription.title}`;
+  const notificationMessage = `您订阅的番剧�?{subscription.title}》有新集数更新：�?${episodeList} 集，已下载到私人影库`;
 
-  // 需要通知的用户列表（去重）
-  const usersToNotify: string[] = [ownerUsername];
+  // 需要通知的用户列表（去重�?  const usersToNotify: string[] = [ownerUsername];
 
-  // 如果创建者不是站长，也通知创建者
-  if (subscription.createdBy && subscription.createdBy !== ownerUsername) {
+  // 如果创建者不是站长，也通知创建�?  if (subscription.createdBy && subscription.createdBy !== ownerUsername) {
     usersToNotify.push(subscription.createdBy);
   }
 
@@ -222,14 +215,13 @@ async function sendAnimeUpdateNotifications(
           episodes: episodes,
         },
       });
-      console.log(`[AnimeSubscription] 已发送站内通知给用户: ${username}`);
+      console.log(`[AnimeSubscription] 已发送站内通知给用�? ${username}`);
     } catch (error) {
       console.error(`[AnimeSubscription] 发送站内通知失败 (${username}):`, error);
     }
   }
 
-  // 发送邮件通知（如果已启用）
-  const emailConfig = config.EmailConfig;
+  // 发送邮件通知（如果已启用�?  const emailConfig = config.EmailConfig;
   if (!emailConfig?.enabled) {
     return;
   }
@@ -250,22 +242,21 @@ async function sendAnimeUpdateNotifications(
     }
   }
 
-  // 发送邮件
-  for (const { username, email } of emailsToSend) {
+  // 发送邮�?  for (const { username, email } of emailsToSend) {
     try {
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">追番更新通知</h2>
-          <p>您好，${username}！</p>
-          <p>您订阅的番剧有新集数更新：</p>
+          <p>您好�?{username}�?/p>
+          <p>您订阅的番剧有新集数更新�?/p>
           <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2563eb;">${subscription.title}</h3>
-            <p style="margin: 10px 0;">新增集数：第 ${episodeList} 集</p>
+            <p style="margin: 10px 0;">新增集数：第 ${episodeList} �?/p>
             <p style="margin: 10px 0; color: #666;">搜索源：${subscription.source === 'acgrip' ? 'ACG.RIP' : subscription.source === 'mikan' ? '蜜柑' : '动漫花园'}</p>
           </div>
-          <p style="color: #666; font-size: 14px;">这些集数已自动添加到 OpenList 离线下载队列。</p>
+          <p style="color: #666; font-size: 14px;">这些集数已自动添加到 OpenList 离线下载队列�?/p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-          <p style="color: #999; font-size: 12px;">此邮件由系统自动发送，请勿回复。</p>
+          <p style="color: #999; font-size: 12px;">此邮件由系统自动发送，请勿回复�?/p>
         </div>
       `;
 
@@ -283,9 +274,9 @@ async function sendAnimeUpdateNotifications(
         });
       }
 
-      console.log(`[AnimeSubscription] 已发送邮件通知给: ${email}`);
+      console.log(`[AnimeSubscription] 已发送邮件通知�? ${email}`);
     } catch (error) {
-      console.error(`[AnimeSubscription] 发送邮件失败 (${email}):`, error);
+      console.error(`[AnimeSubscription] 发送邮件失�?(${email}):`, error);
     }
   }
 }
@@ -298,14 +289,13 @@ export async function checkSubscription(subscription: AnimeSubscription) {
   const openlistConfig = config.OpenListConfig;
 
   if (!openlistConfig?.OfflineDownloadPath) {
-    throw new Error('OpenList 离线下载路径未配置');
+    throw new Error('OpenList 离线下载路径未配�?);
   }
 
   // 1. 搜索资源
   const results = await searchACG(subscription.title, subscription.source);
 
-  // 2. 过滤并解析集数
-  const newEpisodes = results
+  // 2. 过滤并解析集�?  const newEpisodes = results
     .filter((item: any) => matchesFilter(item.title, subscription.filterText))
     .map((item: any) => ({
       episode: extractEpisode(item.title),
@@ -314,14 +304,13 @@ export async function checkSubscription(subscription: AnimeSubscription) {
     .filter((item: any) => item.episode && item.episode > subscription.lastEpisode)
     .sort((a: any, b: any) => a.episode! - b.episode!);
 
-  // 3. 下载新集数
-  const downloaded = [];
+  // 3. 下载新集�?  const downloaded = [];
   for (const item of newEpisodes) {
     try {
       const downloadPath = `${openlistConfig.OfflineDownloadPath.replace(/\/$/, '')}/${subscription.title}`;
       await addOfflineDownload(item.torrentUrl, downloadPath);
 
-      // 成功后更新 lastEpisode
+      // 成功后更�?lastEpisode
       subscription.lastEpisode = item.episode!;
       downloaded.push(item.episode);
 
@@ -329,20 +318,17 @@ export async function checkSubscription(subscription: AnimeSubscription) {
         `[AnimeSubscription] ${subscription.title}: 已添加第${item.episode}集到下载队列`
       );
     } catch (error) {
-      // 失败则停止，下次继续尝试这一集
-      console.error(
-        `[AnimeSubscription] ${subscription.title}: 下载第${item.episode}集失败`,
+      // 失败则停止，下次继续尝试这一�?      console.error(
+        `[AnimeSubscription] ${subscription.title}: 下载�?{item.episode}集失败`,
         error
       );
       break;
     }
   }
 
-  // 4. 更新检查时间
-  subscription.lastCheckTime = Date.now();
+  // 4. 更新检查时�?  subscription.lastCheckTime = Date.now();
 
-  // 5. 发送通知和邮件（如果有下载成功的集数）
-  if (downloaded.length > 0) {
+  // 5. 发送通知和邮件（如果有下载成功的集数�?  if (downloaded.length > 0) {
     try {
       await sendAnimeUpdateNotifications(subscription, downloaded);
     } catch (error) {
@@ -358,16 +344,15 @@ export async function checkSubscription(subscription: AnimeSubscription) {
 }
 
 /**
- * 检查所有订阅（定时任务调用）
- */
+ * 检查所有订阅（定时任务调用�? */
 export async function checkAnimeSubscriptions() {
-  console.log('[AnimeSubscription] 开始检查动漫订阅');
+  console.log('[AnimeSubscription] 开始检查动漫订�?);
 
   const config = await getConfig();
   const animeConfig = config.AnimeSubscriptionConfig;
 
   if (!animeConfig?.Enabled) {
-    console.log('[AnimeSubscription] 动漫订阅功能未启用，跳过检查');
+    console.log('[AnimeSubscription] 动漫订阅功能未启用，跳过检�?);
     return;
   }
 
@@ -388,7 +373,7 @@ export async function checkAnimeSubscriptions() {
       continue;
     }
 
-    // 检查是否距离上次检查超过30分钟
+    // 检查是否距离上次检查超�?0分钟
     const timeSinceLastCheck = now - sub.lastCheckTime;
     if (timeSinceLastCheck < MIN_CHECK_INTERVAL) {
       const remainingMinutes = Math.ceil((MIN_CHECK_INTERVAL - timeSinceLastCheck) / 60000);
@@ -398,9 +383,9 @@ export async function checkAnimeSubscriptions() {
     }
 
     try {
-      console.log(`[AnimeSubscription] 检查订阅: ${sub.title} (源: ${sub.source}, 上次集数: ${sub.lastEpisode})`);
+      console.log(`[AnimeSubscription] 检查订�? ${sub.title} (�? ${sub.source}, 上次集数: ${sub.lastEpisode})`);
       const result = await checkSubscription(sub);
-      console.log(`[AnimeSubscription] ${sub.title}: 找到 ${result.found} 个新集数，成功下载 ${result.downloaded} 个`);
+      console.log(`[AnimeSubscription] ${sub.title}: 找到 ${result.found} 个新集数，成功下�?${result.downloaded} 个`);
       configChanged = true;
       checkedCount++;
     } catch (error) {
@@ -409,12 +394,11 @@ export async function checkAnimeSubscriptions() {
     }
   }
 
-  // 5. 保存配置并刷新缓存
-  if (configChanged) {
+  // 5. 保存配置并刷新缓�?  if (configChanged) {
     await db.saveAdminConfig(config);
     await setCachedConfig(config);
     console.log('[AnimeSubscription] 配置已更新并保存');
   }
 
-  console.log(`[AnimeSubscription] 检查完成 - 总计: ${subscriptions.length}, 已检查: ${checkedCount}, 跳过: ${skippedCount}, 失败: ${errorCount}`);
+  console.log(`[AnimeSubscription] 检查完�?- 总计: ${subscriptions.length}, 已检�? ${checkedCount}, 跳过: ${skippedCount}, 失败: ${errorCount}`);
 }

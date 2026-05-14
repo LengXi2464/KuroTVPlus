@@ -33,7 +33,7 @@ export async function checkQuark(link) {
       return { valid: false, reason: '分享链接失效或不存在' };
     }
     if (!tokenResp.data?.stoken) {
-      return { valid: false, reason: '分享链接无效：未获取到访问令牌' };
+      return { valid: false, reason: '分享链接无效：未获取到访问令�? };
     }
 
     const detailURL = `https://drive-pc.quark.cn/1/clouddrive/share/sharepage/detail?pwd_id=${encodeURIComponent(resId)}&stoken=${encodeURIComponent(tokenResp.data.stoken)}&ver=2&pr=ucpro`;
@@ -54,13 +54,13 @@ export async function checkQuark(link) {
 
     const detailResp = JSON.parse(body2);
     if (!detailResp.data?.list || detailResp.data.list.length === 0) {
-      return { valid: false, reason: '分享链接无效：文件列表为空' };
+      return { valid: false, reason: '分享链接无效：文件列表为�? };
     }
 
     return { valid: true, reason: '' };
   } catch (err) {
     if (err.message === '请求超时') return { valid: false, reason: '请求超时' };
-    return { valid: false, reason: `检测失败: ${err.message}` };
+    return { valid: false, reason: `检测失�? ${err.message}` };
   }
 }
 
@@ -73,7 +73,7 @@ export function extractParamsQuark(rawURL) {
   try {
     const u = new URL(rawURL);
     if (!u.pathname.startsWith('/s/')) {
-      return { resId: '', pwd: '', error: '无效的路径格式' };
+      return { resId: '', pwd: '', error: '无效的路径格�? };
     }
 
     const pathPart = u.pathname.replace('/s/', '');

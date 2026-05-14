@@ -1,6 +1,5 @@
 /**
- * AES 解密器
- * 代码来自 hls.js: https://github.com/video-dev/hls.js
+ * AES 解密�? * 代码来自 hls.js: https://github.com/video-dev/hls.js
  */
 
 function removePadding(buffer: ArrayBuffer): ArrayBuffer {

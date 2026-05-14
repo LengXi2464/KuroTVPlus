@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || (authInfo.role !== 'admin' && authInfo.role !== 'owner')) {
-      return NextResponse.json({ error: '无权限' }, { status: 403 });
+      return NextResponse.json({ error: '无权�? }, { status: 403 });
     }
 
     const body = await request.json();
@@ -33,8 +33,7 @@ export async function POST(request: NextRequest) {
           configData.Token
         );
 
-        // 尝试列出根目录
-        await client.listDirectory('/');
+        // 尝试列出根目�?        await client.listDirectory('/');
 
         return NextResponse.json({ success: true, message: '连接成功' });
       } catch (error) {
@@ -63,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, message: '保存成功' });
     }
 
-    return NextResponse.json({ error: '无效的操作' }, { status: 400 });
+    return NextResponse.json({ error: '无效的操�? }, { status: 400 });
   } catch (error) {
     return NextResponse.json(
       { error: (error as Error).message },

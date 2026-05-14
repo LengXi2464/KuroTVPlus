@@ -10,8 +10,7 @@ import { RedisAdapter } from './redis-adapter';
 import { Favorite, IStorage, PlayRecord, SkipConfig } from './types';
 import { userInfoCache } from './user-cache';
 
-// 搜索历史最大条数
-const SEARCH_HISTORY_LIMIT = 20;
+// 搜索历史最大条�?const SEARCH_HISTORY_LIMIT = 20;
 
 // 数据类型转换辅助函数
 function ensureString(value: any): string {
@@ -22,17 +21,15 @@ function ensureStringArray(value: any[]): string[] {
   return value.map((item) => String(item));
 }
 
-// 内存锁：用于防止同一用户的并发播放记录操作（迁移、清理等）
-const playRecordLocks = new Map<string, Promise<void>>();
+// 内存锁：用于防止同一用户的并发播放记录操作（迁移、清理等�?const playRecordLocks = new Map<string, Promise<void>>();
 
 // 连接配置接口
 export interface RedisConnectionConfig {
   url: string;
-  clientName: string; // 用于日志显示，如 "Redis" 或 "Pika"
+  clientName: string; // 用于日志显示，如 "Redis" �?"Pika"
 }
 
-// 添加Redis操作重试包装器
-export function createRetryWrapper(clientName: string, getClient: () => RedisClientType) {
+// 添加Redis操作重试包装�?export function createRetryWrapper(clientName: string, getClient: () => RedisClientType) {
   return async function withRetry<T>(
     operation: () => Promise<T>,
     maxRetries = 3
@@ -88,22 +85,17 @@ export function createRedisClient(config: RedisConnectionConfig, globalSymbol: s
       throw new Error(`${config.clientName}_URL env variable not set`);
     }
 
-    // 创建客户端配置
-    const clientConfig: any = {
+    // 创建客户端配�?    const clientConfig: any = {
       url: config.url,
       socket: {
-        // 重连策略：指数退避，最大30秒
-        reconnectStrategy: (retries: number) => {
+        // 重连策略：指数退避，最�?0�?        reconnectStrategy: (retries: number) => {
           console.log(`${config.clientName} reconnection attempt ${retries + 1}`);
           if (retries > 10) {
             console.error(`${config.clientName} max reconnection attempts exceeded`);
             return false; // 停止重连
           }
-          return Math.min(1000 * Math.pow(2, retries), 30000); // 指数退避，最大30秒
-        },
-        connectTimeout: 10000, // 10秒连接超时
-        // 设置no delay，减少延迟
-        noDelay: true,
+          return Math.min(1000 * Math.pow(2, retries), 30000); // 指数退避，最�?0�?        },
+        connectTimeout: 10000, // 10秒连接超�?        // 设置no delay，减少延�?        noDelay: true,
       },
       // 添加其他配置
       pingInterval: 30000, // 30秒ping一次，保持连接活跃
@@ -152,14 +144,12 @@ export function createRedisClient(config: RedisConnectionConfig, globalSymbol: s
 export abstract class BaseRedisStorage implements IStorage {
   protected adapter: RedisAdapter;
   protected withRetry: <T>(operation: () => Promise<T>, maxRetries?: number) => Promise<T>;
-  // 保留 client 属性用于向后兼容（数据迁移代码使用）
-  client: any;
+  // 保留 client 属性用于向后兼容（数据迁移代码使用�?  client: any;
 
   constructor(adapter: RedisAdapter, withRetryFn: <T>(operation: () => Promise<T>, maxRetries?: number) => Promise<T>) {
     this.adapter = adapter;
     this.withRetry = withRetryFn;
-    // 创建兼容层，同时支持驼峰和小写命名（用于数据迁移代码）
-    this.client = {
+    // 创建兼容层，同时支持驼峰和小写命名（用于数据迁移代码�?    this.client = {
       hSet: (key: string, ...args: any[]) => {
         if (args.length === 1) {
           return this.adapter.hSet(key, args[0]);
@@ -256,31 +246,27 @@ export abstract class BaseRedisStorage implements IStorage {
     }
   }
 
-  // 实际执行清理的方法
-  private async doCleanup(userName: string): Promise<void> {
+  // 实际执行清理的方�?  private async doCleanup(userName: string): Promise<void> {
     try {
-      // 获取配置的最大播放记录数，默认100
+      // 获取配置的最大播放记录数，默�?00
       const maxRecords = parseInt(process.env.MAX_PLAY_RECORDS_PER_USER || '100', 10);
-      const threshold = maxRecords + 10; // 超过最大值+10时才触发清理
+      const threshold = maxRecords + 10; // 超过最大�?10时才触发清理
 
-      // 获取所有播放记录
-      const allRecords = await this.getAllPlayRecords(userName);
+      // 获取所有播放记�?      const allRecords = await this.getAllPlayRecords(userName);
       const recordCount = Object.keys(allRecords).length;
 
-      // 如果记录数未超过阈值，不需要清理
-      if (recordCount <= threshold) {
+      // 如果记录数未超过阈值，不需要清�?      if (recordCount <= threshold) {
         return;
       }
 
-      console.log(`用户 ${userName} 的播放记录数 ${recordCount} 超过阈值 ${threshold}，开始清理...`);
+      console.log(`用户 ${userName} 的播放记录数 ${recordCount} 超过阈�?${threshold}，开始清�?..`);
 
       // 将记录转换为数组并按 save_time 排序（从旧到新）
       const sortedRecords = Object.entries(allRecords).sort(
         ([, a], [, b]) => a.save_time - b.save_time
       );
 
-      // 计算需要删除的记录数
-      const deleteCount = recordCount - maxRecords;
+      // 计算需要删除的记录�?      const deleteCount = recordCount - maxRecords;
 
       // 删除最旧的记录
       const recordsToDelete = sortedRecords.slice(0, deleteCount);
@@ -288,7 +274,7 @@ export abstract class BaseRedisStorage implements IStorage {
         await this.deletePlayRecord(userName, key);
       }
 
-      console.log(`已删除用户 ${userName} 的 ${deleteCount} 条最旧播放记录`);
+      console.log(`已删除用�?${userName} �?${deleteCount} 条最旧播放记录`);
     } catch (error) {
       console.error(`清理用户 ${userName} 播放记录失败:`, error);
       // 清理失败不影响主流程，只记录错误
@@ -300,7 +286,7 @@ export abstract class BaseRedisStorage implements IStorage {
     // 检查是否已有正在进行的迁移
     const existingMigration = playRecordLocks.get(userName);
     if (existingMigration) {
-      console.log(`用户 ${userName} 的播放记录正在迁移中，等待完成...`);
+      console.log(`用户 ${userName} 的播放记录正在迁移中，等待完�?..`);
       await existingMigration;
       return;
     }
@@ -317,9 +303,8 @@ export abstract class BaseRedisStorage implements IStorage {
     }
   }
 
-  // 实际执行迁移的方法
-  private async doMigration(userName: string): Promise<void> {
-    console.log(`开始迁移用户 ${userName} 的播放记录...`);
+  // 实际执行迁移的方�?  private async doMigration(userName: string): Promise<void> {
+    console.log(`开始迁移用�?${userName} 的播放记�?..`);
 
     // 1. 检查是否已经迁移过
     const userInfo = await this.getUserInfoV2(userName);
@@ -334,8 +319,7 @@ export abstract class BaseRedisStorage implements IStorage {
 
     if (oldKeys.length === 0) {
       console.log(`用户 ${userName} 没有旧的播放记录，标记为已迁移`);
-      // 即使没有数据也标记为已迁移
-      await this.withRetry(() =>
+      // 即使没有数据也标记为已迁�?      await this.withRetry(() =>
         this.adapter.hSet(this.userInfoKey(userName), 'playrecord_migrated', 'true')
       );
       // 清除用户信息缓存
@@ -344,10 +328,9 @@ export abstract class BaseRedisStorage implements IStorage {
       return;
     }
 
-    console.log(`找到 ${oldKeys.length} 条旧播放记录，开始迁移...`);
+    console.log(`找到 ${oldKeys.length} 条旧播放记录，开始迁�?..`);
 
-    // 3. 批量获取旧数据
-    const oldValues = await this.withRetry(() => this.adapter.mGet(oldKeys));
+    // 3. 批量获取旧数�?    const oldValues = await this.withRetry(() => this.adapter.mGet(oldKeys));
 
     // 4. 转换为hash格式
     const hashData: Record<string, string> = {};
@@ -370,7 +353,7 @@ export abstract class BaseRedisStorage implements IStorage {
 
     // 6. 删除旧的key
     await this.withRetry(() => this.adapter.del(oldKeys));
-    console.log(`删除了 ${oldKeys.length} 个旧的播放记录key`);
+    console.log(`删除�?${oldKeys.length} 个旧的播放记录key`);
 
     // 7. 标记迁移完成
     await this.withRetry(() =>
@@ -434,7 +417,7 @@ export abstract class BaseRedisStorage implements IStorage {
     // 检查是否已有正在进行的迁移
     const existingMigration = playRecordLocks.get(userName);
     if (existingMigration) {
-      console.log(`用户 ${userName} 的收藏正在迁移中，等待完成...`);
+      console.log(`用户 ${userName} 的收藏正在迁移中，等待完�?..`);
       await existingMigration;
       return;
     }
@@ -451,9 +434,8 @@ export abstract class BaseRedisStorage implements IStorage {
     }
   }
 
-  // 实际执行收藏迁移的方法
-  private async doFavoriteMigration(userName: string): Promise<void> {
-    console.log(`开始迁移用户 ${userName} 的收藏...`);
+  // 实际执行收藏迁移的方�?  private async doFavoriteMigration(userName: string): Promise<void> {
+    console.log(`开始迁移用�?${userName} 的收�?..`);
 
     // 1. 检查是否已经迁移过
     const userInfo = await this.getUserInfoV2(userName);
@@ -468,8 +450,7 @@ export abstract class BaseRedisStorage implements IStorage {
 
     if (oldKeys.length === 0) {
       console.log(`用户 ${userName} 没有旧的收藏，标记为已迁移`);
-      // 即使没有数据也标记为已迁移
-      await this.withRetry(() =>
+      // 即使没有数据也标记为已迁�?      await this.withRetry(() =>
         this.adapter.hSet(this.userInfoKey(userName), 'favorite_migrated', 'true')
       );
       // 清除用户信息缓存
@@ -478,10 +459,9 @@ export abstract class BaseRedisStorage implements IStorage {
       return;
     }
 
-    console.log(`找到 ${oldKeys.length} 条旧收藏，开始迁移...`);
+    console.log(`找到 ${oldKeys.length} 条旧收藏，开始迁�?..`);
 
-    // 3. 批量获取旧数据
-    const oldValues = await this.withRetry(() => this.adapter.mGet(oldKeys));
+    // 3. 批量获取旧数�?    const oldValues = await this.withRetry(() => this.adapter.mGet(oldKeys));
 
     // 4. 转换为hash格式
     const hashData: Record<string, string> = {};
@@ -504,7 +484,7 @@ export abstract class BaseRedisStorage implements IStorage {
 
     // 6. 删除旧的key
     await this.withRetry(() => this.adapter.del(oldKeys));
-    console.log(`删除了 ${oldKeys.length} 个旧的收藏key`);
+    console.log(`删除�?${oldKeys.length} 个旧的收藏key`);
 
     // 7. 标记迁移完成
     await this.withRetry(() =>
@@ -616,8 +596,7 @@ export abstract class BaseRedisStorage implements IStorage {
       this.adapter.hSet(this.musicPlaylistKey(playlist.id), playlistData)
     );
 
-    // 添加到用户的歌单列表（使用 sorted set，按创建时间排序）
-    await this.withRetry(() =>
+    // 添加到用户的歌单列表（使�?sorted set，按创建时间排序�?    await this.withRetry(() =>
       this.adapter.zAdd(this.musicPlaylistsKey(userName), {
         score: now,
         value: playlist.id,
@@ -644,15 +623,13 @@ export abstract class BaseRedisStorage implements IStorage {
   }
 
   async getUserMusicPlaylists(userName: string): Promise<any[]> {
-    // 获取用户的所有歌单ID（按创建时间倒序）
-    const playlistIds = await this.withRetry(() =>
+    // 获取用户的所有歌单ID（按创建时间倒序�?    const playlistIds = await this.withRetry(() =>
       this.adapter.zRange(this.musicPlaylistsKey(userName), 0, -1)
     );
 
     if (!playlistIds || playlistIds.length === 0) return [];
 
-    // 获取每个歌单的详细信息
-    const playlists = [];
+    // 获取每个歌单的详细信�?    const playlists = [];
     for (const id of playlistIds) {
       const playlist = await this.getMusicPlaylist(ensureString(id));
       if (playlist) {
@@ -693,8 +670,7 @@ export abstract class BaseRedisStorage implements IStorage {
     const playlist = await this.getMusicPlaylist(playlistId);
     if (!playlist) return;
 
-    // 从用户的歌单列表中移除
-    await this.withRetry(() =>
+    // 从用户的歌单列表中移�?    await this.withRetry(() =>
       this.adapter.zRem(this.musicPlaylistsKey(playlist.username), playlistId)
     );
 
@@ -703,8 +679,7 @@ export abstract class BaseRedisStorage implements IStorage {
       this.adapter.del(this.musicPlaylistKey(playlistId))
     );
 
-    // 删除歌单的歌曲列表
-    await this.withRetry(() =>
+    // 删除歌单的歌曲列�?    await this.withRetry(() =>
       this.adapter.del(this.musicPlaylistSongsKey(playlistId))
     );
   }
@@ -732,16 +707,14 @@ export abstract class BaseRedisStorage implements IStorage {
       added_at: now.toString(),
     };
 
-    // 添加歌曲到歌单（使用 hash 存储歌曲信息）
-    await this.withRetry(() =>
+    // 添加歌曲到歌单（使用 hash 存储歌曲信息�?    await this.withRetry(() =>
       this.adapter.hSet(this.musicPlaylistSongsKey(playlistId), songKey, JSON.stringify(songData))
     );
 
-    // 更新歌单的 updated_at
+    // 更新歌单�?updated_at
     await this.updateMusicPlaylist(playlistId, {});
 
-    // 如果是第一首歌且有封面，更新歌单封面
-    const songs = await this.getPlaylistSongs(playlistId);
+    // 如果是第一首歌且有封面，更新歌单封�?    const songs = await this.getPlaylistSongs(playlistId);
     if (songs.length === 1 && song.pic) {
       await this.updateMusicPlaylist(playlistId, { cover: song.pic });
     }
@@ -754,7 +727,7 @@ export abstract class BaseRedisStorage implements IStorage {
       this.adapter.hDel(this.musicPlaylistSongsKey(playlistId), songKey)
     );
 
-    // 更新歌单的 updated_at
+    // 更新歌单�?updated_at
     await this.updateMusicPlaylist(playlistId, {});
   }
 
@@ -782,8 +755,7 @@ export abstract class BaseRedisStorage implements IStorage {
       }
     }
 
-    // 按添加时间排序
-    return songs.sort((a, b) => a.added_at - b.added_at);
+    // 按添加时间排�?    return songs.sort((a, b) => a.added_at - b.added_at);
   }
 
   async isSongInPlaylist(playlistId: string, platform: string, songId: string): Promise<boolean> {
@@ -807,7 +779,12 @@ export abstract class BaseRedisStorage implements IStorage {
     return Object.values(rows || {})
       .filter(Boolean)
       .map(value => JSON.parse(value as string) as MusicV2HistoryRecord)
-      .sort((a, b) => b.lastPlayedAt - a.lastPlayedAt);
+      // 按队列顺序返回；当前播放项由最�?lastPlayedAt 决定
+      .sort((a, b) => {
+        const createdAtDiff = (a.createdAt || 0) - (b.createdAt || 0);
+        if (createdAtDiff !== 0) return createdAtDiff;
+        return (a.lastPlayedAt || 0) - (b.lastPlayedAt || 0);
+      });
   }
 
   async upsertMusicV2History(userName: string, record: MusicV2HistoryRecord): Promise<void> {
@@ -967,8 +944,7 @@ export abstract class BaseRedisStorage implements IStorage {
     return ensureString(stored) === password;
   }
 
-  // 检查用户是否存在
-  async checkUserExist(userName: string): Promise<boolean> {
+  // 检查用户是否存�?  async checkUserExist(userName: string): Promise<boolean> {
     // 使用 EXISTS 判断 key 是否存在
     const exists = await this.withRetry(() =>
       this.adapter.exists(this.userPwdKey(userName))
@@ -978,25 +954,21 @@ export abstract class BaseRedisStorage implements IStorage {
 
   // 修改用户密码
   async changePassword(userName: string, newPassword: string): Promise<void> {
-    // 简单存储明文密码，生产环境应加密
-    await this.withRetry(() =>
+    // 简单存储明文密码，生产环境应加�?    await this.withRetry(() =>
       this.adapter.set(this.userPwdKey(userName), newPassword)
     );
   }
 
-  // 删除用户及其所有数据
-  async deleteUser(userName: string): Promise<void> {
+  // 删除用户及其所有数�?  async deleteUser(userName: string): Promise<void> {
     // 删除用户密码
     await this.withRetry(() => this.adapter.del(this.userPwdKey(userName)));
 
     // 删除搜索历史
     await this.withRetry(() => this.adapter.del(this.shKey(userName)));
 
-    // 删除播放记录（新hash结构）
-    await this.withRetry(() => this.adapter.del(this.prHashKey(userName)));
+    // 删除播放记录（新hash结构�?    await this.withRetry(() => this.adapter.del(this.prHashKey(userName)));
 
-    // 删除旧的播放记录key（如果有）
-    const playRecordPattern = `u:${userName}:pr:*`;
+    // 删除旧的播放记录key（如果有�?    const playRecordPattern = `u:${userName}:pr:*`;
     const playRecordKeys = await this.withRetry(() =>
       this.adapter.keys(playRecordPattern)
     );
@@ -1004,15 +976,12 @@ export abstract class BaseRedisStorage implements IStorage {
       await this.withRetry(() => this.adapter.del(playRecordKeys));
     }
 
-    // 删除收藏夹（新hash结构）
-    await this.withRetry(() => this.adapter.del(this.favHashKey(userName)));
+    // 删除收藏夹（新hash结构�?    await this.withRetry(() => this.adapter.del(this.favHashKey(userName)));
 
-    // 删除漫画书架与历史
-    await this.withRetry(() => this.adapter.del(this.mangaShelfHashKey(userName)));
+    // 删除漫画书架与历�?    await this.withRetry(() => this.adapter.del(this.mangaShelfHashKey(userName)));
     await this.withRetry(() => this.adapter.del(this.mangaReadHashKey(userName)));
 
-    // 删除旧的收藏key（如果有）
-    const favoritePattern = `u:${userName}:fav:*`;
+    // 删除旧的收藏key（如果有�?    const favoritePattern = `u:${userName}:fav:*`;
     const favoriteKeys = await this.withRetry(() =>
       this.adapter.keys(favoritePattern)
     );
@@ -1020,11 +989,9 @@ export abstract class BaseRedisStorage implements IStorage {
       await this.withRetry(() => this.adapter.del(favoriteKeys));
     }
 
-    // 删除跳过片头片尾配置（新hash结构）
-    await this.withRetry(() => this.adapter.del(this.skipHashKey(userName)));
+    // 删除跳过片头片尾配置（新hash结构�?    await this.withRetry(() => this.adapter.del(this.skipHashKey(userName)));
 
-    // 删除旧的跳过配置key（如果有）
-    const skipConfigPattern = `u:${userName}:skip:*`;
+    // 删除旧的跳过配置key（如果有�?    const skipConfigPattern = `u:${userName}:skip:*`;
     const skipConfigKeys = await this.withRetry(() =>
       this.adapter.keys(skipConfigPattern)
     );
@@ -1035,8 +1002,7 @@ export abstract class BaseRedisStorage implements IStorage {
     // 删除音乐播放记录
     await this.withRetry(() => this.adapter.del(this.musicPlayRecordHashKey(userName)));
 
-    // 删除用户的所有歌单
-    const playlistIds = await this.withRetry(() =>
+    // 删除用户的所有歌�?    const playlistIds = await this.withRetry(() =>
       this.adapter.zRange(this.musicPlaylistsKey(userName), 0, -1)
     );
     if (playlistIds && playlistIds.length > 0) {
@@ -1044,12 +1010,10 @@ export abstract class BaseRedisStorage implements IStorage {
         const id = ensureString(playlistId);
         // 删除歌单信息
         await this.withRetry(() => this.adapter.del(this.musicPlaylistKey(id)));
-        // 删除歌单的歌曲列表
-        await this.withRetry(() => this.adapter.del(this.musicPlaylistSongsKey(id)));
+        // 删除歌单的歌曲列�?        await this.withRetry(() => this.adapter.del(this.musicPlaylistSongsKey(id)));
       }
     }
-    // 删除用户的歌单列表
-    await this.withRetry(() => this.adapter.del(this.musicPlaylistsKey(userName)));
+    // 删除用户的歌单列�?    await this.withRetry(() => this.adapter.del(this.musicPlaylistsKey(userName)));
 
     // 删除音乐 V2 播放记录
     await this.withRetry(() => this.adapter.del(this.musicV2HistoryKey(userName)));
@@ -1068,7 +1032,7 @@ export abstract class BaseRedisStorage implements IStorage {
     await this.withRetry(() => this.adapter.del(this.musicV2PlaylistsKey(userName)));
   }
 
-  // ---------- 新版用户存储（使用Hash和Sorted Set） ----------
+  // ---------- 新版用户存储（使用Hash和Sorted Set�?----------
   private userInfoKey(userName: string) {
     return `user:${userName}:info`;
   }
@@ -1126,8 +1090,7 @@ export abstract class BaseRedisStorage implements IStorage {
 
     await this.withRetry(() => this.adapter.hSet(this.userInfoKey(userName), userInfo));
 
-    // 添加到用户列表（Sorted Set，按注册时间排序）
-    await this.withRetry(() => this.adapter.zAdd(this.userListKey(), {
+    // 添加到用户列表（Sorted Set，按注册时间排序�?    await this.withRetry(() => this.adapter.zAdd(this.userListKey(), {
       score: createdAt,
       value: userName,
     }));
@@ -1135,15 +1098,13 @@ export abstract class BaseRedisStorage implements IStorage {
     // 清除用户信息缓存
     userInfoCache?.delete(userName);
 
-    // 如果创建的是站长用户，清除站长存在状态缓存
-    if (userName === process.env.USERNAME) {
+    // 如果创建的是站长用户，清除站长存在状态缓�?    if (userName === process.env.USERNAME) {
       const { ownerExistenceCache } = await import('./user-cache');
       ownerExistenceCache.delete(userName);
     }
   }
 
-  // 验证用户密码（新版本）
-  async verifyUserV2(userName: string, password: string): Promise<boolean> {
+  // 验证用户密码（新版本�?  async verifyUserV2(userName: string, password: string): Promise<boolean> {
     const userInfo = await this.withRetry(() =>
       this.adapter.hGetAll(this.userInfoKey(userName))
     );
@@ -1156,8 +1117,7 @@ export abstract class BaseRedisStorage implements IStorage {
     return userInfo.password === hashedPassword;
   }
 
-  // 获取用户信息（新版本）
-  async getUserInfoV2(userName: string): Promise<{
+  // 获取用户信息（新版本�?  async getUserInfoV2(userName: string): Promise<{
     role: 'owner' | 'admin' | 'user';
     banned: boolean;
     tags?: string[];
@@ -1184,8 +1144,7 @@ export abstract class BaseRedisStorage implements IStorage {
     if (!userInfoRaw || Object.keys(userInfoRaw).length === 0) {
       // 如果数据库中没有，检查是否是环境变量中的站长
       if (userName === process.env.USERNAME) {
-        // 站长即使数据库没有数据，也返回默认信息
-        const ownerInfo = {
+        // 站长即使数据库没有数据，也返回默认信�?        const ownerInfo = {
           role: 'owner' as const,
           banned: false,
           created_at: Date.now(),
@@ -1207,8 +1166,7 @@ export abstract class BaseRedisStorage implements IStorage {
 
           await this.withRetry(() => this.adapter.hSet(this.userInfoKey(userName), userInfo));
 
-          // 添加到用户列表（Sorted Set，按注册时间排序）
-          await this.withRetry(() => this.adapter.zAdd(this.userListKey(), {
+          // 添加到用户列表（Sorted Set，按注册时间排序�?          await this.withRetry(() => this.adapter.zAdd(this.userListKey(), {
             score: ownerInfo.created_at,
             value: userName,
           }));
@@ -1216,8 +1174,7 @@ export abstract class BaseRedisStorage implements IStorage {
           console.log(`Created database record for site owner: ${userName}`);
         } catch (insertErr) {
           console.error('Failed to create owner record:', insertErr);
-          // 即使插入失败，仍然返回默认信息
-        }
+          // 即使插入失败，仍然返回默认信�?        }
 
         // 缓存站长信息
         userInfoCache?.set(userName, ownerInfo);
@@ -1241,7 +1198,7 @@ export abstract class BaseRedisStorage implements IStorage {
       emailNotifications: userInfoRaw.emailNotifications === 'true',
     };
 
-    // 如果是站长，强制将 role 设置为 owner
+    // 如果是站长，强制�?role 设置�?owner
     if (userName === process.env.USERNAME) {
       userInfo.role = 'owner';
     }
@@ -1252,8 +1209,7 @@ export abstract class BaseRedisStorage implements IStorage {
     return userInfo;
   }
 
-  // 更新用户信息（新版本）
-  async updateUserInfoV2(
+  // 更新用户信息（新版本�?  async updateUserInfoV2(
     userName: string,
     updates: {
       role?: 'owner' | 'admin' | 'user';
@@ -1310,8 +1266,7 @@ export abstract class BaseRedisStorage implements IStorage {
     userInfoCache?.delete(userName);
   }
 
-  // 修改用户密码（新版本）
-  async changePasswordV2(userName: string, newPassword: string): Promise<void> {
+  // 修改用户密码（新版本�?  async changePasswordV2(userName: string, newPassword: string): Promise<void> {
     const hashedPassword = await this.hashPassword(newPassword);
     await this.withRetry(() =>
       this.adapter.hSet(this.userInfoKey(userName), 'password', hashedPassword)
@@ -1329,8 +1284,7 @@ export abstract class BaseRedisStorage implements IStorage {
     return exists === 1;
   }
 
-  // 通过OIDC Sub查找用户名
-  async getUserByOidcSub(oidcSub: string): Promise<string | null> {
+  // 通过OIDC Sub查找用户�?  async getUserByOidcSub(oidcSub: string): Promise<string | null> {
     const userName = await this.withRetry(() =>
       this.adapter.get(this.oidcSubKey(oidcSub))
     );
@@ -1361,27 +1315,23 @@ export abstract class BaseRedisStorage implements IStorage {
     let ownerInfo = null;
     let ownerInDatabase = false;
     if (ownerUsername) {
-      // 先检查缓存
-      const { ownerExistenceCache } = await import('./user-cache');
+      // 先检查缓�?      const { ownerExistenceCache } = await import('./user-cache');
       const cachedExists = ownerExistenceCache.get(ownerUsername);
 
       if (cachedExists !== null) {
-        // 使用缓存的结果
-        ownerInDatabase = cachedExists;
+        // 使用缓存的结�?        ownerInDatabase = cachedExists;
         if (ownerInDatabase) {
           // 如果站长在数据库中，获取详细信息
           ownerInfo = await this.getUserInfoV2(ownerUsername);
         }
       } else {
-        // 缓存未命中，查询数据库
-        ownerInfo = await this.getUserInfoV2(ownerUsername);
+        // 缓存未命中，查询数据�?        ownerInfo = await this.getUserInfoV2(ownerUsername);
         ownerInDatabase = !!ownerInfo;
         // 更新缓存
         ownerExistenceCache.set(ownerUsername, ownerInDatabase);
       }
 
-      // 如果站长不在数据库中，总数+1（无论在哪一页都要加）
-      if (!ownerInDatabase) {
+      // 如果站长不在数据库中，总数+1（无论在哪一页都要加�?      if (!ownerInDatabase) {
         total += 1;
       }
     }
@@ -1392,25 +1342,20 @@ export abstract class BaseRedisStorage implements IStorage {
 
     if (ownerUsername && !ownerInDatabase) {
       if (offset === 0) {
-        // 第一页：只获取 limit-1 个用户，为站长留出位置
-        actualLimit = limit - 1;
+        // 第一页：只获�?limit-1 个用户，为站长留出位�?        actualLimit = limit - 1;
       } else {
-        // 其他页：偏移量需要减1，因为站长占据了第一页的一个位置
-        actualOffset = offset - 1;
+        // 其他页：偏移量需要减1，因为站长占据了第一页的一个位�?        actualOffset = offset - 1;
       }
     }
 
-    // 获取用户列表（按注册时间升序）
-    const usernames = await this.withRetry(() =>
+    // 获取用户列表（按注册时间升序�?    const usernames = await this.withRetry(() =>
       this.adapter.zRange(this.userListKey(), actualOffset, actualOffset + actualLimit - 1)
     );
 
     const users = [];
 
-    // 如果有站长且在第一页，确保站长始终在第一位
-    if (ownerUsername && offset === 0) {
-      // 即使站长不在数据库中，也要添加站长（站长使用环境变量认证）
-      users.push({
+    // 如果有站长且在第一页，确保站长始终在第一�?    if (ownerUsername && offset === 0) {
+      // 即使站长不在数据库中，也要添加站长（站长使用环境变量认证�?      users.push({
         username: ownerUsername,
         role: 'owner' as const,
         banned: ownerInfo?.banned || false,
@@ -1446,8 +1391,7 @@ export abstract class BaseRedisStorage implements IStorage {
     return { users, total };
   }
 
-  // 删除用户（新版本）
-  async deleteUserV2(userName: string): Promise<void> {
+  // 删除用户（新版本�?  async deleteUserV2(userName: string): Promise<void> {
     // 获取用户信息
     const userInfo = await this.getUserInfoV2(userName);
 
@@ -1462,8 +1406,7 @@ export abstract class BaseRedisStorage implements IStorage {
     // 从用���列表中移除
     await this.withRetry(() => this.adapter.zRem(this.userListKey(), userName));
 
-    // 删除用户的其他数据（播放记录、收藏等）
-    await this.deleteUser(userName);
+    // 删除用户的其他数据（播放记录、收藏等�?    await this.deleteUser(userName);
 
     // 清除缓存
     userInfoCache?.delete(userName);
@@ -1484,12 +1427,9 @@ export abstract class BaseRedisStorage implements IStorage {
 
   async addSearchHistory(userName: string, keyword: string): Promise<void> {
     const key = this.shKey(userName);
-    // 先去重
-    await this.withRetry(() => this.adapter.lRem(key, 0, ensureString(keyword)));
-    // 插入到最前
-    await this.withRetry(() => this.adapter.lPush(key, ensureString(keyword)));
-    // 限制最大长度
-    await this.withRetry(() => this.adapter.lTrim(key, 0, SEARCH_HISTORY_LIMIT - 1));
+    // 先去�?    await this.withRetry(() => this.adapter.lRem(key, 0, ensureString(keyword)));
+    // 插入到最�?    await this.withRetry(() => this.adapter.lPush(key, ensureString(keyword)));
+    // 限制最大长�?    await this.withRetry(() => this.adapter.lTrim(key, 0, SEARCH_HISTORY_LIMIT - 1));
   }
 
   async deleteSearchHistory(userName: string, keyword?: string): Promise<void> {
@@ -1571,7 +1511,7 @@ export abstract class BaseRedisStorage implements IStorage {
   }
 
 
-  // ---------- 电子书书架 ----------
+  // ---------- 电子书书�?----------
   private bookShelfHashKey(user: string) {
     return `u:${user}:book:shelf`;
   }
@@ -1598,7 +1538,7 @@ export abstract class BaseRedisStorage implements IStorage {
     await this.withRetry(() => this.adapter.hDel(this.bookShelfHashKey(userName), key));
   }
 
-  // ---------- 电子书阅读历史 ----------
+  // ---------- 电子书阅读历�?----------
   private bookReadHashKey(user: string) {
     return `u:${user}:book:history`;
   }
@@ -1642,15 +1582,13 @@ export abstract class BaseRedisStorage implements IStorage {
 
   // ---------- 获取全部用户 ----------
   async getAllUsers(): Promise<string[]> {
-    // 从新版用户列表获取
-    const userListKey = this.userListKey();
+    // 从新版用户列表获�?    const userListKey = this.userListKey();
     const users = await this.withRetry(() =>
       this.adapter.zRange(userListKey, 0, -1)
     );
     const userList = users.map(u => ensureString(u));
 
-    // 确保站长在列表中（站长可能不在数据库中，使用环境变量认证）
-    const ownerUsername = process.env.USERNAME;
+    // 确保站长在列表中（站长可能不在数据库中，使用环境变量认证�?    const ownerUsername = process.env.USERNAME;
     if (ownerUsername && !userList.includes(ownerUsername)) {
       userList.unshift(ownerUsername);
     }
@@ -1658,7 +1596,7 @@ export abstract class BaseRedisStorage implements IStorage {
     return userList;
   }
 
-  // ---------- 管理员配置 ----------
+  // ---------- 管理员配�?----------
   private adminConfigKey() {
     return 'admin:config';
   }
@@ -1738,7 +1676,7 @@ export abstract class BaseRedisStorage implements IStorage {
   async migrateSkipConfigs(userName: string): Promise<void> {
     const existingMigration = playRecordLocks.get(`${userName}:skip`);
     if (existingMigration) {
-      console.log(`用户 ${userName} 的跳过配置正在迁移中，等待完成...`);
+      console.log(`用户 ${userName} 的跳过配置正在迁移中，等待完�?..`);
       await existingMigration;
       return;
     }
@@ -1754,7 +1692,7 @@ export abstract class BaseRedisStorage implements IStorage {
   }
 
   private async doSkipConfigMigration(userName: string): Promise<void> {
-    console.log(`开始迁移用户 ${userName} 的跳过配置...`);
+    console.log(`开始迁移用�?${userName} 的跳过配�?..`);
 
     const userInfo = await this.getUserInfoV2(userName);
     if (userInfo?.skip_migrated) {
@@ -1797,7 +1735,7 @@ export abstract class BaseRedisStorage implements IStorage {
     }
 
     await this.withRetry(() => this.adapter.del(oldKeys));
-    console.log(`删除了 ${oldKeys.length} 个旧的跳过配置key`);
+    console.log(`删除�?${oldKeys.length} 个旧的跳过配置key`);
 
     await this.withRetry(() =>
       this.adapter.hSet(this.userInfoKey(userName), 'skip_migrated', 'true')
@@ -1836,19 +1774,15 @@ export abstract class BaseRedisStorage implements IStorage {
     );
   }
 
-  // 清空所有数据
-  async clearAllData(): Promise<void> {
+  // 清空所有数�?  async clearAllData(): Promise<void> {
     try {
-      // 获取所有用户
-      const allUsers = await this.getAllUsers();
+      // 获取所有用�?      const allUsers = await this.getAllUsers();
 
-      // 删除所有用户及其数据
-      for (const username of allUsers) {
+      // 删除所有用户及其数�?      for (const username of allUsers) {
         await this.deleteUserV2(username);
       }
 
-      // 删除管理员配置
-      await this.withRetry(() => this.adapter.del(this.adminConfigKey()));
+      // 删除管理员配�?      await this.withRetry(() => this.adapter.del(this.adminConfigKey()));
 
       console.log('所有数据已清空');
     } catch (error) {
@@ -1857,7 +1791,7 @@ export abstract class BaseRedisStorage implements IStorage {
     }
   }
 
-  // ---------- 通用键值存储 ----------
+  // ---------- 通用键值存�?----------
   private globalValueKey(key: string) {
     return `global:${key}`;
   }
@@ -1901,8 +1835,7 @@ export abstract class BaseRedisStorage implements IStorage {
   ): Promise<void> {
     const notifications = await this.getNotifications(userName);
     notifications.unshift(notification); // 新通知放在最前面
-    // 限制通知数量，最多保留100条
-    if (notifications.length > 100) {
+    // 限制通知数量，最多保�?00�?    if (notifications.length > 100) {
       notifications.splice(100);
     }
     await this.withRetry(() =>
@@ -2055,13 +1988,11 @@ export abstract class BaseRedisStorage implements IStorage {
   }
 
   async setTvboxSubscribeToken(userName: string, token: string): Promise<void> {
-    // 保存token到用户信息
-    await this.withRetry(() =>
+    // 保存token到用户信�?    await this.withRetry(() =>
       this.adapter.hSet(this.userInfoKey(userName), 'tvboxSubscribeToken', token)
     );
 
-    // 创建token到用户名的反向索引
-    await this.withRetry(() =>
+    // 创建token到用户名的反向索�?    await this.withRetry(() =>
       this.adapter.set(`tvbox:token:${token}`, userName)
     );
 

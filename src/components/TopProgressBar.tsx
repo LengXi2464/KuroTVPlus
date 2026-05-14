@@ -4,7 +4,7 @@ import { usePathname, useRouter,useSearchParams } from 'next/navigation';
 import NProgress from 'nprogress';
 import { useEffect, useRef } from 'react';
 
-// 创建全局钩子来拦截 router
+// 创建全局钩子来拦�?router
 let globalRouterRef: any = null;
 
 export default function TopProgressBar() {
@@ -24,7 +24,7 @@ export default function TopProgressBar() {
       speed: 200,
     });
 
-    // 保存原始的 router 方法
+    // 保存原始�?router 方法
     globalRouterRef = router;
     const originalPush = router.push;
     const originalReplace = router.replace;
@@ -37,8 +37,7 @@ export default function TopProgressBar() {
       const targetPathname = new URL(targetUrl, window.location.href).pathname;
       const currentPathname = window.location.pathname;
 
-      // /play 和 /live 页面：参数变化也显示进度条
-      // 其他页面：仅路径变化时显示进度条
+      // /play �?/live 页面：参数变化也显示进度�?      // 其他页面：仅路径变化时显示进度条
       if (currentPathname === '/play' || currentPathname === '/live' || targetPathname !== previousPathnameRef.current) {
         isNavigatingRef.current = true;
         NProgress.start();
@@ -52,8 +51,7 @@ export default function TopProgressBar() {
       const targetPathname = new URL(targetUrl, window.location.href).pathname;
       const currentPathname = window.location.pathname;
 
-      // /play 和 /live 页面：参数变化也显示进度条
-      // 其他页面：仅路径变化时显示进度条
+      // /play �?/live 页面：参数变化也显示进度�?      // 其他页面：仅路径变化时显示进度条
       if (currentPathname === '/play' || currentPathname === '/live' || targetPathname !== previousPathnameRef.current) {
         isNavigatingRef.current = true;
         NProgress.start();
@@ -75,8 +73,7 @@ export default function TopProgressBar() {
       return originalForward.apply(this);
     };
 
-    // 监听所有链接点击事件
-    const handleAnchorClick = (event: MouseEvent) => {
+    // 监听所有链接点击事�?    const handleAnchorClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       const anchor = target.closest('a');
 
@@ -94,8 +91,7 @@ export default function TopProgressBar() {
               NProgress.start();
             }
           } catch (e) {
-            // URL 解析失败，忽略
-          }
+            // URL 解析失败，忽�?          }
         }
       }
     };

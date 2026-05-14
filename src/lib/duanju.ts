@@ -14,6 +14,17 @@ export interface DuanjuSource {
   key: string;
   name: string;
   api: string;
+  typeId?: string;
+  typeName?: string;
+}
+
+export function isDuanjuTypeName(typeName: string): boolean {
+  const normalizedTypeName = typeName.toLowerCase();
+  return (
+    normalizedTypeName.includes('短剧') ||
+    normalizedTypeName.includes('短视�?) ||
+    normalizedTypeName.includes('微短�?)
+  );
 }
 
 /**
@@ -25,17 +36,22 @@ export async function getDuanjuSources(): Promise<DuanjuSource[]> {
     const cachedData = await db.getGlobalValue('duanju');
 
     if (cachedData !== null) {
-      // 有缓存，直接返回（getGlobalValue 已经处理了序列化问题）
-      return cachedData ? JSON.parse(cachedData) : [];
+      // 有缓存，直接返回（getGlobalValue 已经处理了序列化问题�?      const cachedSources: DuanjuSource[] = cachedData ? JSON.parse(cachedData) : [];
+      // 旧版本缓存只保存采集源，不包含短剧分�?ID。缺�?typeId 时自动重建缓存�?      if (
+        cachedSources.length === 0 ||
+        cachedSources.every((source) => source.typeId)
+      ) {
+        return cachedSources;
+      }
+
+      console.log('短剧视频源缓存缺少分类信息，重新筛�?..');
     }
 
-    // 没有缓存，开始筛选
-    console.log('开始筛选包含短剧分类的视频源...');
+    // 没有缓存，开始筛�?    console.log('开始筛选包含短剧分类的视频�?..');
     const allSources = await getAvailableApiSites();
     const duanjuSources: DuanjuSource[] = [];
 
-    // 并发���求所有视频源的分类列表
-    const checkPromises = allSources.map(async (source) => {
+    // 并发���求所有视频源的分类列�?    const checkPromises = allSources.map(async (source) => {
       try {
         const classUrl = `${source.api}?ac=list`;
         const controller = new AbortController();
@@ -56,20 +72,17 @@ export async function getDuanjuSources(): Promise<DuanjuSource[]> {
 
         // 检查是否有短剧分类
         if (data.class && Array.isArray(data.class)) {
-          const hasDuanju = data.class.some((item) => {
-            const typeName = item.type_name?.toLowerCase() || '';
-            return (
-              typeName.includes('短剧') ||
-              typeName.includes('短视频') ||
-              typeName.includes('微短剧')
-            );
-          });
+          const duanjuType = data.class.find((item) =>
+            isDuanjuTypeName(item.type_name || '')
+          );
 
-          if (hasDuanju) {
+          if (duanjuType) {
             return {
               key: source.key,
               name: source.name,
               api: source.api,
+              typeId: duanjuType.type_id.toString(),
+              typeName: duanjuType.type_name,
             };
           }
         }
@@ -84,8 +97,7 @@ export async function getDuanjuSources(): Promise<DuanjuSource[]> {
 
     const results = await Promise.all(checkPromises);
 
-    // 过滤掉null值
-    results.forEach((result) => {
+    // 过滤掉null�?    results.forEach((result) => {
       if (result) {
         duanjuSources.push(result);
       }
@@ -98,7 +110,7 @@ export async function getDuanjuSources(): Promise<DuanjuSource[]> {
 
     return duanjuSources;
   } catch (error) {
-    console.error('获取短剧视频源失败:', error);
+    console.error('获取短剧视频源失�?', error);
     throw error;
   }
 }

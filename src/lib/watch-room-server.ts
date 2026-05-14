@@ -83,11 +83,10 @@ export class WatchRoomServer {
         try {
           const room = this.rooms.get(data.roomId);
           if (!room) {
-            return callback({ success: false, error: '房间不存在' });
+            return callback({ success: false, error: '房间不存�? });
           }
 
-          // 检查密码
-          if (room.password && room.password !== data.password) {
+          // 检查密�?          if (room.password && room.password !== data.password) {
             return callback({ success: false, error: '密码错误' });
           }
 
@@ -133,8 +132,7 @@ export class WatchRoomServer {
 
           socket.join(data.roomId);
 
-          // 通知房间内其他成员
-          socket.to(data.roomId).emit('room:member-joined', member);
+          // 通知房间内其他成�?          socket.to(data.roomId).emit('room:member-joined', member);
 
           console.log(`[WatchRoom] User ${data.userName} joined room ${data.roomId}${isOwner ? ' (as owner)' : ''}`);
 
@@ -157,8 +155,7 @@ export class WatchRoomServer {
         callback(publicRooms);
       });
 
-      // 播放状态更新
-      socket.on('play:update', (state) => {
+      // 播放状态更�?      socket.on('play:update', (state) => {
         const roomInfo = this.socketToRoom.get(socket.id);
         if (!roomInfo || !roomInfo.isOwner) return;
 
@@ -224,7 +221,7 @@ export class WatchRoomServer {
         try {
           const room = this.rooms.get(data.roomId);
           if (!room) {
-            callback({ success: false, error: '房间不存在' });
+            callback({ success: false, error: '房间不存�? });
             return;
           }
 
@@ -467,8 +464,7 @@ export class WatchRoomServer {
       // 通知其他成员
       socket.to(roomId).emit('room:member-left', userId);
 
-      // 如果是房主离开，记录时间但不立即删除房间
-      if (isOwner) {
+      // 如果是房主离开，记录时间但不立即删除房�?      if (isOwner) {
         console.log(`[WatchRoom] Owner left room ${roomId}, will auto-delete after 5 minutes`);
       }
 
@@ -499,13 +495,11 @@ export class WatchRoomServer {
     this.cleanupInterval = setInterval(() => {
       const now = Date.now();
       const deleteTimeout = 5 * 60 * 1000; // 5分钟 - 删除房间
-      const clearStateTimeout = 30 * 1000; // 30秒 - 清除播放状态
-
+      const clearStateTimeout = 30 * 1000; // 30�?- 清除播放状�?
       this.rooms.forEach((room, roomId) => {
         const timeSinceHeartbeat = now - room.lastOwnerHeartbeat;
 
-        // 如果房主心跳超过30秒，清除播放状态
-        if (timeSinceHeartbeat > clearStateTimeout && room.currentState !== null) {
+        // 如果房主心跳超过30秒，清除播放状�?        if (timeSinceHeartbeat > clearStateTimeout && room.currentState !== null) {
           console.log(`[WatchRoom] Room ${roomId} owner inactive for 30s, clearing play state`);
           room.currentState = null;
           this.rooms.set(roomId, room);
@@ -513,13 +507,13 @@ export class WatchRoomServer {
           this.io.to(roomId).emit('state:cleared');
         }
 
-        // 检查房主是否超时5分钟 - 删除房间
+        // 检查房主是否超�?分钟 - 删除房间
         if (timeSinceHeartbeat > deleteTimeout) {
           console.log(`[WatchRoom] Room ${roomId} owner timeout, deleting...`);
           this.deleteRoom(roomId);
         }
       });
-    }, 10000); // 每10秒检查一次，确保更及时的清理
+    }, 10000); // �?0秒检查一次，确保更及时的清理
   }
 
   private generateRoomId(): string {

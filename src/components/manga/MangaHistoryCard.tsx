@@ -35,7 +35,7 @@ export default function MangaHistoryCard({ item, inShelf, onToggleShelf, onDelet
   );
 
   const subtitle = useMemo(
-    () => `${item.chapterName} · 第 ${item.pageIndex + 1}/${item.pageCount} 页`,
+    () => `${item.chapterName} · �?${item.pageIndex + 1}/${item.pageCount} 页`,
     [item]
   );
 

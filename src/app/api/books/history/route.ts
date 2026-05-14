@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     if ((db as any).storage.cleanupOldBookReadRecords) {
       (db as any).storage.cleanupOldBookReadRecords(username).catch((err: Error) => {
-        console.error('异步清理电子书阅读历史失败:', err);
+        console.error('异步清理电子书阅读历史失�?', err);
       });
     }
 

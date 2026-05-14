@@ -8,7 +8,7 @@ import { useVoiceChat } from '@/hooks/useVoiceChat';
 
 import { useWatchRoomContextSafe } from '@/components/WatchRoomProvider';
 
-const EMOJI_LIST = ['😀', '😂', '😍', '🥰', '😎', '🤔', '👍', '👏', '🎉', '❤️', '🔥', '⭐'];
+const EMOJI_LIST = ['😀', '😂', '😍', '🥰', '😎', '🤔', '👍', '👏', '🎉', '❤️', '🔥', '�?];
 
 export default function ChatFloatingWindow() {
   const watchRoom = useWatchRoomContextSafe();
@@ -24,8 +24,7 @@ export default function ChatFloatingWindow() {
   const isMinimizedRef = useRef(isMinimized);
   const currentRoomIdRef = useRef<string | null>(null);
 
-  // 语音聊天状态
-  const [isMicEnabled, setIsMicEnabled] = useState(false);
+  // 语音聊天状�?  const [isMicEnabled, setIsMicEnabled] = useState(false);
   const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(true);
   const [isReconnecting, setIsReconnecting] = useState(false);
 
@@ -38,8 +37,7 @@ export default function ChatFloatingWindow() {
     members: watchRoom?.members || [],
   });
 
-  // 当房间变化时重置状态
-  useEffect(() => {
+  // 当房间变化时重置状�?  useEffect(() => {
     const roomId = watchRoom?.currentRoom?.id || null;
     if (roomId !== currentRoomIdRef.current) {
       currentRoomIdRef.current = roomId;
@@ -56,8 +54,7 @@ export default function ChatFloatingWindow() {
     isMinimizedRef.current = isMinimized;
   }, [isOpen, isMinimized]);
 
-  // 自动滚动到底部
-  useEffect(() => {
+  // 自动滚动到底�?  useEffect(() => {
     if (messagesEndRef.current && watchRoom?.currentRoom) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -72,8 +69,7 @@ export default function ChatFloatingWindow() {
 
     const currentCount = watchRoom.chatMessages.length;
 
-    // 如果消息数量减少了（比如切换房间），重置计数器和未读数
-    if (currentCount < lastMessageCountRef.current) {
+    // 如果消息数量减少了（比如切换房间），重置计数器和未读�?    if (currentCount < lastMessageCountRef.current) {
       lastMessageCountRef.current = currentCount;
       setUnreadCount(0);
       return;
@@ -84,15 +80,13 @@ export default function ChatFloatingWindow() {
       const newMessageCount = currentCount - lastMessageCountRef.current;
 
       if (!isOpenRef.current && !isMinimizedRef.current) {
-        // 只有在聊天窗口完全关闭时才增加未读计数
-        setUnreadCount(prev => prev + newMessageCount);
+        // 只有在聊天窗口完全关闭时才增加未读计�?        setUnreadCount(prev => prev + newMessageCount);
       }
     }
     lastMessageCountRef.current = currentCount;
   }, [watchRoom?.chatMessages]);
 
-  // 打开聊天窗口时清空未读计数
-  useEffect(() => {
+  // 打开聊天窗口时清空未读计�?  useEffect(() => {
     if (isOpen || isMinimized) {
       setUnreadCount(0);
     }
@@ -114,16 +108,15 @@ export default function ChatFloatingWindow() {
 
   // 如果没有加入房间，只显示重连按钮（如果需要）
   if (!watchRoom?.currentRoom) {
-    // 重连失败时显示重连按钮
-    if (watchRoom?.reconnectFailed) {
+    // 重连失败时显示重连按�?    if (watchRoom?.reconnectFailed) {
       return (
         <div className="fixed bottom-20 right-4 z-[700] flex flex-col gap-3 md:bottom-4">
           <button
             onClick={handleReconnect}
             disabled={isReconnecting}
             className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-2xl transition-all hover:scale-110 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed animate-pulse"
-            aria-label="连接失败，点击重连"
-            title="连接失败，点击重连"
+            aria-label="连接失败，点击重�?
+            title="连接失败，点击重�?
           >
             <AlertCircle className="h-6 w-6" />
             {isReconnecting && (
@@ -169,14 +162,13 @@ export default function ChatFloatingWindow() {
   };
 
   const handleLeaveRoom = () => {
-    if (confirm(isOwner ? '确定要解散房间吗？所有成员将被踢出房间。' : '确定要退出房间吗？')) {
+    if (confirm(isOwner ? '确定要解散房间吗？所有成员将被踢出房间�? : '确定要退出房间吗�?)) {
       leaveRoom();
       setShowRoomInfo(false);
     }
   };
 
-  // 悬浮按钮组
-  if (!isOpen && !showRoomInfo) {
+  // 悬浮按钮�?  if (!isOpen && !showRoomInfo) {
     return (
       <div className="fixed bottom-20 right-4 z-[700] flex flex-col gap-3 md:bottom-4">
         {/* 重连失败提示气泡 */}
@@ -185,8 +177,8 @@ export default function ChatFloatingWindow() {
             onClick={handleReconnect}
             disabled={isReconnecting}
             className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-red-500 text-white shadow-2xl transition-all hover:scale-110 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed animate-pulse"
-            aria-label="连接失败，点击重连"
-            title="连接失败，点击重连"
+            aria-label="连接失败，点击重�?
+            title="连接失败，点击重�?
           >
             <AlertCircle className="h-6 w-6" />
             {isReconnecting && (
@@ -254,7 +246,7 @@ export default function ChatFloatingWindow() {
               touchAction: 'auto',
             }}
           >
-            {/* 标题栏 */}
+            {/* 标题�?*/}
             <div className='flex items-center justify-between mb-6'>
               <div className='flex items-center gap-3'>
                 <Info className='h-6 w-6 text-blue-500 dark:text-blue-400' />
@@ -279,7 +271,7 @@ export default function ChatFloatingWindow() {
                 </div>
 
                 <div className='flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-800 p-4 border border-gray-200 dark:border-gray-700'>
-                  <span className='text-sm font-medium text-gray-600 dark:text-gray-400'>房间号</span>
+                  <span className='text-sm font-medium text-gray-600 dark:text-gray-400'>房间�?/span>
                   <span className='text-lg font-mono font-bold text-gray-900 dark:text-gray-100'>{currentRoom.id}</span>
                 </div>
 
@@ -341,8 +333,7 @@ export default function ChatFloatingWindow() {
                 ) : (
                   <>
                     <LogOut className='h-5 w-5' />
-                    退出房间
-                  </>
+                    退出房�?                  </>
                 )}
               </button>
             </div>
@@ -352,8 +343,7 @@ export default function ChatFloatingWindow() {
     );
   }
 
-  // 最小化状态
-  if (isMinimized) {
+  // 最小化状�?  if (isMinimized) {
     return (
       <>
         {/* 重连失败提示气泡 */}
@@ -362,8 +352,8 @@ export default function ChatFloatingWindow() {
             onClick={handleReconnect}
             disabled={isReconnecting}
             className="fixed bottom-[13.5rem] right-4 z-[700] group relative flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-2xl transition-all hover:scale-110 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed animate-pulse md:bottom-[11rem]"
-            aria-label="连接失败，点击重连"
-            title="连接失败，点击重连"
+            aria-label="连接失败，点击重�?
+            title="连接失败，点击重�?
           >
             <AlertCircle className="h-5 w-5" />
             {isReconnecting && (
@@ -383,10 +373,10 @@ export default function ChatFloatingWindow() {
           <Info className="h-5 w-5" />
         </button>
 
-        {/* 最小化的聊天窗口 */}
+        {/* 最小化的聊天窗�?*/}
         <div className="fixed bottom-20 right-4 z-[700] flex items-center gap-2 rounded-lg bg-gray-800 px-4 py-2 shadow-2xl md:bottom-4">
           <MessageCircle className="h-5 w-5 text-white" />
-          <span className="text-sm text-white">聊天室</span>
+          <span className="text-sm text-white">聊天�?/span>
           <button
             onClick={() => setIsMinimized(false)}
             className="ml-2 rounded p-1 text-gray-400 transition-colors hover:bg-gray-700 hover:text-white"
@@ -415,8 +405,8 @@ export default function ChatFloatingWindow() {
           onClick={handleReconnect}
           disabled={isReconnecting}
           className="fixed bottom-[32.5rem] right-4 z-[700] group relative flex h-12 w-12 items-center justify-center rounded-full bg-red-500 text-white shadow-2xl transition-all hover:scale-110 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed animate-pulse md:bottom-[30rem]"
-          aria-label="连接失败，点击重连"
-          title="连接失败，点击重连"
+          aria-label="连接失败，点击重�?
+          title="连接失败，点击重�?
         >
           <AlertCircle className="h-5 w-5" />
           {isReconnecting && (
@@ -440,13 +430,13 @@ export default function ChatFloatingWindow() {
       <div className="fixed bottom-20 right-4 z-[700] flex w-80 flex-col rounded-2xl bg-gray-800 shadow-2xl md:bottom-4 md:w-96">
       {/* 头部 */}
       <div className="rounded-t-2xl bg-green-500">
-        {/* 第一行: 标题和窗口控制 */}
+        {/* 第一�? 标题和窗口控�?*/}
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-white" />
             <div>
-              <h3 className="text-sm font-bold text-white">聊天室</h3>
-              <p className="text-xs text-white/80">{members.length} 人在线</p>
+              <h3 className="text-sm font-bold text-white">聊天�?/h3>
+              <p className="text-xs text-white/80">{members.length} 人在�?/p>
             </div>
           </div>
           <div className="flex gap-1">
@@ -467,10 +457,10 @@ export default function ChatFloatingWindow() {
           </div>
         </div>
 
-        {/* 第二行: 语音控制按钮 */}
+        {/* 第二�? 语音控制按钮 */}
         <div className="border-t border-white/10 px-4 py-2">
           <div className="flex items-center justify-center gap-3 mb-1">
-            {/* 麦克风按钮 */}
+            {/* 麦克风按�?*/}
             <button
               onClick={() => setIsMicEnabled(!isMicEnabled)}
               disabled={voiceChat.isConnecting}
@@ -479,7 +469,7 @@ export default function ChatFloatingWindow() {
                   ? 'bg-white text-green-600 hover:bg-white/90'
                   : 'bg-white/10 text-white/80 hover:bg-white/20'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
-              aria-label={isMicEnabled ? '关闭麦克风' : '开启麦克风'}
+              aria-label={isMicEnabled ? '关闭麦克�? : '开启麦克风'}
             >
               {isMicEnabled ? (
                 <Mic className="h-4 w-4" />
@@ -497,18 +487,18 @@ export default function ChatFloatingWindow() {
                   ? 'bg-white text-green-600 hover:bg-white/90'
                   : 'bg-white/10 text-white/80 hover:bg-white/20'
               }`}
-              aria-label={isSpeakerEnabled ? '关闭喇叭' : '开启喇叭'}
+              aria-label={isSpeakerEnabled ? '关闭喇叭' : '开启喇�?}
             >
               {isSpeakerEnabled ? (
                 <Volume2 className="h-4 w-4" />
               ) : (
                 <VolumeX className="h-4 w-4" />
               )}
-              <span>{isSpeakerEnabled ? '喇叭开' : '喇叭关'}</span>
+              <span>{isSpeakerEnabled ? '喇叭开' : '喇叭�?}</span>
             </button>
           </div>
 
-          {/* 状态指示 */}
+          {/* 状态指�?*/}
           <div className="text-center text-xs text-white/60">
             {voiceChat.isConnecting && '正在连接...'}
             {voiceChat.error && (
@@ -516,7 +506,7 @@ export default function ChatFloatingWindow() {
             )}
             {!voiceChat.isConnecting && !voiceChat.error && isMicEnabled && (
               <span>
-                {voiceChat.strategy === 'webrtc-fallback' ? 'WebRTC模式' : '服务器中转模式'}
+                {voiceChat.strategy === 'webrtc-fallback' ? 'WebRTC模式' : '服务器中转模�?}
               </span>
             )}
           </div>
@@ -529,7 +519,7 @@ export default function ChatFloatingWindow() {
           <div className="flex h-full items-center justify-center text-center">
             <div>
               <MessageCircle className="mx-auto mb-2 h-12 w-12 text-gray-600" />
-              <p className="text-sm text-gray-400">还没有消息</p>
+              <p className="text-sm text-gray-400">还没有消�?/p>
               <p className="text-xs text-gray-500">发送第一条消息吧</p>
             </div>
           </div>
@@ -559,7 +549,7 @@ export default function ChatFloatingWindow() {
 
       {/* 输入区域 */}
       <div className="border-t border-gray-700 p-3">
-        {/* 表情选择器 */}
+        {/* 表情选择�?*/}
         {showEmojiPicker && (
           <div className="mb-2 grid grid-cols-6 gap-2 rounded-lg bg-gray-700 p-2">
             {EMOJI_LIST.map((emoji) => (
@@ -595,7 +585,7 @@ export default function ChatFloatingWindow() {
             onClick={handleSendMessage}
             disabled={!message.trim()}
             className="rounded-lg bg-green-500 p-2 text-white transition-colors hover:bg-green-600 disabled:opacity-50"
-            aria-label="发送"
+            aria-label="发�?
           >
             <Send className="h-5 w-5" />
           </button>

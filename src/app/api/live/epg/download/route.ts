@@ -30,8 +30,7 @@ export async function GET(request: NextRequest) {
     if (isGzip) {
       console.log('[EPG Download] Decompressing gzip...');
 
-      // 读取所有数据
-      const reader = response.body?.getReader();
+      // 读取所有数�?      const reader = response.body?.getReader();
       if (!reader) {
         return NextResponse.json({ error: '无法读取响应' }, { status: 500 });
       }

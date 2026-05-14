@@ -20,8 +20,7 @@ class UserInfoCache {
     const cached = this.cache.get(username);
     if (!cached) return null;
 
-    // 检查是否过期
-    if (Date.now() - cached.cachedAt > this.TTL) {
+    // 检查是否过�?    if (Date.now() - cached.cachedAt > this.TTL) {
       this.cache.delete(username);
       return null;
     }
@@ -44,8 +43,7 @@ class UserInfoCache {
     this.cache.clear();
   }
 
-  // 清理过期的缓存
-  cleanup(): void {
+  // 清理过期的缓�?  cleanup(): void {
     const now = Date.now();
     const entries = Array.from(this.cache.entries());
     for (const [username, cached] of entries) {
@@ -56,8 +54,7 @@ class UserInfoCache {
   }
 }
 
-// 站长存在状态缓存
-class OwnerExistenceCache {
+// 站长存在状态缓�?class OwnerExistenceCache {
   private cache: Map<string, { exists: boolean; cachedAt: number }> = new Map();
   private readonly TTL = 10 * 60 * 1000; // 10分钟过期
 
@@ -65,8 +62,7 @@ class OwnerExistenceCache {
     const cached = this.cache.get(ownerUsername);
     if (!cached) return null;
 
-    // 检查是否过期
-    if (Date.now() - cached.cachedAt > this.TTL) {
+    // 检查是否过�?    if (Date.now() - cached.cachedAt > this.TTL) {
       this.cache.delete(ownerUsername);
       return null;
     }
@@ -89,8 +85,7 @@ class OwnerExistenceCache {
     this.cache.clear();
   }
 
-  // 清理过期的缓存
-  cleanup(): void {
+  // 清理过期的缓�?  cleanup(): void {
     const now = Date.now();
     const entries = Array.from(this.cache.entries());
     for (const [username, cached] of entries) {
@@ -109,8 +104,7 @@ if (!_userInfoCache) {
   _userInfoCache = new UserInfoCache();
   (global as any)[globalKey] = _userInfoCache;
 
-  // 每分钟清理一次过期缓存
-  setInterval(() => {
+  // 每分钟清理一次过期缓�?  setInterval(() => {
     _userInfoCache?.cleanup();
   }, 60 * 1000);
 }
@@ -124,8 +118,7 @@ if (!_ownerExistenceCache) {
   _ownerExistenceCache = new OwnerExistenceCache();
   (global as any)[ownerExistenceGlobalKey] = _ownerExistenceCache;
 
-  // 每分钟清理一次过期缓存
-  setInterval(() => {
+  // 每分钟清理一次过期缓�?  setInterval(() => {
     _ownerExistenceCache?.cleanup();
   }, 60 * 1000);
 }

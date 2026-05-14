@@ -48,8 +48,7 @@ export async function GET(request: NextRequest) {
     hasFeaturePermission(authInfo.username, 'emby'),
   ]);
 
-  // 创建权重映射表
-  const weightMap = new Map<string, number>();
+  // 创建权重映射�?  const weightMap = new Map<string, number>();
   config.SourceConfig.forEach(source => {
     weightMap.set(source.key, source.weight ?? 0);
   });
@@ -63,8 +62,7 @@ export async function GET(request: NextRequest) {
     config.OpenListConfig?.Password
   );
 
-  // 获取所有启用的 Emby 源
-  const { embyManager } = await import('@/lib/emby-manager');
+  // 获取所有启用的 Emby �?  const { embyManager } = await import('@/lib/emby-manager');
   const embySourcesMap = await embyManager.getAllClients();
   const embySources = canAccessEmby ? Array.from(embySourcesMap.values()) : [];
 
@@ -74,7 +72,7 @@ export async function GET(request: NextRequest) {
   // 获取代理 token（用于图片代理）
   const proxyToken = await getProxyToken(request);
 
-  // 为每个 Emby 源创建搜索 Promise（全部并发，无限制）
+  // 为每�?Emby 源创建搜�?Promise（全部并发，无限制）
   const embyPromises = embySources.map(({ client, config: embyConfig }) =>
     Promise.race([
       (async () => {
@@ -87,8 +85,7 @@ export async function GET(request: NextRequest) {
             Limit: 50,
           });
 
-          // 如果只有一个Emby源，保持旧格式（向后兼容）
-          const sourceValue = embySources.length === 1 ? 'emby' : `emby_${embyConfig.key}`;
+          // 如果只有一个Emby源，保持旧格式（向后兼容�?          const sourceValue = embySources.length === 1 ? 'emby' : `emby_${embyConfig.key}`;
           const sourceName = embySources.length === 1 ? 'Emby' : embyConfig.name;
 
           return searchResult.Items.map((item) => ({
@@ -102,7 +99,7 @@ export async function GET(request: NextRequest) {
             episodes_titles: [],
             year: item.ProductionYear?.toString() || '',
             desc: item.Overview || '',
-            type_name: item.Type === 'Movie' ? '电影' : '电视剧',
+            type_name: item.Type === 'Movie' ? '电影' : '电视�?,
             douban_id: 0,
           }));
         } catch (error) {
@@ -119,8 +116,7 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  // 搜索 OpenList（如果配置了）- 异步带超时
-  const openlistPromise = hasOpenList
+  // 搜索 OpenList（如果配置了�? 异步带超�?  const openlistPromise = hasOpenList
     ? Promise.race([
         (async () => {
           try {
@@ -158,7 +154,7 @@ export async function GET(request: NextRequest) {
                   episodes_titles: [],
                   year: info.release_date.split('-')[0] || '',
                   desc: info.overview,
-                  type_name: info.media_type === 'movie' ? '电影' : '电视剧',
+                  type_name: info.media_type === 'movie' ? '电影' : '电视�?,
                   douban_id: 0,
                 }));
             }
@@ -177,8 +173,7 @@ export async function GET(request: NextRequest) {
       })
     : Promise.resolve([]);
 
-  // 添加超时控制和错误处理，避免慢接口拖累整体响应
-  const searchPromises = apiSites.map((site) =>
+  // 添加超时控制和错误处理，避免慢接口拖累整体响�?  const searchPromises = apiSites.map((site) =>
     Promise.race([
       searchFromApi(site, query),
       new Promise((_, reject) =>
@@ -186,8 +181,7 @@ export async function GET(request: NextRequest) {
       ),
     ]).catch((err) => {
       console.warn(`搜索失败 ${site.name}:`, err.message);
-      return []; // 返回空数组而不是抛出错误
-    })
+      return []; // 返回空数组而不是抛出错�?    })
   );
 
   const scriptSummaries = await listEnabledSourceScripts();
@@ -247,15 +241,14 @@ export async function GET(request: NextRequest) {
       ...scriptPromises,
     ]);
 
-    // 分离结果：第一个是 openlist，接下来是 emby 结果，最后是 api 结果
+    // 分离结果：第一个是 openlist，接下来�?emby 结果，最后是 api 结果
     // 添加安全检查，确保即使某个结果处理出错也不影响其他结果
     const openlistResults = Array.isArray(allResults[0]) ? allResults[0] : [];
     const embyResultsArray = allResults.slice(1, 1 + embyPromises.length);
     const apiResults = allResults.slice(1 + embyPromises.length, 1 + embyPromises.length + searchPromises.length);
     const scriptResults = allResults.slice(1 + embyPromises.length + searchPromises.length);
 
-    // 合并所有 Emby 结果，添加安全检查
-    const embyResults = embyResultsArray.filter(Array.isArray).flat();
+    // 合并所�?Emby 结果，添加安全检�?    const embyResults = embyResultsArray.filter(Array.isArray).flat();
     const apiResultsFlat = apiResults.filter(Array.isArray).flat();
     const scriptResultsFlat = scriptResults.filter(Array.isArray).flat();
 
@@ -273,8 +266,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 按权重降序排序
-    flattenedResults.sort((a, b) => {
+    // 按权重降序排�?    flattenedResults.sort((a, b) => {
       const weightA = a.weight ?? 0;
       const weightB = b.weight ?? 0;
       return weightB - weightA;

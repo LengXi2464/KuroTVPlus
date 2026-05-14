@@ -8,6 +8,13 @@ import AddToPlaylistModal from '@/components/AddToPlaylistModal';
 import Toast, { ToastProps } from '@/components/Toast';
 import LyricsPiPWindow from '@/components/LyricsPiPWindow';
 
+const SPECTRUM_BIN_COUNT = 96;
+const SPECTRUM_IDLE_LEVEL = 0.02;
+const SPECTRUM_EDGE_TRIM = 8;
+const SPECTRUM_REFERENCE_VOLUME = 10;
+const SPECTRUM_MIN_VOLUME = 5;
+const SPECTRUM_MAX_REFERENCE_VOLUME = 15;
+
 type MusicSource = 'wy' | 'tx' | 'kw' | 'kg' | 'mg';
 
 interface Song {
@@ -25,10 +32,8 @@ interface Song {
 interface PlayRecord {
   platform: MusicSource;
   id: string;
-  playTime: number; // 播放时间（秒）
-  duration: number; // 总时长（秒）
-  timestamp: number; // 添加时间戳
-}
+  playTime: number; // 播放时间（秒�?  duration: number; // 总时长（秒）
+  timestamp: number; // 添加时间�?}
 
 interface LyricLine {
   time: number;
@@ -50,6 +55,7 @@ interface DbRecord {
   id: string;
   playProgressSec: number;
   durationSec: number;
+  createdAt: number;
   lastPlayedAt: number;
   name: string;
   artist: string;
@@ -59,7 +65,123 @@ interface DbRecord {
   songmid?: string;
 }
 
-// 扩展 Window 接口以支持 Document PiP API
+function MusicLoadingIndicator({
+  text,
+  size = 'md',
+  className = '',
+}: {
+  text?: string;
+  size?: 'sm' | 'md';
+  className?: string;
+}) {
+  const iconSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  const textSize = size === 'sm' ? 'text-xs' : 'text-sm';
+
+  return (
+    <div className={`flex items-center justify-center gap-3 text-zinc-400 ${className}`}>
+      <div className="flex items-end gap-1.5">
+        {[0, 1, 2].map((index) => (
+          <svg
+            key={index}
+            className={`${iconSize} text-green-400`}
+            fill="currentColor"
+            viewBox="0 0 24 24"
+            style={{ animation: `music-note-bounce 0.9s ease-in-out ${index * 0.14}s infinite` }}
+          >
+            <path d="M12 3v11.55A3.98 3.98 0 0010 14c-2.21 0-4 1.34-4 3s1.79 3 4 3 4-1.34 4-3V8h4V3h-6z" />
+          </svg>
+        ))}
+      </div>
+      {text ? <span className={`${textSize} font-medium tracking-wide`}>{text}</span> : null}
+    </div>
+  );
+}
+
+function AudioSpectrumCanvas({
+  bars,
+  compact = false,
+}: {
+  bars: number[];
+  compact?: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const width = Math.round(rect.width * dpr);
+      const height = Math.round(rect.height * dpr);
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const targetPitch = compact ? 4.2 : 4.6;
+      const gap = Math.max(1, Math.round(dpr));
+      const count = Math.max(1, Math.floor(rect.width / targetPitch));
+      const barWidth = Math.max(2 * dpr, (width - gap * (count - 1)) / count);
+      const cubeHeight = compact ? Math.max(2, Math.round(2 * dpr)) : Math.max(2, Math.round(2.5 * dpr));
+      const cubeGap = 1;
+      const scaleBase = compact ? height * 1.55 : height * 1.42;
+      const themeColor = '#10b981';
+
+      const sampleBar = (index: number) => {
+        const usableLength = Math.max(1, bars.length - SPECTRUM_EDGE_TRIM * 2);
+        const mappedStart = SPECTRUM_EDGE_TRIM + Math.floor((index / count) * usableLength);
+        const start = Math.min(bars.length - 1, mappedStart);
+        const mappedEnd = SPECTRUM_EDGE_TRIM + Math.max(mappedStart + 1, Math.floor(((index + 1) / count) * usableLength));
+        const end = Math.min(bars.length, Math.max(start + 1, mappedEnd));
+        let total = 0;
+        for (let i = start; i < end; i++) total += bars[i] ?? 0;
+        return total / Math.max(1, end - start);
+      };
+
+      ctx.fillStyle = themeColor;
+      ctx.strokeStyle = themeColor;
+
+      for (let i = 0; i < count; i++) {
+        const q = Math.max(SPECTRUM_IDLE_LEVEL, sampleBar(i)) * scaleBase;
+        const cubeCount = Math.max(1, Math.ceil(q / Math.max(1, barWidth * 0.9)));
+        const x = i === count - 1 ? width - barWidth : i * (barWidth + gap);
+
+        for (let segment = 0; segment < cubeCount; segment++) {
+          const y = height - segment * (cubeHeight + cubeGap);
+          ctx.beginPath();
+          ctx.roundRect(x, y - cubeHeight, barWidth, cubeHeight, Math.min(2 * dpr, cubeHeight / 2));
+          ctx.fill();
+        }
+      }
+    };
+
+    draw();
+    const observer = new ResizeObserver(draw);
+    observer.observe(canvas);
+    return () => observer.disconnect();
+  }, [bars, compact]);
+
+  return (
+    <div
+      className={`relative w-full overflow-hidden ${compact ? 'h-6' : 'h-8'}`}
+      aria-hidden="true"
+    >
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full opacity-50" />
+    </div>
+  );
+}
+
+// 扩展 Window 接口以支�?Document PiP API
 declare global {
   interface Window {
     documentPictureInPicture?: {
@@ -95,26 +217,18 @@ export default function MusicPage() {
   const [lyrics, setLyrics] = useState<LyricLine[]>([]);
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1);
   const [currentSongUrl, setCurrentSongUrl] = useState('');
-  const [playRecords, setPlayRecords] = useState<PlayRecord[]>([]); // 播放记录（只存平台和ID）
-  const [playlist, setPlaylist] = useState<Song[]>([]); // 完整歌曲信息（用于显示）
+  const [playRecords, setPlayRecords] = useState<PlayRecord[]>([]); // 播放记录（只存平台和ID�?  const [playlist, setPlaylist] = useState<Song[]>([]); // 完整歌曲信息（用于显示）
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [playlistIndex, setPlaylistIndex] = useState(-1); // 当前在播放列表中的索引
-  const [showQualityMenu, setShowQualityMenu] = useState(false); // 音质选择菜单
-  const [showSourceMenu, setShowSourceMenu] = useState(false); // 移动端音源菜单
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false); // 音量滑块显示状态
-  const [pendingSongToPlay, setPendingSongToPlay] = useState<{ platform: string; id: string } | null>(null); // 待播放的歌曲信息
+  const [playlistIndex, setPlaylistIndex] = useState(-1); // 当前在播放列表中的索�?  const [showQualityMenu, setShowQualityMenu] = useState(false); // 音质选择菜单
+  const [showSourceMenu, setShowSourceMenu] = useState(false); // 移动端音源菜�?  const [showVolumeSlider, setShowVolumeSlider] = useState(false); // 音量滑块显示状�?  const [pendingSongToPlay, setPendingSongToPlay] = useState<{ platform: string; id: string } | null>(null); // 待播放的歌曲信息
   const [resolvingCount, setResolvingCount] = useState(0); // 当前解析中的歌曲数量
-  const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false); // 添加到歌单弹窗
-  const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null); // 要添加到歌单的歌曲
-
-  // 我的歌单相关状态
-  const [userPlaylists, setUserPlaylists] = useState<any[]>([]);
+  const [showAddToPlaylistModal, setShowAddToPlaylistModal] = useState(false); // 添加到歌单弹�?  const [songToAddToPlaylist, setSongToAddToPlaylist] = useState<Song | null>(null); // 要添加到歌单的歌�?
+  // 我的歌单相关状�?  const [userPlaylists, setUserPlaylists] = useState<any[]>([]);
   const [selectedUserPlaylist, setSelectedUserPlaylist] = useState<any | null>(null);
   const [userPlaylistSongs, setUserPlaylistSongs] = useState<any[]>([]);
   const [loadingUserPlaylists, setLoadingUserPlaylists] = useState(false);
   const [loadingUserPlaylistSongs, setLoadingUserPlaylistSongs] = useState(false);
-  const [loadingPlayAll, setLoadingPlayAll] = useState(false); // 播放全部加载状态
-  const [deletingPlaylistId, setDeletingPlaylistId] = useState<string | null>(null); // 正在删除的歌单ID
+  const [loadingPlayAll, setLoadingPlayAll] = useState(false); // 播放全部加载状�?  const [loadingCurrentPlayAll, setLoadingCurrentPlayAll] = useState(false); // 当前排行�?详情页播放全部加载状�?  const [deletingPlaylistId, setDeletingPlaylistId] = useState<string | null>(null); // 正在删除的歌单ID
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !(window as any).RUNTIME_CONFIG?.MUSIC_ENABLED) {
@@ -122,8 +236,7 @@ export default function MusicPage() {
     }
   }, [router]);
 
-  // Toast 和 Confirm Modal 状态
-  const [toast, setToast] = useState<ToastProps | null>(null);
+  // Toast �?Confirm Modal 状�?  const [toast, setToast] = useState<ToastProps | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -138,16 +251,29 @@ export default function MusicPage() {
     onCancel: () => {},
   });
 
-  // PiP 相关状态
-  const [showPiPLyrics, setShowPiPLyrics] = useState(false);
+  // PiP 相关状�?  const [showPiPLyrics, setShowPiPLyrics] = useState(false);
   const [pipOpacity, setPipOpacity] = useState(0.9);
   const [pipMinimized, setPipMinimized] = useState(false);
+  const [showSpectrum, setShowSpectrum] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('musicShowSpectrum') !== '0';
+  });
+  const [spectrumBars, setSpectrumBars] = useState<number[]>(
+    () => Array.from({ length: SPECTRUM_BIN_COUNT }, () => SPECTRUM_IDLE_LEVEL)
+  );
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
   const lastSaveTimeRef = useRef<number>(0);
   const restoredTimeRef = useRef<number>(0);
-  const songStartTimeRef = useRef<number>(0); // 歌曲开始播放的时间戳
+  const songStartTimeRef = useRef<number>(0); // 歌曲开始播放的时间�?  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const spectrumDataRef = useRef<Uint8Array | null>(null);
+  const spectrumFrameRef = useRef<number | null>(null);
+  const currentTimeRef = useRef(0);
+  const volumeRef = useRef(volume);
+  const spectrumSeedRef = useRef(Math.random() * Math.PI * 2);
 
   const mapSong = (song: any): Song => ({
     id: song.songId || song.id,
@@ -178,7 +304,7 @@ export default function MusicPage() {
   };
 
   const musicSources: Array<{ key: MusicSource; label: string }> = [
-    { key: 'wy', label: '网易云' },
+    { key: 'wy', label: '网易�? },
     { key: 'tx', label: 'QQ' },
     { key: 'kw', label: '酷我' },
     { key: 'kg', label: '酷狗' },
@@ -242,7 +368,13 @@ export default function MusicPage() {
     setResolvingCount((prev) => Math.max(0, prev - 1));
   };
 
-  const saveHistoryRecord = async (record: PlayRecord, song: Song, playTime: number, totalDuration: number) => {
+  const saveHistoryRecord = async (
+    record: PlayRecord,
+    song: Song,
+    playTime: number,
+    totalDuration: number,
+    lastPlayedAt = Date.now()
+  ) => {
     await fetch('/api/music/v2/history', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -259,9 +391,21 @@ export default function MusicPage() {
           durationText: song.durationText,
         },
         playProgressSec: playTime,
-        lastPlayedAt: Date.now(),
+        lastPlayedAt,
         lastQuality: quality,
       }),
+    });
+  };
+
+  const saveHistoryRecordSafely = (
+    record: PlayRecord,
+    song: Song,
+    playTime = 0,
+    totalDuration = 0,
+    lastPlayedAt?: number
+  ) => {
+    saveHistoryRecord(record, song, playTime, totalDuration, lastPlayedAt).catch(err => {
+      console.error('保存播放记录到数据库失败:', err);
     });
   };
 
@@ -282,40 +426,67 @@ export default function MusicPage() {
       currentTime: audioRef.current?.currentTime || 0,
       currentSongUrl,
       lyrics,
-      playRecords, // 只保存播放记录（平台+ID+播放信息）
-      playlist, // 保存完整歌曲信息（用于显示）
+      playRecords, // 只保存播放记录（平台+ID+播放信息�?      playlist, // 保存完整歌曲信息（用于显示）
       playlistIndex,
     };
 
     localStorage.setItem('musicPlayState', JSON.stringify(playState));
   };
 
-  // 从 localStorage 恢复播放状态（已废弃，现在统一使用数据库）
-  const restorePlayState = async () => {
-    // 此函数已不再使用，所有状态恢复都在 initializePlayState 中完成
+  // 清空当前播放状态，并在需要时停止正在播放的音�?  const clearCurrentPlaybackState = () => {
+    const audio = audioRef.current;
+
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    }
+
+    setIsPlaying(false);
+    setCurrentSong(null);
+    setCurrentSongIndex(-1);
+    setCurrentSongUrl('');
+    setCurrentTime(0);
+    setDuration(0);
+    setLyrics([]);
+    setCurrentLyricIndex(-1);
+    setShowPlayer(false);
+    setShowLyrics(false);
+    setShowPiPLyrics(false);
+    setPendingSongToPlay(null);
+    restoredTimeRef.current = 0;
+    lastSaveTimeRef.current = 0;
+    currentTimeRef.current = 0;
+
+    localStorage.removeItem('musicPlayState');
   };
+
+  // �?localStorage 恢复播放状态（已废弃，现在统一使用数据库）
+  const restorePlayState = async () => {
+    // 此函数已不再使用，所有状态恢复都�?initializePlayState 中完�?  };
 
   useEffect(() => {
     setMusicProxyEnabled(getMusicProxyEnabled());
   }, []);
 
-  // 页面加载时恢复播放状态和数据库记录
-  useEffect(() => {
+  // 页面加载时恢复播放状态和数据库记�?  useEffect(() => {
     const initializePlayState = async () => {
       try {
         const response = await fetch('/api/music/v2/history');
         const history = await response.json();
         const dbRecords = (history.data?.records || []) as DbRecord[];
 
-        const sortedRecords: PlayRecord[] = dbRecords.map((record) => ({
+        const queueRecords = dbRecords;
+
+        const sortedRecords: PlayRecord[] = queueRecords.map((record) => ({
           platform: record.source,
           id: record.songId,
           playTime: record.playProgressSec,
           duration: record.durationSec || 0,
-          timestamp: record.lastPlayedAt,
+          timestamp: record.createdAt || record.lastPlayedAt || 0,
         }));
 
-        const sortedSongs: Song[] = dbRecords.map((record) => ({
+        const sortedSongs: Song[] = queueRecords.map((record) => ({
           id: record.songId,
           name: record.name,
           artist: record.artist,
@@ -333,8 +504,7 @@ export default function MusicPage() {
           setPlaylist(sortedSongs);
         }
 
-        // 3. 获取 localStorage 配置（只获取配置，不获取歌曲信息）
-        const savedPlayState = localStorage.getItem('musicPlayState');
+        // 3. 获取 localStorage 配置（只获取配置，不获取歌曲信息�?        const savedPlayState = localStorage.getItem('musicPlayState');
         const playState = savedPlayState ? JSON.parse(savedPlayState) : {};
 
         // 恢复配置状态（不包括歌曲）
@@ -346,16 +516,20 @@ export default function MusicPage() {
         setPlayMode(playState.playMode || 'loop');
         setVolume(playState.volume || 100);
 
-        // 4. 使用数据库的最新记录（歌曲和进度都从数据库获取）
-        if (sortedRecords.length > 0) {
+        // 4. 使用数据库的最新记录（歌曲和进度都从数据库获取�?        if (sortedRecords.length > 0) {
           const proxyEnabled = getMusicProxyEnabled();
           setMusicProxyEnabled(proxyEnabled);
-          const latestDbRecord = sortedRecords[0];
-          const latestDbSong = sortedSongs[0];
+          const latestIndex = queueRecords.reduce((bestIndex, record, index) => {
+            if (bestIndex < 0) return index;
+            return (record.lastPlayedAt || 0) > (queueRecords[bestIndex].lastPlayedAt || 0) ? index : bestIndex;
+          }, -1);
+          const activeIndex = latestIndex >= 0 ? latestIndex : 0;
+          const latestDbRecord = sortedRecords[activeIndex];
+          const latestDbSong = sortedSongs[activeIndex];
 
           // 使用数据库的歌曲信息
           setCurrentSong(latestDbSong);
-          setPlaylistIndex(0);
+          setPlaylistIndex(activeIndex);
           setShowPlayer(true);
 
           // 从数据库恢复播放进度
@@ -422,8 +596,7 @@ export default function MusicPage() {
     if (savedMinimized) setPipMinimized(savedMinimized === 'true');
   }, []);
 
-  // 监听来自 PiP 窗口的消息
-  useEffect(() => {
+  // 监听来自 PiP 窗口的消�?  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       switch (event.data.type) {
         case 'PIP_OPACITY_CHANGE':
@@ -451,7 +624,7 @@ export default function MusicPage() {
     }
   }, [currentSong, currentSongIndex, songs, currentPlaylistTitle, currentSource, currentView, quality, playMode, volume, currentSongUrl, lyrics, playRecords, playlistIndex]);
 
-  // 监听 playRecords 变化，更新 playlistIndex
+  // 监听 playRecords 变化，更�?playlistIndex
   useEffect(() => {
     if (pendingSongToPlay) {
       const index = playRecords.findIndex(
@@ -464,13 +637,13 @@ export default function MusicPage() {
 
   // 同步音量状态到 audio 元素
   useEffect(() => {
+    volumeRef.current = volume;
     if (audioRef.current) {
       audioRef.current.volume = volume / 100;
     }
   }, [volume]);
 
-  // 加载排行榜列表
-  const loadPlaylists = async (source: string) => {
+  // 加载排行榜列�?  const loadPlaylists = async (source: string) => {
     setLoading(true);
     try {
       const boardsResponse = await fetch(`/api/music/v2/discovery/boards?source=${source}`);
@@ -484,11 +657,11 @@ export default function MusicPage() {
           updateFrequency: item.updateFrequency || item.description || '',
         })));
       } else {
-        console.error('加载排行榜失败:', boardsData);
+        console.error('加载排行榜失�?', boardsData);
         setPlaylists([]);
       }
     } catch (error) {
-      console.error('加载排行榜失败:', error);
+      console.error('加载排行榜失�?', error);
       setPlaylists([]);
     } finally {
       setLoading(false);
@@ -515,6 +688,77 @@ export default function MusicPage() {
     }
   };
 
+  // 当前排行榜歌单：播放全部
+  const handlePlayAllCurrentSongs = async () => {
+    setLoadingCurrentPlayAll(true);
+
+    try {
+      if (songs.length === 0) {
+        setToast({
+          message: '当前歌单为空',
+          type: 'error',
+          onClose: () => setToast(null),
+        });
+        return;
+      }
+
+      await fetch('/api/music/v2/history', { method: 'DELETE' });
+
+      const baseTime = Date.now();
+      const recordsToAdd = songs.map((song, i) => ({
+        song: {
+          songId: song.id,
+          source: song.platform,
+          songmid: song.songmid,
+          name: song.name,
+          artist: song.artist,
+          album: song.album,
+          cover: song.pic,
+          durationSec: song.duration || 0,
+          durationText: song.durationText,
+        },
+        playProgressSec: 0,
+        lastPlayedAt: baseTime + i,
+        playCount: 1,
+        lastQuality: quality,
+      }));
+
+      await fetch('/api/music/v2/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: recordsToAdd }),
+      });
+
+      const newRecords: PlayRecord[] = songs.map((song, i) => ({
+        platform: song.platform,
+        id: song.id,
+        playTime: 0,
+        duration: song.duration || 0,
+        timestamp: baseTime + i,
+      }));
+
+      setPlayRecords(newRecords);
+      setPlaylist(songs);
+      setPlaylistIndex(0);
+      await playSong(songs[0], 0);
+
+      setToast({
+        message: `已开始播�?${currentPlaylistTitle || '当前歌单'}`,
+        type: 'success',
+        onClose: () => setToast(null),
+      });
+    } catch (error) {
+      console.error('排行榜播放全部失�?', error);
+      setToast({
+        message: '播放全部失败',
+        type: 'error',
+        onClose: () => setToast(null),
+      });
+    } finally {
+      setLoadingCurrentPlayAll(false);
+    }
+  };
+
   // 搜索歌曲
   const searchSongs = async () => {
     if (!searchKeyword.trim()) return;
@@ -536,11 +780,48 @@ export default function MusicPage() {
     }
   };
 
-  // 打开添加到歌单弹窗
-  const handleAddToPlaylist = (song: Song, e: React.MouseEvent) => {
-    e.stopPropagation(); // 阻止事件冒泡，避免触发播放
-    setSongToAddToPlaylist(song);
+  // 打开添加到歌单弹�?  const handleAddToPlaylist = (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止事件冒泡，避免触发播�?    setSongToAddToPlaylist(song);
     setShowAddToPlaylistModal(true);
+  };
+
+  // 稍后播放：追加到当前播放列表末尾，不立即播放
+  const handlePlayLater = (song: Song, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (!currentSong && playlist.length === 0 && playRecords.length === 0) {
+      playSong(song, -1);
+      return;
+    }
+
+    const platform = song.platform || currentSource;
+    const exists = playlist.some((item) => item.id === song.id && item.platform === platform);
+
+    if (exists) {
+      setToast({
+        message: '歌曲已在播放列表�?,
+        type: 'info',
+        onClose: () => setToast(null),
+      });
+      return;
+    }
+
+    const record: PlayRecord = {
+      platform,
+      id: song.id,
+      playTime: 0,
+      duration: song.duration || 0,
+      timestamp: Date.now(),
+    };
+
+    setPlayRecords((prev) => [...prev, record]);
+    setPlaylist((prev) => [...prev, { ...song, platform }]);
+    saveHistoryRecordSafely(record, { ...song, platform }, 0, song.duration || 0, 0);
+    setToast({
+      message: '已加入稍后播�?,
+      type: 'success',
+      onClose: () => setToast(null),
+    });
   };
 
   // 加载用户歌单列表
@@ -600,11 +881,9 @@ export default function MusicPage() {
 
     setLoadingPlayAll(true);
     try {
-      // 1. 清空所有播放历史
-      await fetch('/api/music/v2/history', { method: 'DELETE' });
+      // 1. 清空所有播放历�?      await fetch('/api/music/v2/history', { method: 'DELETE' });
 
-      // 2. 清空本地状态
-      setPlayRecords([]);
+      // 2. 清空本地状�?      setPlayRecords([]);
       setPlaylist([]);
 
       // 3. 批量添加歌单中的所有歌曲到播放历史
@@ -627,8 +906,7 @@ export default function MusicPage() {
         lastQuality: quality,
       }));
 
-      // 一次性批量添加所有歌曲
-      const response = await fetch('/api/music/v2/history', {
+      // 一次性批量添加所有歌�?      const response = await fetch('/api/music/v2/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -640,8 +918,7 @@ export default function MusicPage() {
         throw new Error('批量添加歌曲失败');
       }
 
-      // 4. 立即更新本地状态
-      const newRecords: PlayRecord[] = userPlaylistSongs.map((song, i) => ({
+      // 4. 立即更新本地状�?      const newRecords: PlayRecord[] = userPlaylistSongs.map((song, i) => ({
         platform: song.platform,
         id: song.id,
         playTime: 0,
@@ -692,7 +969,7 @@ export default function MusicPage() {
     setConfirmModal({
       isOpen: true,
       title: '确认删除',
-      message: '确定要删除这个歌单吗？',
+      message: '确定要删除这个歌单吗�?,
       onConfirm: async () => {
         // 先关闭确认框
         setConfirmModal({
@@ -757,7 +1034,7 @@ export default function MusicPage() {
     setConfirmModal({
       isOpen: true,
       title: '确认移除',
-      message: `确定要从歌单中移除 "${song.name}" 吗？`,
+      message: `确定要从歌单中移�?"${song.name}" 吗？`,
       onConfirm: async () => {
         try {
           const response = await fetch(
@@ -812,45 +1089,38 @@ export default function MusicPage() {
   const playSong = async (song: Song, index: number) => {
     beginResolving();
     try {
-      // 使用歌曲自己的平台信息，如果没有则使用当前选择的平台
-          const platform = song.platform || currentSource;
+      // 使用歌曲自己的平台信息，如果没有则使用当前选择的平�?          const platform = song.platform || currentSource;
           const proxyEnabled = getMusicProxyEnabled();
           setMusicProxyEnabled(proxyEnabled);
 
       // 记录歌曲开始播放的时间
       songStartTimeRef.current = Date.now();
 
-      // 先设置当前歌曲和显示播放器
-      setCurrentSong(song);
+      // 先设置当前歌曲和显示播放�?      setCurrentSong(song);
       setCurrentSongIndex(index);
       setShowPlayer(true);
-      setLyrics([]); // 清空旧歌词
-
+      setLyrics([]); // 清空旧歌�?
       // 添加到播放记录和播放列表
       const record: PlayRecord = {
         platform: platform,
         id: song.id,
         playTime: 0, // 初始播放时间
-        duration: 0, // 将在音频加载后更新
-        timestamp: Date.now(),
+        duration: song.duration || 0, // 将在音频加载后更�?        timestamp: Date.now(),
       };
 
-      // 设置待播放歌曲信息，用于在 playRecords 更新后找到索引
-      setPendingSongToPlay({ platform, id: song.id });
+      // 设置待播放歌曲信息，用于�?playRecords 更新后找到索�?      setPendingSongToPlay({ platform, id: song.id });
 
       setPlayRecords(prev => {
         const existingIndex = prev.findIndex(r => r.platform === record.platform && r.id === record.id);
         if (existingIndex >= 0) {
-          // 记录已存在，更新时间戳但不重置播放时间
-          const updated = [...prev];
+          // 记录已存在，更新时间戳但不重置播放时�?          const updated = [...prev];
           updated[existingIndex] = {
             ...updated[existingIndex],
             timestamp: Date.now(),
           };
           return updated;
         } else {
-          // 新记录，添加到列表末尾
-          return [...prev, record];
+          // 新记录，添加到列表末�?          return [...prev, record];
         }
       });
 
@@ -862,6 +1132,8 @@ export default function MusicPage() {
           return [...prev, { ...song, platform }];
         }
       });
+
+      saveHistoryRecordSafely(record, { ...song, platform }, 0, song.duration || 0);
 
       if (proxyEnabled) {
         const streamUrl = buildStreamUrl(song, platform, quality);
@@ -939,7 +1211,7 @@ export default function MusicPage() {
   const parseLyric = (lyricText: string, tlyricText?: string): LyricLine[] => {
     if (!lyricText && !tlyricText) return [];
 
-    // 匹配 [mm:ss.xx] 或 [mm:ss] 格式
+    // 匹配 [mm:ss.xx] �?[mm:ss] 格式
     const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
     const parseLyricText = (text: string) => {
       const parsed = new Map<number, string>();
@@ -989,7 +1261,7 @@ export default function MusicPage() {
         // 暂停时保存状态到 localStorage 和数据库
         savePlayState();
 
-        // 前5秒不保存（避免加载时的跳转触发保存）
+        // �?秒不保存（避免加载时的跳转触发保存）
         if (Date.now() - songStartTimeRef.current < 5000) {
           return;
         }
@@ -998,7 +1270,7 @@ export default function MusicPage() {
         if (currentSong && playlistIndex >= 0 && playRecords[playlistIndex]) {
           const record = playRecords[playlistIndex];
           saveHistoryRecord(record, currentSong, audioRef.current.currentTime, audioRef.current.duration || 0).catch(err => {
-            console.error('暂停时保存播放记录失败:', err);
+            console.error('暂停时保存播放记录失�?', err);
           });
         }
       } else {
@@ -1010,12 +1282,9 @@ export default function MusicPage() {
     }
   };
 
-  // 上一曲
-  const playPrev = () => {
-    // 优先从播放列表切换
-    if (playlist.length > 0) {
-      // 如果已经是第一首，循环到最后一首
-      const prevIndex = playlistIndex > 0 ? playlistIndex - 1 : playlist.length - 1;
+  // 上一�?  const playPrev = () => {
+    // 优先从播放列表切�?    if (playlist.length > 0) {
+      // 如果已经是第一首，循环到最后一�?      const prevIndex = playlistIndex > 0 ? playlistIndex - 1 : playlist.length - 1;
       setPlaylistIndex(prevIndex);
       playSong(playlist[prevIndex], -1);
     } else if (currentSongIndex > 0) {
@@ -1023,12 +1292,9 @@ export default function MusicPage() {
     }
   };
 
-  // 下一曲
-  const playNext = () => {
-    // 优先从播放列表切换
-    if (playlist.length > 0) {
-      // 如果已经是最后一首，循环到第一首
-      const nextIndex = playlistIndex < playlist.length - 1 ? playlistIndex + 1 : 0;
+  // 下一�?  const playNext = () => {
+    // 优先从播放列表切�?    if (playlist.length > 0) {
+      // 如果已经是最后一首，循环到第一�?      const nextIndex = playlistIndex < playlist.length - 1 ? playlistIndex + 1 : 0;
       setPlaylistIndex(nextIndex);
       playSong(playlist[nextIndex], -1);
     } else if (currentSongIndex < songs.length - 1) {
@@ -1042,6 +1308,53 @@ export default function MusicPage() {
     const currentIndex = qualities.indexOf(quality);
     const nextIndex = (currentIndex + 1) % qualities.length;
     setQuality(qualities[nextIndex]);
+  };
+
+  // 清空播放记录
+  const handleClearPlayRecords = () => {
+    setConfirmModal({
+      isOpen: true,
+      title: '确认清空',
+      message: '确定要清空全部播放记录吗�?,
+      onConfirm: async () => {
+        try {
+          await fetch('/api/music/v2/history', { method: 'DELETE' });
+          clearCurrentPlaybackState();
+          setPlaylist([]);
+          setPlayRecords([]);
+          setPlaylistIndex(-1);
+          setToast({
+            message: '播放记录已清�?,
+            type: 'success',
+            onClose: () => setToast(null),
+          });
+        } catch (error) {
+          console.error('清空播放记录失败:', error);
+          setToast({
+            message: '清空播放记录失败',
+            type: 'error',
+            onClose: () => setToast(null),
+          });
+        } finally {
+          setConfirmModal({
+            isOpen: false,
+            title: '',
+            message: '',
+            onConfirm: () => {},
+            onCancel: () => {},
+          });
+        }
+      },
+      onCancel: () => {
+        setConfirmModal({
+          isOpen: false,
+          title: '',
+          message: '',
+          onConfirm: () => {},
+          onCancel: () => {},
+        });
+      },
+    });
   };
 
   // 切换播放模式
@@ -1070,8 +1383,7 @@ export default function MusicPage() {
   const downloadSong = () => {
     if (!currentSongUrl || !currentSong) return;
 
-    // 创建一个临时的 a 标签来触发下载
-    const link = document.createElement('a');
+    // 创建一个临时的 a 标签来触发下�?    const link = document.createElement('a');
     link.href = currentSongUrl;
     link.download = `${currentSong.name} - ${currentSong.artist}.mp3`;
     document.body.appendChild(link);
@@ -1108,18 +1420,17 @@ export default function MusicPage() {
         setCurrentLyricIndex(index);
       }
 
-      // 每20秒保存一次播放进度和播放时间
+      // �?0秒保存一次播放进度和播放时间
       const now = Date.now();
       if (now - lastSaveTimeRef.current > 20000) {
         lastSaveTimeRef.current = now;
 
-        // 前5秒不保存（避免加载时的跳转触发保存）
+        // �?秒不保存（避免加载时的跳转触发保存）
         if (Date.now() - songStartTimeRef.current < 5000) {
           return;
         }
 
-        // 更新当前播放记录的播放时间
-        if (currentSong && playlistIndex >= 0) {
+        // 更新当前播放记录的播放时�?        if (currentSong && playlistIndex >= 0) {
           setPlayRecords(prev => {
             const updated = [...prev];
             if (updated[playlistIndex]) {
@@ -1153,13 +1464,12 @@ export default function MusicPage() {
     const handleDurationChange = () => {
       setDuration(audio.duration);
 
-      // 前5秒不保存（避免加载时的跳转触发保存）
+      // �?秒不保存（避免加载时的跳转触发保存）
       if (Date.now() - songStartTimeRef.current < 5000) {
         return;
       }
 
-      // 更新当前播放记录的总时长
-      if (currentSong && playlistIndex >= 0) {
+      // 更新当前播放记录的总时�?      if (currentSong && playlistIndex >= 0) {
         setPlayRecords(prev => {
           const updated = [...prev];
           if (updated[playlistIndex]) {
@@ -1215,8 +1525,7 @@ export default function MusicPage() {
     loadPlaylists(currentSource);
   }, [currentSource]);
 
-  // 当切换到我的歌单视图时加载歌单列表
-  useEffect(() => {
+  // 当切换到我的歌单视图时加载歌单列�?  useEffect(() => {
     if (currentView === 'myPlaylists') {
       loadUserPlaylists();
     }
@@ -1236,15 +1545,13 @@ export default function MusicPage() {
     }
   }, [currentLyricIndex]);
 
-  // 搜索框回车
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+  // 搜索框回�?  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       searchSongs();
     }
   };
 
-  // 进度条拖动
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // 进度条拖�?  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTime = (parseFloat(e.target.value) / 100) * duration;
     if (audioRef.current) {
       audioRef.current.currentTime = newTime;
@@ -1260,8 +1567,7 @@ export default function MusicPage() {
     }
   };
 
-  // 触摸/鼠标滑动音量调节（移动端兼容）
-  const handleVolumeSliderInteraction = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+  // 触摸/鼠标滑动音量调节（移动端兼容�?  const handleVolumeSliderInteraction = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -1273,7 +1579,7 @@ export default function MusicPage() {
       const y = clientY - rect.top;
       // 限制在滑块范围内
       const clampedY = Math.max(0, Math.min(rect.height, y));
-      // 从上到下：0% -> 100%，从下到上：100% -> 0%
+      // 从上到下�?% -> 100%，从下到上：100% -> 0%
       const percentage = 100 - (clampedY / rect.height) * 100;
       const newVolume = Math.round(percentage);
 
@@ -1310,7 +1616,7 @@ export default function MusicPage() {
   const togglePiPLyrics = () => {
     if (!('documentPictureInPicture' in window)) {
       setToast({
-        message: '您的浏览器不支持画中画功能，请使用 Chrome 116+ 版本',
+        message: '您的浏览器不支持画中画功能，请使�?Chrome 116+ 版本',
         type: 'error',
       });
       // 降级方案：打开全屏歌词
@@ -1331,6 +1637,15 @@ export default function MusicPage() {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const toggleSpectrum = () => {
+    setShowSpectrum(prev => !prev);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('musicShowSpectrum', showSpectrum ? '1' : '0');
+  }, [showSpectrum]);
+
   const getQualityLabel = () => {
     switch (quality) {
       case '128k': return '标准';
@@ -1342,7 +1657,7 @@ export default function MusicPage() {
 
   const getSourceLabel = () => {
     switch (currentSource) {
-      case 'wy': return '网易云';
+      case 'wy': return '网易�?;
       case 'tx': return 'QQ音乐';
       case 'kw': return '酷我';
       case 'kg': return '酷狗';
@@ -1357,16 +1672,151 @@ export default function MusicPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  useEffect(() => {
+    currentTimeRef.current = currentTime;
+  }, [currentTime]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || typeof window === 'undefined') return;
+
+    let cancelled = false;
+
+    const ensureAnalyser = async () => {
+      try {
+        const AudioContextClass = window.AudioContext || (window as typeof window & {
+          webkitAudioContext?: typeof AudioContext;
+        }).webkitAudioContext;
+
+        if (!AudioContextClass) return;
+
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioContextClass();
+        }
+
+        if (!mediaSourceRef.current) {
+          mediaSourceRef.current = audioContextRef.current.createMediaElementSource(audio);
+        }
+
+        if (!analyserRef.current) {
+          const analyser = audioContextRef.current.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.8;
+          mediaSourceRef.current.connect(analyser);
+          analyser.connect(audioContextRef.current.destination);
+          analyserRef.current = analyser;
+          spectrumDataRef.current = new Uint8Array(analyser.frequencyBinCount);
+        }
+
+        if (audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+      } catch (error) {
+        console.warn('初始化频谱分析器失败，将使用模拟动画:', error);
+      }
+    };
+
+    const tick = () => {
+      if (cancelled) return;
+
+      const analyser = analyserRef.current;
+      const data = spectrumDataRef.current;
+      const isActive = !audio.paused && !audio.ended;
+      let nextBars = Array.from({ length: SPECTRUM_BIN_COUNT }, () => SPECTRUM_IDLE_LEVEL);
+
+      if (isActive && analyser && data) {
+        analyser.getByteFrequencyData(data);
+        const usableBins = Math.max(1, Math.floor(data.length * 0.88));
+        const visualVolume = Math.max(SPECTRUM_MIN_VOLUME, volumeRef.current || SPECTRUM_REFERENCE_VOLUME);
+        const visualVolumeScale =
+          visualVolume > SPECTRUM_MAX_REFERENCE_VOLUME
+            ? Math.sqrt(SPECTRUM_MAX_REFERENCE_VOLUME / visualVolume)
+            : SPECTRUM_REFERENCE_VOLUME / visualVolume;
+
+        nextBars = Array.from({ length: SPECTRUM_BIN_COUNT }, (_, index) => {
+          const start = Math.floor((index / SPECTRUM_BIN_COUNT) * usableBins);
+          const end = Math.max(start + 1, Math.floor(((index + 1) / SPECTRUM_BIN_COUNT) * usableBins));
+          let total = 0;
+
+          for (let i = start; i < end; i++) {
+            total += data[i] ?? 0;
+          }
+
+          const average = (total / Math.max(1, end - start)) * visualVolumeScale;
+          const rightBias = index / Math.max(1, SPECTRUM_BIN_COUNT - 1);
+          const highFreqCompensation = 1 + rightBias * 0.85;
+          const floorLift = rightBias * 0.035;
+          return Math.max(
+            SPECTRUM_IDLE_LEVEL,
+            Math.min(1, (average / 255) * highFreqCompensation + floorLift)
+          );
+        });
+      } else if (isActive) {
+        nextBars = Array.from({ length: SPECTRUM_BIN_COUNT }, (_, index) => {
+          const wave =
+            Math.sin(currentTimeRef.current * 5.2 + index * 0.28 + spectrumSeedRef.current) * 0.12 +
+            Math.sin(currentTimeRef.current * 2.6 + index * 0.16) * 0.08 +
+            0.22;
+          return Math.max(SPECTRUM_IDLE_LEVEL, Math.min(0.65, wave));
+        });
+      }
+
+      setSpectrumBars(prev =>
+        nextBars.map((value, index) => {
+          const previous = prev[index] ?? SPECTRUM_IDLE_LEVEL;
+          return previous + (value - previous) * (isActive ? 0.34 : 0.12);
+        })
+      );
+
+      spectrumFrameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    void ensureAnalyser();
+    spectrumFrameRef.current = window.requestAnimationFrame(tick);
+
+    return () => {
+      cancelled = true;
+      if (spectrumFrameRef.current) {
+        window.cancelAnimationFrame(spectrumFrameRef.current);
+        spectrumFrameRef.current = null;
+      }
+    };
+  }, [currentSong]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && spectrumFrameRef.current) {
+        window.cancelAnimationFrame(spectrumFrameRef.current);
+      }
+      analyserRef.current?.disconnect();
+      mediaSourceRef.current?.disconnect();
+      audioContextRef.current?.close().catch(() => undefined);
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="music-theme min-h-screen bg-zinc-950 text-white">
       <>
+      <style jsx>{`
+        @keyframes music-note-bounce {
+          0%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.55;
+          }
+          50% {
+            transform: translateY(-8px);
+            opacity: 1;
+          }
+        }
+      `}</style>
       {resolvingCount > 0 && (
         <div className="fixed top-4 right-4 z-[80] pointer-events-none">
           <div className="relative w-16 h-16 md:w-20 md:h-20">
             <div className="absolute inset-0 rounded-full border-4 border-white/10" />
             <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-green-500 border-r-emerald-400 animate-spin shadow-[0_0_20px_rgba(34,197,94,0.35)]" />
             <div className="absolute inset-1 rounded-full bg-zinc-950/90 backdrop-blur-md border border-white/10 flex flex-col items-center justify-center">
-              <div className="text-[10px] md:text-xs text-zinc-400 leading-none mb-1">解析中</div>
+              <div className="text-[10px] md:text-xs text-zinc-400 leading-none mb-1">解析�?/div>
               <div className="text-lg md:text-xl font-bold text-white leading-none">{resolvingCount}</div>
             </div>
           </div>
@@ -1447,9 +1897,11 @@ export default function MusicPage() {
                 </svg>
               </button>
             )}
-            <div className="relative group w-full h-full">
+            <div
+              className="relative group w-full h-full rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <svg className="w-4 h-4 text-zinc-500 group-focus-within:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-zinc-500 transition-colors group-focus-within:text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
@@ -1458,7 +1910,7 @@ export default function MusicPage() {
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full h-full bg-black/30 border border-white/10 rounded-lg pl-9 pr-4 text-sm text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/50 font-mono placeholder-zinc-500"
+                className="w-full h-full appearance-none border-0 bg-transparent pl-9 pr-4 text-sm text-white outline-none focus:outline-none focus:ring-0 font-mono placeholder:text-zinc-500"
                 placeholder="搜索歌曲或艺术家..."
               />
             </div>
@@ -1476,17 +1928,17 @@ export default function MusicPage() {
       </header>
 
       {/* Main Content */}
-      <main className="pt-[120px] md:pt-[96px] pb-32 px-4 md:px-6">
+      <main className="pt-[136px] md:pt-[108px] pb-32 px-4 md:px-6">
         <div className="max-w-7xl mx-auto">
           {loading && (
-            <div className="text-center text-zinc-500 py-8">加载中...</div>
+            <MusicLoadingIndicator className="py-8" />
           )}
 
           {/* Playlists View */}
           {currentView === 'playlists' && !loading && (
             <div>
               <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-2">
-                <h2 className="text-xs font-mono text-white/50 tracking-widest">排行榜</h2>
+                <h2 className="text-xs font-mono text-white/50 tracking-widest">排行�?/h2>
                 <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded text-white">
                   {getSourceLabel()}
                 </span>
@@ -1500,7 +1952,7 @@ export default function MusicPage() {
                       className="w-full text-left rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-colors px-4 py-3"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-8 text-sm text-zinc-500 font-mono shrink-0">
+                        <div className="w-8 text-sm text-zinc-500 dark:text-zinc-300 font-mono shrink-0">
                           {String(index + 1).padStart(2, '0')}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1520,10 +1972,9 @@ export default function MusicPage() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-center text-zinc-400">
-                  <div className="text-base font-medium text-white/80 mb-2">当前音源暂无排行榜</div>
+                  <div className="text-base font-medium text-white/80 mb-2">当前音源暂无排行�?/div>
                   <div className="text-sm text-zinc-500">
-                    你可以切换其它音源，或使用上方搜索继续找歌。
-                  </div>
+                    你可以切换其它音源，或使用上方搜索继续找歌�?                  </div>
                 </div>
               )}
             </div>
@@ -1533,12 +1984,29 @@ export default function MusicPage() {
           {currentView === 'songs' && !loading && (
             <div>
               <div className="flex items-center justify-between mb-6 border-b border-white/5 pb-2">
-                <h2 className="text-xl font-bold text-white/80 tracking-tight truncate max-w-md">
-                  {currentPlaylistTitle}
-                </h2>
-                <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded text-white shrink-0">
-                  {songs.length} 首歌曲
-                </span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <h2 className="text-xl font-bold text-white/80 tracking-tight truncate max-w-md">
+                    {currentPlaylistTitle}
+                  </h2>
+                  <span className="text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded text-white shrink-0">
+                    {songs.length} 首歌�?                  </span>
+                </div>
+                <button
+                  onClick={handlePlayAllCurrentSongs}
+                  disabled={songs.length === 0 || loadingCurrentPlayAll}
+                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2 text-sm text-white shrink-0"
+                >
+                  {loadingCurrentPlayAll ? (
+                    <MusicLoadingIndicator size="sm" className="gap-2 text-white" />
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                      播放全部
+                    </>
+                  )}
+                </button>
               </div>
               <div className="space-y-1">
                 {songs.map((song, index) => (
@@ -1551,7 +2019,7 @@ export default function MusicPage() {
                     }`}
                   >
                     <div
-                      className="text-center text-zinc-500 text-sm col-span-1"
+                      className="text-center text-zinc-500 dark:text-zinc-300 text-sm col-span-1"
                       onClick={() => playSong(song, index)}
                     >
                       {index + 1}
@@ -1575,15 +2043,27 @@ export default function MusicPage() {
                     >
                       {getSourceLabel()}
                     </div>
-                    <button
-                      onClick={(e) => handleAddToPlaylist(song, e)}
-                      className="text-zinc-500 hover:text-red-500 transition-colors p-1 col-span-1"
-                      title="添加到歌单"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                      </svg>
-                    </button>
+                    <div className="col-span-1 flex flex-col items-center justify-center gap-0.5 leading-none">
+                      <button
+                        onClick={(e) => handleAddToPlaylist(song, e)}
+                        className="text-zinc-500 hover:text-red-500 transition-colors p-0.5"
+                        title="添加到歌�?
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => handlePlayLater(song, e)}
+                        className="text-zinc-500 hover:text-green-500 transition-colors p-0.5"
+                        title="稍后播放"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-9-9 9 9 0 019 9z" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1598,17 +2078,15 @@ export default function MusicPage() {
                 <div className="bg-zinc-800/50 rounded-xl p-4 border border-white/10">
                   <h2 className="text-lg font-bold mb-4">歌单列表</h2>
                   {loadingUserPlaylists ? (
-                    <div className="text-center py-8 text-zinc-400">加载中...</div>
+                    <MusicLoadingIndicator className="py-8" />
                   ) : userPlaylists.length === 0 ? (
                     <div className="text-center py-8 text-zinc-400">
-                      还没有歌单
-                      <br />
+                      还没有歌�?                      <br />
                       <button
                         onClick={() => setCurrentView('playlists')}
                         className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
                       >
-                        去添加歌曲
-                      </button>
+                        去添加歌�?                      </button>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1668,13 +2146,7 @@ export default function MusicPage() {
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-zinc-700 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center gap-2"
                         >
                           {loadingPlayAll ? (
-                            <>
-                              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              加载中...
-                            </>
+                            <MusicLoadingIndicator size="sm" className="gap-2 text-white" />
                           ) : (
                             <>
                               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -1695,7 +2167,7 @@ export default function MusicPage() {
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                               </svg>
-                              删除中...
+                              删除�?..
                             </>
                           ) : (
                             '删除歌单'
@@ -1705,7 +2177,7 @@ export default function MusicPage() {
                     </div>
 
                     {loadingUserPlaylistSongs ? (
-                      <div className="text-center py-8 text-zinc-400">加载中...</div>
+                      <MusicLoadingIndicator className="py-8" />
                     ) : userPlaylistSongs.length === 0 ? (
                       <div className="text-center py-8 text-zinc-400">歌单为空</div>
                     ) : (
@@ -1715,7 +2187,7 @@ export default function MusicPage() {
                             key={`${song.platform}+${song.id}`}
                             className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                           >
-                            <div className="text-zinc-500 text-sm w-8 text-center">{index + 1}</div>
+                            <div className="text-zinc-500 dark:text-zinc-300 text-sm w-8 text-center">{index + 1}</div>
                             {song.pic && (
                               <img
                                 src={song.pic}
@@ -1756,7 +2228,7 @@ export default function MusicPage() {
                       <svg className="w-16 h-16 mx-auto mb-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                       </svg>
-                      <p>选择一个歌单查看详情</p>
+                      <p>选择一个歌单查看详�?/p>
                     </div>
                   </div>
                 )}
@@ -1769,9 +2241,15 @@ export default function MusicPage() {
       {/* Player */}
       {showPlayer && currentSong && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-3xl z-50">
-          <div className="bg-zinc-900/95 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-2xl">
+          {showSpectrum && (
+            <div className="pointer-events-none px-4">
+              <AudioSpectrumCanvas bars={spectrumBars} compact />
+            </div>
+          )}
+
+          <div className="relative bg-zinc-900/95 backdrop-blur-md rounded-xl p-4 pt-5 border border-white/10 shadow-2xl">
             {/* Progress Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-white/10 rounded-t-xl overflow-hidden">
+            <div className="absolute left-0 right-0 top-0 h-1 bg-white/10 rounded-t-xl overflow-hidden">
               <div
                 className="h-full bg-green-500 transition-all pointer-events-none"
                 style={{ width: `${progress}%` }}
@@ -1786,7 +2264,7 @@ export default function MusicPage() {
               />
             </div>
 
-            <div className="flex items-center justify-between gap-4 mt-2">
+            <div className="flex items-center justify-between gap-4 mt-1">
               {/* Song Info */}
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div
@@ -1799,8 +2277,7 @@ export default function MusicPage() {
                       alt={currentSong.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        // 图片加载失败时显示默认图标
-                        e.currentTarget.style.display = 'none';
+                        // 图片加载失败时显示默认图�?                        e.currentTarget.style.display = 'none';
                       }}
                     />
                   ) : (
@@ -1862,7 +2339,7 @@ export default function MusicPage() {
                     }
                   }}
                   className="text-zinc-500 hover:text-red-500 transition-colors"
-                  title="添加到歌单"
+                  title="添加到歌�?
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -1915,8 +2392,7 @@ export default function MusicPage() {
         <div
           className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
           onClick={(e) => {
-            // 点击背景关闭音量条
-            if (e.target === e.currentTarget) {
+            // 点击背景关闭音量�?            if (e.target === e.currentTarget) {
               setShowVolumeSlider(false);
             }
           }}
@@ -2008,7 +2484,7 @@ export default function MusicPage() {
 
             {/* Mini Player Controls */}
             <div className="border-t border-white/5 p-3 md:p-4 shrink-0">
-              {/* 上排：播放控制按钮 */}
+              {/* 上排：播放控制按�?*/}
               <div className="flex items-center justify-center gap-4 md:gap-6 mb-2 md:mb-3">
                 <button onClick={playPrev} className="text-zinc-500 hover:text-white transition-colors">
                   <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -2047,7 +2523,7 @@ export default function MusicPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
                   {playlist.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full text-[8px] flex items-center justify-center font-bold">
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full text-[8px] text-white flex items-center justify-center font-bold">
                       {playlist.length > 9 ? '9+' : playlist.length}
                     </span>
                   )}
@@ -2110,7 +2586,7 @@ export default function MusicPage() {
                       <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
                     </svg>
                   </button>
-                  {/* 垂直音量条 - 桌面悬浮/移动端点击 */}
+                  {/* 垂直音量�?- 桌面悬浮/移动端点�?*/}
                   <div
                     className={`absolute bottom-full left-1/2 -translate-x-1/2 pb-2 transition-opacity ${showVolumeSlider ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                     onClick={(e) => e.stopPropagation()}
@@ -2134,6 +2610,24 @@ export default function MusicPage() {
                 </div>
                 {/* PiP 歌词按钮 */}
                 <button
+                  onClick={toggleSpectrum}
+                  className={`transition-colors ${
+                    showSpectrum ? 'text-green-500 hover:text-green-400' : 'text-zinc-500 hover:text-white'
+                  }`}
+                  title={showSpectrum ? '隐藏音谱�? : '显示音谱�?}
+                >
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {showSpectrum ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 18V9m4 9V6m4 12v-4m4 4V8m4 10V4" />
+                    ) : (
+                      <>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 18V9m4 9V6m4 12v-4m4 4V8m4 10V4" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3l18 18" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
                     togglePiPLyrics();
@@ -2143,14 +2637,14 @@ export default function MusicPage() {
                       ? 'text-green-500 hover:text-green-400'
                       : 'text-zinc-500 hover:text-white'
                   }`}
-                  title={showPiPLyrics ? '关闭画中画歌词' : '画中画歌词'}
+                  title={showPiPLyrics ? '关闭画中画歌�? : '画中画歌�?}
                   disabled={!currentSong}
                 >
                   <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 1.98 2 1.98h18c1.1 0 2-.88 2-1.98V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/>
                   </svg>
                 </button>
-                {/* 添加到歌单按钮 */}
+                {/* 添加到歌单按�?*/}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -2160,7 +2654,7 @@ export default function MusicPage() {
                     }
                   }}
                   className="text-zinc-500 hover:text-red-500 transition-colors"
-                  title="添加到歌单"
+                  title="添加到歌�?
                 >
                   <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -2168,8 +2662,17 @@ export default function MusicPage() {
                 </button>
               </div>
 
-              {/* 进度条 */}
+              {/* 进度�?*/}
               <div>
+                {showSpectrum && (
+                  <div className="mb-3 flex items-center gap-2 text-xs">
+                    <span className="invisible">{formatTime(currentTime)}</span>
+                    <div className="flex-1">
+                      <AudioSpectrumCanvas bars={spectrumBars} />
+                    </div>
+                    <span className="invisible">{formatTime(duration)}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
                   <span>{formatTime(currentTime)}</span>
                   <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden relative">
@@ -2207,18 +2710,7 @@ export default function MusicPage() {
               <div className="flex items-center gap-2">
                 {playlist.length > 0 && (
                   <button
-                    onClick={async () => {
-                      if (confirm('确定要清空全部播放记录吗？')) {
-                        try {
-                          await fetch('/api/music/v2/history', { method: 'DELETE' });
-                          setPlaylist([]);
-                          setPlayRecords([]);
-                          setPlaylistIndex(-1);
-                        } catch (error) {
-                          console.error('清空播放记录失败:', error);
-                        }
-                      }
-                    }}
+                    onClick={handleClearPlayRecords}
                     className="px-3 py-1 text-xs rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors border border-red-500/50"
                     title="清空全部"
                   >
@@ -2296,8 +2788,7 @@ export default function MusicPage() {
                           try {
                             await fetch(`/api/music/v2/history?songId=${encodeURIComponent(song.id)}`, { method: 'DELETE' });
 
-                            // 更新本地状态
-                            const newPlaylist = playlist.filter((_, i) => i !== index);
+                            // 更新本地状�?                            const newPlaylist = playlist.filter((_, i) => i !== index);
                             const newRecords = playRecords.filter((_, i) => i !== index);
                             setPlaylist(newPlaylist);
                             setPlayRecords(newRecords);
@@ -2328,7 +2819,7 @@ export default function MusicPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
                   <p className="text-zinc-500 text-sm">播放列表为空</p>
-                  <p className="text-zinc-600 text-xs mt-2">播放歌曲后会自动添加到列表</p>
+                  <p className="text-zinc-600 text-xs mt-2">播放歌曲后会自动添加到列�?/p>
                 </div>
               )}
             </div>
@@ -2392,7 +2883,7 @@ export default function MusicPage() {
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${quality === '320k' ? 'bg-amber-400' : 'bg-zinc-600'}`} />
                   <div className="text-left">
-                    <div className="text-white font-medium">高品质 HQ</div>
+                    <div className="text-white font-medium">高品�?HQ</div>
                     <div className="text-xs text-zinc-500">320kbps</div>
                   </div>
                 </div>
@@ -2553,7 +3044,7 @@ export default function MusicPage() {
       {confirmModal.isOpen &&
         createPortal(
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+            className="music-theme-portal fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
             style={{ zIndex: 99999 }}
             onClick={confirmModal.onCancel}
           >
@@ -2611,7 +3102,7 @@ export default function MusicPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        删除中...
+                        删除�?..
                       </>
                     ) : (
                       '确定'
@@ -2645,6 +3136,100 @@ export default function MusicPage() {
           onClose={() => setShowPiPLyrics(false)}
         />
       )}
+      <style jsx global>{`
+        :root {
+          --music-bg: #f4f7fb;
+          --music-bg-strong: rgba(255, 255, 255, 0.96);
+          --music-surface: rgba(255, 255, 255, 0.88);
+          --music-surface-soft: rgba(241, 245, 249, 0.92);
+          --music-overlay: rgba(15, 23, 42, 0.45);
+          --music-glass: rgba(15, 23, 42, 0.06);
+          --music-glass-strong: rgba(15, 23, 42, 0.1);
+          --music-border: rgba(148, 163, 184, 0.28);
+          --music-text: #0f172a;
+          --music-text-soft: #475569;
+          --music-text-muted: #64748b;
+        }
+
+        .dark {
+          --music-bg: #09090b;
+          --music-bg-strong: rgba(9, 9, 11, 0.95);
+          --music-surface: rgba(24, 24, 27, 0.9);
+          --music-surface-soft: rgba(39, 39, 42, 0.88);
+          --music-overlay: rgba(0, 0, 0, 0.72);
+          --music-glass: rgba(255, 255, 255, 0.05);
+          --music-glass-strong: rgba(255, 255, 255, 0.1);
+          --music-border: rgba(255, 255, 255, 0.1);
+          --music-text: #f8fafc;
+          --music-text-soft: #cbd5e1;
+          --music-text-muted: #94a3b8;
+        }
+
+        .music-theme {
+          background: linear-gradient(180deg, var(--music-bg) 0%, color-mix(in srgb, var(--music-bg) 82%, #22c55e 18%) 100%);
+          color: var(--music-text);
+        }
+
+        .music-theme :is([class*='bg-zinc-950'], [class*='bg-zinc-900']),
+        .music-theme-portal :is([class*='bg-zinc-950'], [class*='bg-zinc-900']) {
+          background-color: var(--music-bg-strong) !important;
+        }
+
+        .music-theme [class*='bg-zinc-800'],
+        .music-theme-portal [class*='bg-zinc-800'] {
+          background-color: var(--music-surface-soft) !important;
+        }
+
+        .music-theme :is([class*='bg-white/5'], [class*='bg-white/6'], [class*='bg-white/8'], [class*='bg-white/10'], [class*='bg-white/12']),
+        .music-theme-portal :is([class*='bg-white/5'], [class*='bg-white/6'], [class*='bg-white/8'], [class*='bg-white/10'], [class*='bg-white/12']) {
+          background-color: var(--music-glass) !important;
+        }
+
+        .music-theme [class*='bg-white/20'],
+        .music-theme-portal [class*='bg-white/20'] {
+          background-color: var(--music-glass-strong) !important;
+        }
+
+        .music-theme :is([class*='bg-black/90'], [class*='bg-black/50'], [class*='bg-black/30']),
+        .music-theme-portal :is([class*='bg-black/90'], [class*='bg-black/50'], [class*='bg-black/30']) {
+          background-color: var(--music-overlay) !important;
+        }
+
+        .music-theme :is([class*='border-white/'], [class*='border-zinc-']),
+        .music-theme-portal :is([class*='border-white/'], [class*='border-zinc-']) {
+          border-color: var(--music-border) !important;
+        }
+
+        .music-theme :is([class*='text-white'], [class*='text-zinc-200']),
+        .music-theme-portal :is([class*='text-white'], [class*='text-zinc-200']) {
+          color: var(--music-text) !important;
+        }
+
+        .music-theme :is([class*='text-zinc-300'], [class*='text-zinc-400']),
+        .music-theme-portal :is([class*='text-zinc-300'], [class*='text-zinc-400']) {
+          color: var(--music-text-soft) !important;
+        }
+
+        .music-theme :is([class*='text-zinc-500'], [class*='text-zinc-600']),
+        .music-theme-portal :is([class*='text-zinc-500'], [class*='text-zinc-600']) {
+          color: var(--music-text-muted) !important;
+        }
+
+        .music-theme :is([class*='from-zinc-800'], [class*='from-zinc-900']) {
+          --tw-gradient-from: var(--music-surface-soft) var(--tw-gradient-from-position) !important;
+          --tw-gradient-to: rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important;
+          --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+        }
+
+        .music-theme :is([class*='to-zinc-900'], [class*='to-zinc-800']) {
+          --tw-gradient-to: var(--music-bg-strong) var(--tw-gradient-to-position) !important;
+        }
+
+        .music-theme input::placeholder,
+        .music-theme textarea::placeholder {
+          color: var(--music-text-muted) !important;
+        }
+      `}</style>
       </>
     </div>
   );

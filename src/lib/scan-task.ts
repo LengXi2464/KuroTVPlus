@@ -83,7 +83,7 @@ export function completeScanTask(
         current: result?.total || 0,
         total: result?.total || 0,
       },
-      startTime: Date.now() - 60000, // 假设任务运行了1分钟
+      startTime: Date.now() - 60000, // 假设任务运行�?分钟
       endTime: Date.now(),
       result,
     };
@@ -107,7 +107,7 @@ export function failScanTask(id: string, error: string): void {
         current: 0,
         total: 0,
       },
-      startTime: Date.now() - 60000, // 假设任务运行了1分钟
+      startTime: Date.now() - 60000, // 假设任务运行�?分钟
       endTime: Date.now(),
       error,
     };

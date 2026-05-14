@@ -51,7 +51,7 @@ export function parseBaiduNetdiskId(id: string): { shareUrl: string; passcode?: 
       passcode: typeof parsed.passcode === 'string' ? parsed.passcode : '',
     };
   } catch {
-    throw new Error('无效的百度网盘播放 ID');
+    throw new Error('无效的百度网盘播�?ID');
   }
 }
 

@@ -8,8 +8,7 @@ import * as path from 'path';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
 
-// 检查是否启用离线下载功能
-const OFFLINE_DOWNLOAD_ENABLED = process.env.NEXT_PUBLIC_ENABLE_OFFLINE_DOWNLOAD === 'true';
+// 检查是否启用离线下载功�?const OFFLINE_DOWNLOAD_ENABLED = process.env.NEXT_PUBLIC_ENABLE_OFFLINE_DOWNLOAD === 'true';
 const OFFLINE_DOWNLOAD_DIR = process.env.OFFLINE_DOWNLOAD_DIR || '/data';
 
 /**
@@ -34,7 +33,7 @@ function checkPermission(request: NextRequest): boolean {
  */
 export async function GET(request: NextRequest) {
   if (!checkPermission(request)) {
-    return NextResponse.json({ error: '无权限' }, { status: 403 });
+    return NextResponse.json({ error: '无权�? }, { status: 403 });
   }
 
   try {
@@ -42,10 +41,9 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get('source');
     const videoId = searchParams.get('videoId');
     const episodeIndex = searchParams.get('episodeIndex');
-    const file = searchParams.get('file'); // 'playlist.m3u8', 'segment_00001.ts', 'key.key' 等
-
+    const file = searchParams.get('file'); // 'playlist.m3u8', 'segment_00001.ts', 'key.key' �?
     if (!source || !videoId || episodeIndex === null || !file) {
-      return NextResponse.json({ error: '参数不完整' }, { status: 400 });
+      return NextResponse.json({ error: '参数不完�? }, { status: 400 });
     }
 
     // 构建文件路径
@@ -64,15 +62,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '非法路径' }, { status: 403 });
     }
 
-    // 检查文件是否存在
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: '文件不存在' }, { status: 404 });
+    // 检查文件是否存�?    if (!fs.existsSync(filePath)) {
+      return NextResponse.json({ error: '文件不存�? }, { status: 404 });
     }
 
     // 读取文件
     const fileBuffer = fs.readFileSync(filePath);
 
-    // 如果是 m3u8 文件，需要修改内容使片段指向代理地址
+    // 如果�?m3u8 文件，需要修改内容使片段指向代理地址
     if (file === 'playlist.m3u8') {
       let content = fileBuffer.toString('utf-8');
       const lines = content.split('\n');

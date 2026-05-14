@@ -198,7 +198,7 @@ function normalizeContentTitle(title: string) {
     .replace(/[\uff01-\uff5e]/g, (char) =>
       String.fromCharCode(char.charCodeAt(0) - 0xfee0)
     )
-    .replace(/[()（）[\]【】{}「」『』<>《》]/g, '')
+    .replace(/[()（）[\]【】{}「」『�?>《》]/g, '')
     .replace(/[^\w\u4e00-\u9fa5]/g, '')
     .toLowerCase();
 }

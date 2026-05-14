@@ -7,8 +7,7 @@ interface SearchSuggestionsProps {
   isVisible: boolean;
   onSelect: (suggestion: string) => void;
   onClose: () => void;
-  onEnterKey: () => void; // 新增：处理回车键的回调
-}
+  onEnterKey: () => void; // 新增：处理回车键的回�?}
 
 interface SuggestionItem {
   text: string;
@@ -26,11 +25,9 @@ export default function SearchSuggestions({
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 防抖定时器
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 防抖定时�?  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 用于中止旧请求
-  const abortControllerRef = useRef<AbortController | null>(null);
+  // 用于中止旧请�?  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchSuggestionsFromAPI = useCallback(async (searchQuery: string) => {
     // 每次请求前取消上一次的请求
@@ -58,7 +55,7 @@ export default function SearchSuggestions({
         setSuggestions(apiSuggestions);
       }
     } catch (err: unknown) {
-      // 类型保护判断 err 是否是 Error 类型
+      // 类型保护判断 err 是否�?Error 类型
       if (err instanceof Error) {
         if (err.name !== 'AbortError') {
           // 不是取消请求导致的错误才清空
@@ -95,8 +92,7 @@ export default function SearchSuggestions({
     }
     debouncedFetchSuggestions(query);
 
-    // 清理定时器
-    return () => {
+    // 清理定时�?    return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
@@ -121,15 +117,13 @@ export default function SearchSuggestions({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isVisible, onClose]);
 
-  // 处理键盘事件，特别是回车键
-  useEffect(() => {
+  // 处理键盘事件，特别是回车�?  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' && isVisible) {
         // 阻止默认行为，避免浏览器自动选择建议
         e.preventDefault();
         e.stopPropagation();
-        // 关闭搜索建议并触发搜索
-        onClose();
+        // 关闭搜索建议并触发搜�?        onClose();
         onEnterKey();
       }
     };

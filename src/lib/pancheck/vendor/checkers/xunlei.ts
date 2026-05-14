@@ -77,7 +77,7 @@ export async function getCaptchaToken(action, metas = {}) {
   }
 
   const data = JSON.parse(respBody);
-  if (data.url) throw new Error(`需要验证: ${data.url}`);
+  if (data.url) throw new Error(`需要验�? ${data.url}`);
   if (!data.captcha_token) throw new Error('未获取到验证码token');
   return data.captcha_token;
 }
@@ -147,10 +147,10 @@ export async function checkXunlei(link) {
     const apiResp = JSON.parse(respBody);
     if (apiResp.share_status === 'OK') return { valid: true, reason: '' };
     if (apiResp.error) return { valid: false, reason: apiResp.error };
-    return { valid: false, reason: apiResp.share_status_text || `分享状态: ${apiResp.share_status}` };
+    return { valid: false, reason: apiResp.share_status_text || `分享状�? ${apiResp.share_status}` };
   } catch (err) {
     if (err.message === '请求超时') return { valid: true, reason: '' };
-    return { valid: false, reason: `检测失败: ${err.message}` };
+    return { valid: false, reason: `检测失�? ${err.message}` };
   }
 }
 

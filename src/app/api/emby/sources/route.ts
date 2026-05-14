@@ -7,11 +7,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic'; // 禁用缓存
 
 /**
- * 获取所有启用的Emby源列表
- */
+ * 获取所有启用的Emby源列�? */
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'emby', '无权限访问 Emby');
+    const authResult = await requireFeaturePermission(request, 'emby', '无权限访�?Emby');
     if (authResult instanceof NextResponse) return authResult;
     const sources = await embyManager.getEnabledSources();
 
@@ -22,9 +21,9 @@ export async function GET(request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('[Emby Sources] 获取Emby源列表失败:', error);
+    console.error('[Emby Sources] 获取Emby源列表失�?', error);
     return NextResponse.json(
-      { error: '获取Emby源列表失败', sources: [] },
+      { error: '获取Emby源列表失�?, sources: [] },
       { status: 500 }
     );
   }

@@ -80,9 +80,9 @@ export function getUCPlayHeaders(cookie: string): Record<string, string> {
 
 export function normalizeUCCookie(cookie: string): string {
   return cookie
-    .replace(/；/g, ';')
-    .replace(/：/g, ':')
-    .replace(/，/g, ',')
+    .replace(/�?g, ';')
+    .replace(/�?g, ':')
+    .replace(/�?g, ',')
     .trim();
 }
 
@@ -121,7 +121,7 @@ async function parseJson(response: Response) {
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error(`UC 接口返回异常：${text.slice(0, 200)}`);
+    throw new Error(`UC 接口返回异常�?{text.slice(0, 200)}`);
   }
 }
 
@@ -300,9 +300,9 @@ async function createDriveFolder(cookie: string, ut: string, parentFid: string, 
     cache: 'no-store',
   });
   const data = await parseJson(response);
-  ensureOk(data, `创建 UC 目录失败：${folderName}`);
+  ensureOk(data, `创建 UC 目录失败�?{folderName}`);
   const fid = data?.data?.fid || data?.data?.file_id || data?.metadata?.fid;
-  if (!fid) throw new Error(`UC 目录创建成功但未返回 fid：${folderName}`);
+  if (!fid) throw new Error(`UC 目录创建成功但未返回 fid�?{folderName}`);
   return String(fid);
 }
 
@@ -332,7 +332,7 @@ export async function listUCShareVideos(shareUrl: string, cookie: string, passco
       shareFidToken: item.shareFidToken,
       pdirFid: item.pdirFid,
     }));
-  if (files.length === 0) throw new Error('分享中没有可播放的视频文件');
+  if (files.length === 0) throw new Error('分享中没有可播放的视频文�?);
   return {
     title: shareTitle || 'UC网盘立即播放',
     shareId: share.pwdId,
@@ -393,7 +393,7 @@ async function _pollTask(cookie: string, ut: string, taskId: string) {
       method: 'GET', headers: getHeaders(cookie), cache: 'no-store',
     });
     const data = await parseJson(response);
-    ensureOk(data, '查询 UC 任务状态失败');
+    ensureOk(data, '查询 UC 任务状态失�?);
     const task = data?.data || {};
     if (task?.status === 2 || task?.status === 'finished' || task?.status === 'success' || task?.finished_at) return;
     if (task?.status === -1 || task?.status === 'failed' || task?.err_code) {
@@ -431,7 +431,7 @@ export async function saveUCShareFile(cookie: string, input: { shareId: string; 
     const query = new URLSearchParams({ task_id: taskId, retry_index: String(i) });
     const response = await fetch(buildApiUrl(UC_SHARE_API_BASE, '/task', ut, query.toString()), { method: 'GET', headers: getHeaders(safeCookie), cache: 'no-store' });
     const data = await parseJson(response);
-    ensureOk(data, '查询 UC 任务状态失败');
+    ensureOk(data, '查询 UC 任务状态失�?);
     const saveAsTopFids = data?.data?.save_as?.save_as_top_fids;
     if (Array.isArray(saveAsTopFids) && saveAsTopFids.length > 0) {
       return String(saveAsTopFids[0]);

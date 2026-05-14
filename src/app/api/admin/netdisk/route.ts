@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       }
       if (provider === 'tianyi') {
         if (!Tianyi?.Account || !Tianyi?.Password) {
-          return NextResponse.json({ error: '请先填写天翼云盘账号和密码' }, { status: 400 });
+          return NextResponse.json({ error: '请先填写天翼云盘账号和密�? }, { status: 400 });
         }
         await validateTianyiCredentials(
           normalizeTianyiAccount(Tianyi.Account),
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       }
       if (provider === 'pan123') {
         if (!Pan123?.Account || !Pan123?.Password) {
-          return NextResponse.json({ error: '请先填写123网盘账号和密码' }, { status: 400 });
+          return NextResponse.json({ error: '请先填写123网盘账号和密�? }, { status: 400 });
         }
         await validatePan123Credentials(
           normalizePan123Account(Pan123.Account),

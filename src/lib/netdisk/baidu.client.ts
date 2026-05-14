@@ -21,7 +21,7 @@ function sha1(value: string) {
 }
 
 export function normalizeBaiduCookie(cookie: string): string {
-  return cookie.replace(/；/g, ';').replace(/：/g, ':').replace(/，/g, ',').trim();
+  return cookie.replace(/�?g, ';').replace(/�?g, ':').replace(/�?g, ',').trim();
 }
 
 export function assertBaiduCookieHeaderSafe(cookie: string): string {
@@ -97,7 +97,7 @@ async function requestApi(
     try {
       return JSON.parse(text);
     } catch {
-      throw new Error(`百度网盘接口返回异常：${text.slice(0, 200)}`);
+      throw new Error(`百度网盘接口返回异常�?{text.slice(0, 200)}`);
     }
   } catch (error) {
     if (retry > 0) {
@@ -223,7 +223,7 @@ export async function listBaiduShareVideos(shareUrl: string, cookie: string, pas
   const tokenData = await getShareToken(share, safeCookie);
   const files = await collectVideosFromList(tokenData.cookie, tokenData.meta, tokenData.rootList);
   if (files.length === 0) {
-    throw new Error('百度网盘分享中没有视频文件');
+    throw new Error('百度网盘分享中没有视频文�?);
   }
   return {
     title: files.length === 1 ? files[0].name.replace(/\.[^.]+$/, '') : '百度网盘立即播放',

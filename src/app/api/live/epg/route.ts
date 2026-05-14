@@ -7,14 +7,14 @@ export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'live', '无权限访问电视直播');
+    const authResult = await requireFeaturePermission(request, 'live', '无权限访问电视直�?);
     if (authResult instanceof NextResponse) return authResult;
     const { searchParams } = new URL(request.url);
     const sourceKey = searchParams.get('source');
     const tvgId = searchParams.get('tvgId');
 
     if (!sourceKey) {
-      return NextResponse.json({ error: '缺少直播源参数' }, { status: 400 });
+      return NextResponse.json({ error: '缺少直播源参�? }, { status: 400 });
     }
 
     if (!tvgId) {
@@ -24,8 +24,7 @@ export async function GET(request: NextRequest) {
     const channelData = await getCachedLiveChannels(sourceKey);
 
     if (!channelData) {
-      // 频道信息未找到时返回空的节目单数据
-      return NextResponse.json({
+      // 频道信息未找到时返回空的节目单数�?      return NextResponse.json({
         success: true,
         data: {
           tvgId,
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: '获取节目单信息失败' },
+      { error: '获取节目单信息失�? },
       { status: 500 }
     );
   }

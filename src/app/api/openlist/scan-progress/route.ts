@@ -14,11 +14,11 @@ export const runtime = 'nodejs';
  */
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'private_library', '无权限访问私人影库');
+    const authResult = await requireFeaturePermission(request, 'private_library', '无权限访问私人影�?);
     if (authResult instanceof NextResponse) return authResult;
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
+      return NextResponse.json({ error: '未授�? }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const task = getScanTask(taskId);
 
     if (!task) {
-      return NextResponse.json({ error: '任务不存在' }, { status: 404 });
+      return NextResponse.json({ error: '任务不存�? }, { status: 404 });
     }
 
     return NextResponse.json({

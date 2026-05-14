@@ -12,26 +12,23 @@ export async function GET(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
+      return NextResponse.json({ error: '未登�? }, { status: 401 });
     }
 
     if (authInfo.username !== process.env.USERNAME) {
-      // 非站长，检查用户存在或被封禁
-      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
+      // 非站长，检查用户存在或被封�?      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
       }
 
-      // 检查是否需要迁移跳过配置
-      if (!userInfoV2.skip_migrated) {
+      // 检查是否需要迁移跳过配�?      if (!userInfoV2.skip_migrated) {
         await db.migrateSkipConfigs(authInfo.username);
       }
     } else {
-      // 站长也需要检查迁移
-      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
+      // 站长也需要检查迁�?      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2?.skip_migrated) {
         await db.migrateSkipConfigs(authInfo.username);
       }
@@ -46,8 +43,7 @@ export async function GET(request: NextRequest) {
       const config = await db.getSkipConfig(authInfo.username, source, id);
       return NextResponse.json(config);
     } else {
-      // 获取所有配置
-      const configs = await db.getAllSkipConfigs(authInfo.username);
+      // 获取所有配�?      const configs = await db.getAllSkipConfigs(authInfo.username);
       return NextResponse.json(configs);
     }
   } catch (error) {
@@ -63,14 +59,13 @@ export async function POST(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
+      return NextResponse.json({ error: '未登�? }, { status: 401 });
     }
 
     if (authInfo.username !== process.env.USERNAME) {
-      // 非站长，检查用户存在或被封禁
-      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
+      // 非站长，检查用户存在或被封�?      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -113,14 +108,13 @@ export async function DELETE(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 });
+      return NextResponse.json({ error: '未登�? }, { status: 401 });
     }
 
     if (authInfo.username !== process.env.USERNAME) {
-      // 非站长，检查用户存在或被封禁
-      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
+      // 非站长，检查用户存在或被封�?      const userInfoV2 = await db.getUserInfoV2(authInfo.username);
       if (!userInfoV2) {
-        return NextResponse.json({ error: '用户不存在' }, { status: 401 });
+        return NextResponse.json({ error: '用户不存�? }, { status: 401 });
       }
       if (userInfoV2.banned) {
         return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });

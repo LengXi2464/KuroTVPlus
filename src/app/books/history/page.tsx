@@ -7,8 +7,9 @@ import { createPortal } from 'react-dom';
 
 import { deleteCachedBookFile, listCachedBookFiles, type CachedBookFile } from '@/lib/book-cache.client';
 import { buildBookReadPath, cacheBookReadRecord, cacheBookShelfItem } from '@/lib/book-route-cache.client';
-import { deleteBookReadRecord, getAllBookReadRecords, getAllBookShelf } from '@/lib/book.db.client';
+import { deleteBookReadRecord, getAllBookReadRecords, getAllBookShelf, getCachedBookReadRecordsSnapshot } from '@/lib/book.db.client';
 import { BookReadRecord, BookShelfItem } from '@/lib/book.types';
+import { subscribeToDataUpdates } from '@/lib/db.client';
 
 function looksLikeInternalHref(value?: string) {
   if (!value) return false;
@@ -22,7 +23,7 @@ function getReadableChapterLabel(item: BookReadRecord) {
     const text = (candidate || '').trim();
     if (text && !looksLikeInternalHref(text)) return text;
   }
-  return '定位已保存';
+  return '定位已保�?;
 }
 
 function formatBytes(size: number) {
@@ -31,19 +32,62 @@ function formatBytes(size: number) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function BookHistorySkeleton() {
+  return (
+    <div className='space-y-4'>
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div key={index} className='rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950'>
+          <div className='flex gap-4'>
+            <div className='h-28 w-20 animate-pulse overflow-hidden rounded-2xl bg-gray-200 dark:bg-gray-800' />
+            <div className='min-w-0 flex-1 space-y-3'>
+              <div className='h-5 w-2/3 animate-pulse rounded bg-gray-200 dark:bg-gray-800' />
+              <div className='h-4 w-1/3 animate-pulse rounded bg-gray-200 dark:bg-gray-800' />
+              <div className='h-4 w-1/2 animate-pulse rounded bg-gray-200 dark:bg-gray-800' />
+              <div className='flex gap-2 pt-1'>
+                <div className='h-9 w-20 animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-800' />
+                <div className='h-9 w-16 animate-pulse rounded-2xl bg-gray-200 dark:bg-gray-800' />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function BookHistoryPage() {
   const [records, setRecords] = useState<Record<string, BookReadRecord>>({});
   const [shelf, setShelf] = useState<Record<string, BookShelfItem>>({});
+  const [loading, setLoading] = useState(true);
   const [cacheModalOpen, setCacheModalOpen] = useState(false);
   const [cacheItems, setCacheItems] = useState<CachedBookFile[]>([]);
   const [cacheLoading, setCacheLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete-one' | 'clear-all'; key?: string; title?: string } | null>(null);
+  const [displayAll, setDisplayAll] = useState(false);
+
+  const updateRecords = (nextRecords: Record<string, BookReadRecord>) => {
+    const count = Object.keys(nextRecords).length;
+    setRecords(nextRecords);
+    setDisplayAll(count <= 10);
+    if (count > 10) {
+      setTimeout(() => setDisplayAll(true), 0);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
-    getAllBookReadRecords().then(setRecords).catch(() => undefined);
+    const cachedRecords = getCachedBookReadRecordsSnapshot();
+    if (Object.keys(cachedRecords).length > 0) {
+      updateRecords(cachedRecords);
+      setLoading(false);
+    }
+
+    getAllBookReadRecords().then(updateRecords).catch(() => undefined).finally(() => setLoading(false));
     getAllBookShelf().then(setShelf).catch(() => undefined);
+
+    const unsubscribeHistory = subscribeToDataUpdates<Record<string, BookReadRecord>>('bookHistoryUpdated', updateRecords);
+    return unsubscribeHistory;
   }, []);
 
   const loadCacheItems = async () => {
@@ -79,13 +123,17 @@ export default function BookHistoryPage() {
       };
     })
     .sort((a, b) => b.saveTime - a.saveTime), [records, shelf]);
+  const visibleItems = useMemo(
+    () => (displayAll ? items : items.slice(0, 10)),
+    [displayAll, items]
+  );
 
   const cacheTotalSize = useMemo(() => cacheItems.reduce((sum, item) => sum + item.size, 0), [cacheItems]);
 
   return (
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
-        <div className='text-sm text-gray-500'>共 {items.length} 条阅读历史</div>
+        <div className='text-sm text-gray-500'>�?{items.length} 条阅读历�?/div>
         <button
           type='button'
           onClick={() => setCacheModalOpen(true)}
@@ -97,33 +145,37 @@ export default function BookHistoryPage() {
         </button>
       </div>
 
-      {items.map((item) => (
-        <div key={item.storageKey} className='rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950'>
-          <div className='flex gap-4'>
-            <div className='h-28 w-20 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900'>{item.cover ? <img src={item.cover} alt={item.title} className='h-full w-full object-cover' /> : null}</div>
-            <div className='min-w-0 flex-1'>
-              <div className='truncate font-medium'>{item.title}</div>
-              <div className='mt-1 text-sm text-gray-500'>{item.author || item.sourceName}</div>
-              <div className='mt-1 text-xs text-gray-500'>已读 {Math.round(item.progressPercent || 0)}% · {getReadableChapterLabel(item)}</div>
-              <div className='mt-3 flex flex-wrap gap-2'>
-                {item.sourceId ? (
-                  <Link
-                    href={buildBookReadPath(item.sourceId, item.bookId)}
-                    onClick={() => { cacheBookReadRecord(item); if (item.sourceId && item.bookId) { cacheBookShelfItem({ sourceId: item.sourceId, sourceName: item.sourceName, bookId: item.bookId, title: item.title, author: item.author, cover: item.cover, format: item.format, detailHref: item.detailHref, acquisitionHref: item.acquisitionHref, saveTime: item.saveTime }); } }}
-                    className='rounded-2xl bg-sky-600 px-3 py-2 text-xs text-white'
-                  >
-                    继续阅读
-                  </Link>
-                ) : (
-                  <span className='rounded-2xl bg-gray-200 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800'>历史记录缺少书源信息</span>
-                )}
-                <button onClick={async () => { const [deleteSourceId = item.sourceId, deleteBookId = item.bookId] = item.storageKey.split('+'); await deleteBookReadRecord(deleteSourceId, deleteBookId); setRecords((prev) => { const next = { ...prev }; delete next[item.storageKey]; return next; }); }} className='rounded-2xl border border-gray-200 px-3 py-2 text-xs dark:border-gray-700'>删除</button>
+      {loading ? (
+        <BookHistorySkeleton />
+      ) : (
+        visibleItems.map((item) => (
+          <div key={item.storageKey} className='rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950'>
+            <div className='flex gap-4'>
+              <div className='h-28 w-20 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900'>{item.cover ? <img src={item.cover} alt={item.title} className='h-full w-full object-cover' /> : null}</div>
+              <div className='min-w-0 flex-1'>
+                <div className='truncate font-medium'>{item.title}</div>
+                <div className='mt-1 text-sm text-gray-500'>{item.author || item.sourceName}</div>
+                <div className='mt-1 text-xs text-gray-500'>已读 {Math.round(item.progressPercent || 0)}% · {getReadableChapterLabel(item)}</div>
+                <div className='mt-3 flex flex-wrap gap-2'>
+                  {item.sourceId ? (
+                    <Link
+                      href={buildBookReadPath(item.sourceId, item.bookId)}
+                      onClick={() => { cacheBookReadRecord(item); if (item.sourceId && item.bookId) { cacheBookShelfItem({ sourceId: item.sourceId, sourceName: item.sourceName, bookId: item.bookId, title: item.title, author: item.author, cover: item.cover, format: item.format, detailHref: item.detailHref, acquisitionHref: item.acquisitionHref, saveTime: item.saveTime }); } }}
+                      className='rounded-2xl bg-sky-600 px-3 py-2 text-xs text-white'
+                    >
+                      继续阅读
+                    </Link>
+                  ) : (
+                    <span className='rounded-2xl bg-gray-200 px-3 py-2 text-xs text-gray-500 dark:bg-gray-800'>历史记录缺少书源信息</span>
+                  )}
+                  <button onClick={async () => { const [deleteSourceId = item.sourceId, deleteBookId = item.bookId] = item.storageKey.split('+'); await deleteBookReadRecord(deleteSourceId, deleteBookId); updateRecords((() => { const next = { ...records }; delete next[item.storageKey]; return next; })()); }} className='rounded-2xl border border-gray-200 px-3 py-2 text-xs dark:border-gray-700'>删除</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
-      {items.length === 0 ? <div className='text-sm text-gray-500'>暂无阅读历史</div> : null}
+        ))
+      )}
+      {!loading && items.length === 0 ? <div className='text-sm text-gray-500'>暂无阅读历史</div> : null}
 
       {cacheModalOpen && mounted && createPortal(
         <div className='fixed inset-0 z-50 bg-black/40' onClick={() => setCacheModalOpen(false)}>
@@ -132,7 +184,7 @@ export default function BookHistoryPage() {
               <div className='flex items-start justify-between gap-4'>
                 <div>
                   <div className='text-base font-semibold'>缓存管理</div>
-                  <div className='mt-1 text-xs text-gray-500'>已缓存 {cacheItems.length} 本 · {formatBytes(cacheTotalSize)}</div>
+                  <div className='mt-1 text-xs text-gray-500'>已缓�?{cacheItems.length} �?· {formatBytes(cacheTotalSize)}</div>
                 </div>
                 <div className='flex gap-2'>
                   <button type='button' onClick={() => void loadCacheItems()} className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700' aria-label='刷新缓存' title='刷新缓存'><RefreshCw className='h-4 w-4' /></button>
@@ -141,8 +193,8 @@ export default function BookHistoryPage() {
                 </div>
               </div>
 
-              {cacheLoading ? <div className='text-sm text-gray-500'>正在读取缓存…</div> : null}
-              {!cacheLoading && cacheItems.length === 0 ? <div className='text-sm text-gray-500'>当前还没有缓存书籍</div> : null}
+              {cacheLoading ? <div className='text-sm text-gray-500'>正在读取缓存�?/div> : null}
+              {!cacheLoading && cacheItems.length === 0 ? <div className='text-sm text-gray-500'>当前还没有缓存书�?/div> : null}
 
               <div className='space-y-3'>
                 {cacheItems.map((item) => (
@@ -181,8 +233,8 @@ export default function BookHistoryPage() {
             </div>
             <div className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
               {confirmAction.type === 'clear-all'
-                ? '确认清空当前浏览器中的全部电子书缓存吗？此操作不可撤销。'
-                : `确认删除《${confirmAction.title || '该书'}》的本地缓存吗？`}
+                ? '确认清空当前浏览器中的全部电子书缓存吗？此操作不可撤销�?
+                : `确认删除�?{confirmAction.title || '该书'}》的本地缓存吗？`}
             </div>
             <div className='mt-5 flex justify-end gap-3'>
               <button type='button' onClick={() => setConfirmAction(null)} className='rounded-2xl border border-gray-200 px-4 py-2 text-sm dark:border-gray-700'>取消</button>

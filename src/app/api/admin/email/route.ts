@@ -32,8 +32,7 @@ export async function GET(request: NextRequest) {
       provider: 'smtp' as const,
     };
 
-    // 不返回敏感信息（密码、API Key）
-    const safeConfig = {
+    // 不返回敏感信息（密码、API Key�?    const safeConfig = {
       enabled: emailConfig.enabled,
       provider: emailConfig.provider,
       smtp: emailConfig.smtp
@@ -65,8 +64,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST - 保存邮件配置或发送测试邮件
- */
+ * POST - 保存邮件配置或发送测试邮�? */
 export async function POST(request: NextRequest) {
   const authInfo = getAuthInfoFromCookie(request);
   if (!authInfo || !authInfo.username) {
@@ -85,8 +83,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, config, testEmail } = body;
 
-    // 发送测试邮件
-    if (action === 'test') {
+    // 发送测试邮�?    if (action === 'test') {
       if (!testEmail) {
         return NextResponse.json(
           { error: '请提供测试邮箱地址' },
@@ -97,7 +94,7 @@ export async function POST(request: NextRequest) {
       const emailConfig = config as AdminConfig['EmailConfig'];
       if (!emailConfig || !emailConfig.enabled) {
         return NextResponse.json(
-          { error: '邮件配置未启用' },
+          { error: '邮件配置未启�? },
           { status: 400 }
         );
       }
@@ -106,11 +103,11 @@ export async function POST(request: NextRequest) {
         const adminConfig = await getConfig();
         const siteName = adminConfig?.SiteConfig?.SiteName || 'KuroTVPlus';
         await EmailService.sendTestEmail(emailConfig, testEmail, siteName);
-        return NextResponse.json({ success: true, message: '测试邮件发送成功' });
+        return NextResponse.json({ success: true, message: '测试邮件发送成�? });
       } catch (error) {
-        console.error('发送测试邮件失败:', error);
+        console.error('发送测试邮件失�?', error);
         return NextResponse.json(
-          { error: `发送失败: ${(error as Error).message}` },
+          { error: `发送失�? ${(error as Error).message}` },
           { status: 500 }
         );
       }
@@ -131,14 +128,14 @@ export async function POST(request: NextRequest) {
         if (emailConfig.provider === 'smtp') {
           if (!emailConfig.smtp?.host || !emailConfig.smtp?.port || !emailConfig.smtp?.user || !emailConfig.smtp?.from) {
             return NextResponse.json(
-              { error: 'SMTP配置不完整' },
+              { error: 'SMTP配置不完�? },
               { status: 400 }
             );
           }
         } else if (emailConfig.provider === 'resend') {
           if (!emailConfig.resend?.apiKey || !emailConfig.resend?.from) {
             return NextResponse.json(
-              { error: 'Resend配置不完整' },
+              { error: 'Resend配置不完�? },
               { status: 400 }
             );
           }
@@ -154,8 +151,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 如果密码或API Key是占位符，保留原有值
-      if (emailConfig.smtp?.password === '******') {
+      // 如果密码或API Key是占位符，保留原有�?      if (emailConfig.smtp?.password === '******') {
         const oldConfig = adminConfig.EmailConfig;
         if (oldConfig?.smtp?.password) {
           emailConfig.smtp.password = oldConfig.smtp.password;
@@ -177,7 +173,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: '无效的操作' },
+      { error: '无效的操�? },
       { status: 400 }
     );
   } catch (error) {

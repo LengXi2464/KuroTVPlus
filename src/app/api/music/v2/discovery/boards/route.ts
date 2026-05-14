@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         const message = (error as Error).message;
         errors.push(`${candidate}: ${message}`);
-        console.error(`[music-v2] 获取榜单源失败: ${candidate}`, error);
+        console.error(`[music-v2] 获取榜单源失�? ${candidate}`, error);
       }
     }
 

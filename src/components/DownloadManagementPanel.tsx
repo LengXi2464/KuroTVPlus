@@ -35,7 +35,7 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
       const tasks = await downloadDB.getCompletedTasks();
       setCompletedTasks(tasks);
     } catch (error) {
-      console.error('加载已完成任务失败:', error);
+      console.error('加载已完成任务失�?', error);
     }
   };
 
@@ -70,13 +70,12 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
       // 获取要删除的任务
       const tasksToDelete = completedTasks.filter(t => selectedIds.has(t.id));
 
-      //禁止SzeMeng76抄袭狗抄袭
-      // 删除文件系统中的文件
+      //禁止SzeMeng76抄袭狗抄�?      // 删除文件系统中的文件
       for (const task of tasksToDelete) {
         if (task.downloadMode === 'filesystem') {
           try {
-            // 从 IndexedDB 读取目录句柄
-            const dbName = 'MoonTVPlus';
+            // �?IndexedDB 读取目录句柄
+            const dbName = 'KuroTVPlus';
             const storeName = 'dirHandles';
 
             const dirHandle = await new Promise<FileSystemDirectoryHandle | undefined>((resolve) => {
@@ -113,10 +112,9 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
             });
 
             if (dirHandle) {
-              // 请求写权限
-              const permission = await (dirHandle as any).requestPermission({ mode: 'readwrite' });
+              // 请求写权�?              const permission = await (dirHandle as any).requestPermission({ mode: 'readwrite' });
               if (permission !== 'granted') {
-                console.error('未获得写权限，无法删除文件');
+                console.error('未获得写权限，无法删除文�?);
                 continue;
               }
 
@@ -125,7 +123,7 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
                 const sourceDirHandle = await dirHandle.getDirectoryHandle(task.source, { create: false });
                 const videoIdDirHandle = await sourceDirHandle.getDirectoryHandle(task.videoId, { create: false });
                 await videoIdDirHandle.removeEntry(`ep${task.episodeIndex + 1}`, { recursive: true });
-                console.log('已删除文件:', task.source, task.videoId, `ep${task.episodeIndex + 1}`);
+                console.log('已删除文�?', task.source, task.videoId, `ep${task.episodeIndex + 1}`);
               } catch (deleteError) {
                 console.error('删除目录失败:', deleteError);
                 // 如果目录不存在，也算成功
@@ -206,8 +204,7 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
                 className='w-4 h-4'
               />
               <span className='text-sm text-gray-700 dark:text-gray-300'>
-                全选
-              </span>
+                全�?              </span>
             </label>
             <span className='text-sm text-gray-500 dark:text-gray-400'>
               已选择 {selectedIds.size} / {completedTasks.length}
@@ -219,7 +216,7 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
             className='px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2'
           >
             <Trash2 className='w-4 h-4' />
-            {isDeleting ? '删除中...' : '删除选中'}
+            {isDeleting ? '删除�?..' : '删除选中'}
           </button>
         </div>
 
@@ -283,10 +280,10 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
                       </div>
                       <div className='flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400'>
                         <span>来源: {task.source}</span>
-                        <span>•</span>
-                        <span>第 {task.episodeIndex + 1} 集</span>
-                        <span>•</span>
-                        <span>{task.downloadMode === 'filesystem' ? 'File System API' : '浏览器下载'}</span>
+                        <span>�?/span>
+                        <span>�?{task.episodeIndex + 1} �?/span>
+                        <span>�?/span>
+                        <span>{task.downloadMode === 'filesystem' ? 'File System API' : '浏览器下�?}</span>
                       </div>
                     </div>
                   </div>
@@ -303,7 +300,7 @@ export function DownloadManagementPanel({ isOpen, onClose }: DownloadManagementP
       <ConfirmDialog
         isOpen={showConfirmDialog}
         title='确认删除'
-        message={`确定要删除选中的 ${selectedIds.size} 个下载记录吗？\n\n注意：如果是 File System API 下载的文件，将会从磁盘删除实际文件。`}
+        message={`确定要删除选中�?${selectedIds.size} 个下载记录吗？\n\n注意：如果是 File System API 下载的文件，将会从磁盘删除实际文件。`}
         confirmText='删除'
         cancelText='取消'
         variant='danger'

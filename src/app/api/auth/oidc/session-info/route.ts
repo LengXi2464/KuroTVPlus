@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     if (!oidcSessionCookie) {
       return NextResponse.json(
-        { error: 'OIDC会话不存在' },
+        { error: 'OIDC会话不存�? },
         { status: 404 }
       );
     }
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     // 检查session是否过期(10分钟)
     if (Date.now() - oidcSession.timestamp > 600000) {
       return NextResponse.json(
-        { error: 'OIDC会话已过期' },
+        { error: 'OIDC会话已过�? },
         { status: 400 }
       );
     }
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: '服务器错误' },
+      { error: '服务器错�? },
       { status: 500 }
     );
   }

@@ -1,4 +1,4 @@
-// 观影室首页 - 选项卡式界面
+// 观影室首�?- 选项卡式界面
 'use client';
 
 import { List as ListIcon, Lock, RefreshCw,UserPlus, Users } from 'lucide-react';
@@ -19,7 +19,7 @@ function getScreenShareHostSupportError() {
   if (typeof window === 'undefined') return null;
 
   if (!window.isSecureContext) {
-    return '当前环境不是安全上下文（HTTPS/localhost），不支持屏幕共享';
+    return '当前环境不是安全上下文（HTTPS/localhost），不支持屏幕共�?;
   }
 
   if (!navigator.mediaDevices?.getDisplayMedia) {
@@ -49,8 +49,7 @@ export default function WatchRoomPage() {
   const { getRoomList, isConnected, createRoom, joinRoom, currentRoom, isOwner, members, socket } = watchRoom;
   const [activeTab, setActiveTab] = useState<TabType>('create');
 
-  // 获取当前登录用户（在客户端挂载后读取，避免 hydration 错误）
-  const [currentUsername, setCurrentUsername] = useState<string>('游客');
+  // 获取当前登录用户（在客户端挂载后读取，避�?hydration 错误�?  const [currentUsername, setCurrentUsername] = useState<string>('游客');
 
   useEffect(() => {
     const authInfo = getAuthInfoFromBrowserCookie();
@@ -88,7 +87,7 @@ export default function WatchRoomPage() {
     });
   };
 
-  const getAvatarText = (name?: string) => (name?.trim().charAt(0).toUpperCase() || '用');
+  const getAvatarText = (name?: string) => (name?.trim().charAt(0).toUpperCase() || '�?);
 
   // 加载房间列表
   const loadRooms = async (showLoading = false) => {
@@ -109,12 +108,10 @@ export default function WatchRoomPage() {
     }
   };
 
-  // 切换到房间列表 tab 时加载房间
-  useEffect(() => {
+  // 切换到房间列�?tab 时加载房�?  useEffect(() => {
     if (activeTab === 'list') {
       loadRooms(true);
-      // 每5秒刷新一次
-      const interval = setInterval(() => loadRooms(false), 5000);
+      // �?秒刷新一�?      const interval = setInterval(() => loadRooms(false), 5000);
       return () => clearInterval(interval);
     }
   }, [activeTab, isConnected]);
@@ -123,14 +120,14 @@ export default function WatchRoomPage() {
   const handleCreateRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createForm.roomName.trim()) {
-      showToast('请输入房间名称', 'error');
+      showToast('请输入房间名�?, 'error');
       return;
     }
 
     if (createForm.roomType === 'screen') {
       const supportError = getScreenShareHostSupportError();
       if (supportError) {
-        showToast(`当前设备无法创建屏幕共享房间：${supportError}`, 'error');
+        showToast(`当前设备无法创建屏幕共享房间�?{supportError}`, 'error');
         return;
       }
     }
@@ -174,7 +171,7 @@ export default function WatchRoomPage() {
     if (targetRoom?.roomType === 'screen') {
       const supportError = getScreenShareViewerSupportError();
       if (supportError) {
-        showToast(`当前设备无法加入屏幕共享房间：${supportError}`, 'error');
+        showToast(`当前设备无法加入屏幕共享房间�?{supportError}`, 'error');
         return;
       }
     }
@@ -193,17 +190,14 @@ export default function WatchRoomPage() {
         password: '',
       });
 
-      // 注意：加入房间后，isOwner 状态会在 useWatchRoom 中更新
-      // 跳转逻辑会在 useEffect 中处理
-    } catch (error: any) {
+      // 注意：加入房间后，isOwner 状态会�?useWatchRoom 中更�?      // 跳转逻辑会在 useEffect 中处�?    } catch (error: any) {
       showToast(error.message || '加入房间失败', 'error');
     } finally {
       setJoinLoading(false);
     }
   };
 
-  // 监听房间状态，房员加入后自动跟随房主播放
-  useEffect(() => {
+  // 监听房间状态，房员加入后自动跟随房主播�?  useEffect(() => {
     if (!currentRoom || isOwner) return;
 
     if (currentRoom.roomType === 'screen') {
@@ -211,16 +205,11 @@ export default function WatchRoomPage() {
       return;
     }
 
-    // 房员加入房间后，不立即跳转
-    // 而是监听 play:change 或 live:change 事件（说明房主正在活跃使用）
-    // 这样可以避免房主已经离开play页面但状态未清除的情况
+    // 房员加入房间后，不立即跳�?    // 而是监听 play:change �?live:change 事件（说明房主正在活跃使用）
+    // 这样可以避免房主已经离开play页面但状态未清除的情�?
+    // 检查房主的播放状�?- 仅在首次加入且状态是最近更新时才跳�?    // 这里不再自动跳转，而是等待房主的下一次操�?  }, [currentRoom, isOwner]);
 
-    // 检查房主的播放状态 - 仅在首次加入且状态是最近更新时才跳转
-    // 这里不再自动跳转，而是等待房主的下一次操作
-  }, [currentRoom, isOwner]);
-
-  // 监听房主的主动操作（切换视频/频道）
-  useEffect(() => {
+  // 监听房主的主动操作（切换视频/频道�?  useEffect(() => {
     if (!currentRoom || isOwner) return;
 
     if (currentRoom.roomType === 'screen') return;
@@ -243,21 +232,19 @@ export default function WatchRoomPage() {
 
     const handleLiveChange = (state: any) => {
       if (state.type === 'live') {
-        // 判断是否为 weblive 格式（channelUrl 包含 platform:roomId）
-        if (state.channelUrl && state.channelUrl.includes(':')) {
+        // 判断是否�?weblive 格式（channelUrl 包含 platform:roomId�?        if (state.channelUrl && state.channelUrl.includes(':')) {
           // weblive 格式，导航到 web-live 页面
-          // channelId 是 sourceKey，channelUrl 是 platform:roomId
+          // channelId �?sourceKey，channelUrl �?platform:roomId
           const [platform, roomId] = state.channelUrl.split(':');
           router.push(`/web-live?platform=${platform}&roomId=${roomId}`);
         } else {
-          // 普通 live 格式，导航到 live 页面
+          // 普�?live 格式，导航到 live 页面
           router.push(`/live?id=${state.channelId}`);
         }
       }
     };
 
-    // 监听房主切换视频/频道的事件
-    if (socket) {
+    // 监听房主切换视频/频道的事�?    if (socket) {
       socket.on('play:change', handlePlayChange);
       socket.on('live:change', handleLiveChange);
 
@@ -275,12 +262,11 @@ export default function WatchRoomPage() {
     }
   }, [currentRoom?.id, currentRoom?.roomType, router]);
 
-  // 从房间列表加入房间
-  const handleJoinFromList = (room: Room) => {
+  // 从房间列表加入房�?  const handleJoinFromList = (room: Room) => {
     if (room.roomType === 'screen') {
       const supportError = getScreenShareViewerSupportError();
       if (supportError) {
-        showToast(`当前设备无法加入屏幕共享房间：${supportError}`, 'error');
+        showToast(`当前设备无法加入屏幕共享房间�?{supportError}`, 'error');
         return;
       }
     }
@@ -325,8 +311,8 @@ export default function WatchRoomPage() {
                 <div className="flex-1">
                   <h3 className="text-lg font-bold mb-1">
                     {currentRoom.roomType === 'screen'
-                      ? currentRoom.currentState?.type === 'screen' ? '房主正在共享屏幕' : '等待房主开始共享'
-                      : currentRoom.currentState ? '房主正在播放' : '等待房主开始播放'}
+                      ? currentRoom.currentState?.type === 'screen' ? '房主正在共享屏幕' : '等待房主开始共�?
+                      : currentRoom.currentState ? '房主正在播放' : '等待房主开始播�?}
                   </h3>
                   <p className="text-sm text-white/80">
                     房间: {currentRoom.name} | 房主: {currentRoom.ownerName}
@@ -337,12 +323,12 @@ export default function WatchRoomPage() {
                         ? `${currentRoom.currentState.videoName || '未知视频'}`
                         : currentRoom.currentState.type === 'live'
                           ? `${currentRoom.currentState.channelName || '未知频道'}`
-                          : '屏幕共享进行中'}
+                          : '屏幕共享进行�?}
                     </p>
                   )}
                   {!currentRoom.currentState && (
                     <p className="text-xs text-white/70 mt-1">
-                      {currentRoom.roomType === 'screen' ? '当房主开始共享时，您将自动进入共享页' : '当房主开始播放时，您将自动跟随'}
+                      {currentRoom.roomType === 'screen' ? '当房主开始共享时，您将自动进入共享页' : '当房主开始播放时，您将自动跟�?}
                     </p>
                   )}
                 </div>
@@ -362,13 +348,12 @@ export default function WatchRoomPage() {
                       if (state.searchTitle) params.set('stitle', state.searchTitle);
                       router.push(`/play?${params.toString()}`);
                     } else if (state.type === 'live') {
-                      // 判断是否为 weblive 格式（channelUrl 包含 platform:roomId）
-                      if (state.channelUrl && state.channelUrl.includes(':')) {
+                      // 判断是否�?weblive 格式（channelUrl 包含 platform:roomId�?                      if (state.channelUrl && state.channelUrl.includes(':')) {
                         // weblive 格式，导航到 web-live 页面
                         const [platform, roomId] = state.channelUrl.split(':');
                         router.push(`/web-live?platform=${platform}&roomId=${roomId}`);
                       } else {
-                        // 普通 live 格式，导航到 live 页面
+                        // 普�?live 格式，导航到 live 页面
                         router.push(`/live?id=${state.channelId}`);
                       }
                     } else if (state.type === 'screen') {
@@ -388,8 +373,7 @@ export default function WatchRoomPage() {
         <div className="py-1">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Users className="w-6 h-6 text-blue-500" />
-            观影室
-            {currentRoom && (
+            观影�?            {currentRoom && (
               <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                 ({isOwner ? '房主' : '房员'})
               </span>
@@ -400,7 +384,7 @@ export default function WatchRoomPage() {
           </p>
         </div>
 
-        {/* 选项卡 */}
+        {/* 选项�?*/}
         <div className="flex border-b border-gray-200 dark:border-gray-700">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -426,15 +410,14 @@ export default function WatchRoomPage() {
           })}
         </div>
 
-        {/* 选项卡内容 */}
+        {/* 选项卡内�?*/}
         <div className="flex-1">
           {/* 创建房间 */}
           {activeTab === 'create' && (
             <div className="max-w-2xl mx-auto py-8">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-                  创建新房间
-                </h2>
+                  创建新房�?                </h2>
 
                 {/* 如果已在房间内，显示当前房间信息 */}
                 {currentRoom ? (
@@ -455,12 +438,12 @@ export default function WatchRoomPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-                          <p className="text-blue-100 text-xs mb-1">房间号</p>
+                          <p className="text-blue-100 text-xs mb-1">房间�?/p>
                           <p className="text-xl font-mono font-bold">{currentRoom.id}</p>
                         </div>
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-                          <p className="text-blue-100 text-xs mb-1">成员数</p>
-                          <p className="text-xl font-bold">{members.length} 人</p>
+                          <p className="text-blue-100 text-xs mb-1">成员�?/p>
+                          <p className="text-xl font-bold">{members.length} �?/p>
                         </div>
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
                           <p className="text-blue-100 text-xs mb-1">房间类型</p>
@@ -479,8 +462,8 @@ export default function WatchRoomPage() {
                             className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
+                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                                {getAvatarText(member.name)}
                               </div>
                               <span className="font-medium text-gray-900 dark:text-gray-100">
                                 {member.name}
@@ -501,7 +484,7 @@ export default function WatchRoomPage() {
                       <p className="text-sm text-blue-800 dark:text-blue-200">
                         💡 {currentRoom.roomType === 'screen'
                           ? '这是屏幕共享房间，创建后将进入共享页，由房主发起屏幕共享'
-                          : '前往播放页面或直播页面开始观影，房间成员将自动同步您的操作'}
+                          : '前往播放页面或直播页面开始观影，房间成员将自动同步您的操�?}
                       </p>
                     </div>
                   </div>
@@ -510,7 +493,7 @@ export default function WatchRoomPage() {
                   {/* 显示当前用户 */}
                   <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>当前用户：</strong>{currentUsername}
+                      <strong>当前用户�?/strong>{currentUsername}
                     </p>
                   </div>
 
@@ -522,7 +505,7 @@ export default function WatchRoomPage() {
                       type="text"
                       value={createForm.roomName}
                       onChange={(e) => setCreateForm({ ...createForm, roomName: e.target.value })}
-                      placeholder="请输入房间名称"
+                      placeholder="请输入房间名�?
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       maxLength={50}
                       required
@@ -607,7 +590,7 @@ export default function WatchRoomPage() {
                     disabled={createLoading || !createForm.roomName.trim()}
                     className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white font-medium py-3 rounded-lg transition-colors"
                   >
-                    {createLoading ? '创建中...' : '创建房间'}
+                    {createLoading ? '创建�?..' : '创建房间'}
                   </button>
                 </form>
                 )}
@@ -617,8 +600,7 @@ export default function WatchRoomPage() {
               {!currentRoom && (
                 <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
-                    <strong>提示：</strong>创建房间后，您将成为房主。进度同步房会跟随播放状态，屏幕共享房会进入独立共享页。
-                  </p>
+                    <strong>提示�?/strong>创建房间后，您将成为房主。进度同步房会跟随播放状态，屏幕共享房会进入独立共享页�?                  </p>
                 </div>
               )}
             </div>
@@ -651,12 +633,12 @@ export default function WatchRoomPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-                          <p className="text-green-100 text-xs mb-1">房间号</p>
+                          <p className="text-green-100 text-xs mb-1">房间�?/p>
                           <p className="text-xl font-mono font-bold">{currentRoom.id}</p>
                         </div>
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
-                          <p className="text-green-100 text-xs mb-1">成员数</p>
-                          <p className="text-xl font-bold">{members.length} 人</p>
+                          <p className="text-green-100 text-xs mb-1">成员�?/p>
+                          <p className="text-xl font-bold">{members.length} �?/p>
                         </div>
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
                           <p className="text-green-100 text-xs mb-1">房间类型</p>
@@ -675,8 +657,8 @@ export default function WatchRoomPage() {
                             className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="/logo.png" alt="Avatar" className="w-full h-full object-cover" />
+                              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                                {getAvatarText(member.name)}
                               </div>
                               <span className="font-medium text-gray-900 dark:text-gray-100">
                                 {member.name}
@@ -697,7 +679,7 @@ export default function WatchRoomPage() {
                       <p className="text-sm text-green-800 dark:text-green-200">
                         💡 {currentRoom.roomType === 'screen'
                           ? '这是屏幕共享房间，进入后即可观看房主共享画面'
-                          : isOwner ? '前往播放页面或直播页面开始观影，房间成员将自动同步您的操作' : '等待房主开始播放，您的播放进度将自动跟随房主'}
+                          : isOwner ? '前往播放页面或直播页面开始观影，房间成员将自动同步您的操�? : '等待房主开始播放，您的播放进度将自动跟随房�?}
                       </p>
                     </div>
                   </div>
@@ -706,19 +688,19 @@ export default function WatchRoomPage() {
                   {/* 显示当前用户 */}
                   <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-800 dark:text-green-200">
-                      <strong>当前用户：</strong>{currentUsername}
+                      <strong>当前用户�?/strong>{currentUsername}
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      房间号 <span className="text-red-500">*</span>
+                      房间�?<span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={joinForm.roomId}
                       onChange={(e) => setJoinForm({ ...joinForm, roomId: e.target.value.toUpperCase() })}
-                      placeholder="请输入6位房间号"
+                      placeholder="请输�?位房间号"
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-lg tracking-wider focus:outline-none focus:ring-2 focus:ring-green-500"
                       maxLength={6}
                       required
@@ -733,7 +715,7 @@ export default function WatchRoomPage() {
                       type="password"
                       value={joinForm.password}
                       onChange={(e) => setJoinForm({ ...joinForm, password: e.target.value })}
-                      placeholder="如果房间有密码，请输入"
+                      placeholder="如果房间有密码，请输�?
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
                       maxLength={20}
                     />
@@ -744,7 +726,7 @@ export default function WatchRoomPage() {
                     disabled={joinLoading || !joinForm.roomId.trim()}
                     className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white font-medium py-3 rounded-lg transition-colors"
                   >
-                    {joinLoading ? '加入中...' : '加入房间'}
+                    {joinLoading ? '加入�?..' : '加入房间'}
                   </button>
                 </form>
                 )}
@@ -754,8 +736,7 @@ export default function WatchRoomPage() {
               {!currentRoom && (
                 <div className="mt-6 bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    <strong>提示：</strong>加入进度同步房后将跟随播放，加入屏幕共享房后会进入共享页面。
-                  </p>
+                    <strong>提示�?/strong>加入进度同步房后将跟随播放，加入屏幕共享房后会进入共享页面�?                  </p>
                 </div>
               )}
             </div>
@@ -764,7 +745,7 @@ export default function WatchRoomPage() {
           {/* 房间列表 */}
           {activeTab === 'list' && (
             <div className="py-4">
-              {/* 顶部操作栏 */}
+              {/* 顶部操作�?*/}
               <div className="flex items-center justify-between mb-6">
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   找到 <span className="font-medium text-gray-900 dark:text-gray-100">{rooms.length}</span> 个公开房间
@@ -779,25 +760,24 @@ export default function WatchRoomPage() {
                 </button>
               </div>
 
-              {/* 加载中 */}
+              {/* 加载�?*/}
               {loading && rooms.length === 0 && (
                 <div className="flex items-center justify-center py-20">
                   <div className="text-center">
                     <RefreshCw className="mx-auto mb-4 h-12 w-12 animate-spin text-gray-400" />
-                    <p className="text-gray-500 dark:text-gray-400">加载中...</p>
+                    <p className="text-gray-500 dark:text-gray-400">加载�?..</p>
                   </div>
                 </div>
               )}
 
-              {/* 空状态 */}
+              {/* 空状�?*/}
               {!loading && rooms.length === 0 && (
                 <div className="flex items-center justify-center py-20">
                   <div className="text-center">
                     <Users className="mx-auto mb-4 h-16 w-16 text-gray-400" />
                     <p className="mb-2 text-xl text-gray-600 dark:text-gray-400">暂无公开房间</p>
                     <p className="text-sm text-gray-500 dark:text-gray-500">
-                      创建一个新房间或通过房间号加入私密房间
-                    </p>
+                      创建一个新房间或通过房间号加入私密房�?                    </p>
                   </div>
                 </div>
               )}
@@ -828,14 +808,14 @@ export default function WatchRoomPage() {
 
                       <div className="space-y-2 text-sm mb-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">房间号</span>
+                          <span className="text-gray-500 dark:text-gray-400">房间�?/span>
                           <span className="font-mono text-lg font-bold text-gray-900 dark:text-gray-100">
                             {room.id}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                           <Users className="w-4 h-4" />
-                          <span>{room.memberCount} 人在线</span>
+                          <span>{room.memberCount} 人在�?/span>
                         </div>
                         <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
                           <span>房主</span>

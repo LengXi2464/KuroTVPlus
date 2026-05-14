@@ -111,9 +111,28 @@ function isNavigationLink(link: ParsedFeedLink): boolean {
   return isNavigationRel(link.rel) || type.includes('kind=navigation') || (type.includes('opds-catalog') && !isAcquisitionRel(link.rel));
 }
 
+function isCoverRel(rel?: string): boolean {
+  if (!rel) return false;
+  const normalized = rel.toLowerCase();
+  return normalized.includes('opds-spec.org/cover')
+    || normalized.includes('opds-spec.org/image')
+    || normalized.includes('image/thumbnail')
+    || normalized === 'thumbnail'
+    || normalized === 'cover';
+}
+
+function isImageType(type?: string): boolean {
+  return !!type && type.toLowerCase().startsWith('image/');
+}
+
 function pickCoverLink(links: ParsedFeedLink[]): string | undefined {
-  const cover = links.find((link) => link.rel?.includes('image/thumbnail'))
-    || links.find((link) => link.rel?.includes('image'));
+  const thumbnail = links.find((link) => {
+    const rel = (link.rel || '').toLowerCase();
+    return rel.includes('thumbnail') && (isCoverRel(link.rel) || isImageType(link.type));
+  });
+  const cover = thumbnail
+    || links.find((link) => isCoverRel(link.rel))
+    || links.find((link) => isImageType(link.type) && !isAcquisitionRel(link.rel));
   return cover?.href;
 }
 
@@ -280,7 +299,7 @@ async function parseFeed(xml: string, baseUrl: string): Promise<ParsedFeed> {
 
   const feedNode = parsed.feed ? feed : { entry: [feed] };
   return {
-    title: textValue(feedNode.title?.[0] || '电子书目录'),
+    title: textValue(feedNode.title?.[0] || '电子书目�?),
     subtitle: textValue(feedNode.subtitle?.[0] || ''),
     id: textValue(feedNode.id?.[0] || ''),
     links: parseLinks(asArray(feedNode.link), baseUrl),
@@ -333,7 +352,7 @@ async function resolveSearchTargetUrl(source: BookSource, q: string): Promise<st
     const urlNodes = asArray(description?.Url || description?.url);
     const preferred = urlNodes.find((item) => (item?.$?.type || '').toLowerCase().includes('atom+xml')) || urlNodes[0];
     const template = preferred?.$?.template;
-    if (!template) throw new Error('未找到搜索模板');
+    if (!template) throw new Error('未找到搜索模�?);
     return fillSearchTermsTemplate(normalizeUrl(searchLink.href, template), q);
   }
 
@@ -523,7 +542,7 @@ export class OPDSClient {
           navigation: fallback.navigation || [],
         } as BookDetail;
       }
-      throw new Error('详情页没有可用书籍条目');
+      throw new Error('详情页没有可用书籍条�?);
     }
 
     const detail = mapEntryToDetail(source, entry);

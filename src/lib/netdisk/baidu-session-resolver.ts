@@ -12,7 +12,7 @@ export async function resolveBaiduSession(id: string) {
   const config = await getConfig();
   const baiduConfig = config.NetDiskConfig?.Baidu;
   if (!baiduConfig?.Enabled || !baiduConfig.Cookie) {
-    throw new Error('百度网盘未配置或未启用');
+    throw new Error('百度网盘未配置或未启�?);
   }
 
   let session = refreshBaiduNetdiskSession(id) || getBaiduNetdiskSession(id);

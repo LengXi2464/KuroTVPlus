@@ -269,7 +269,7 @@ export default function MangaSearchPage() {
           </div>
         ) : results.length === 0 ? (
           <div className='rounded-2xl bg-gray-50 p-10 text-center text-sm text-gray-500 dark:bg-gray-900/50'>
-            {hasSearched ? '没有找到相关漫画' : '请输入关键词开始搜索漫画'}
+            {hasSearched ? '没有找到相关漫画' : '请输入关键词开始搜索漫�?}
           </div>
         ) : (
           <div className='grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-6'>

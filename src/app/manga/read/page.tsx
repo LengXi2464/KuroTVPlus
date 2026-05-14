@@ -717,7 +717,7 @@ export default function MangaReadPage() {
           >
             <div className='mb-4'>
               <div className='text-base font-semibold text-gray-900 dark:text-gray-100'>阅读设置</div>
-              <div className='mt-1 text-xs text-gray-500'>可继续扩展更多阅读参数</div>
+              <div className='mt-1 text-xs text-gray-500'>可继续扩展更多阅读参�?/div>
             </div>
 
             <div className='space-y-5'>
@@ -775,7 +775,7 @@ export default function MangaReadPage() {
                   onChange={(e) => setPageGap(Number(e.target.value))}
                   className='w-full accent-sky-600'
                 />
-                <div className='mt-1 text-xs text-gray-500'>滚动阅读时，两张图片之间的间隔</div>
+                <div className='mt-1 text-xs text-gray-500'>滚动阅读时，两张图片之间的间�?/div>
               </div>
 
               <div className='flex justify-end'>
@@ -849,7 +849,7 @@ export default function MangaReadPage() {
             >
               <div className='text-lg font-semibold text-gray-900 dark:text-gray-100'>{chapterName} 阅读完毕</div>
               <div className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
-                {nextChapter ? '当前章节已读完，可继续阅读下一话' : '当前章节已读完'}
+                {nextChapter ? '当前章节已读完，可继续阅读下一�? : '当前章节已读�?}
               </div>
               <div className='mt-6 flex flex-col gap-3'>
                 {nextChapter ? (

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未授权' }, { status: 401 });
+      return NextResponse.json({ error: '未授�? }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const tvId = parseInt(tvIdStr, 10);
     if (isNaN(tvId)) {
-      return NextResponse.json({ error: 'tvId 必须是数字' }, { status: 400 });
+      return NextResponse.json({ error: 'tvId 必须是数�? }, { status: 400 });
     }
 
     const config = await getConfig();
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     if (!tmdbApiKey) {
       return NextResponse.json(
-        { error: 'TMDB API Key 未配置' },
+        { error: 'TMDB API Key 未配�? },
         { status: 400 }
       );
     }
