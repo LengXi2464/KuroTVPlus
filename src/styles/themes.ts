@@ -69,7 +69,7 @@ export const builtInThemes = {
   },
   purple_dream: {
     name: '紫色梦境',
-    description: '神秘的紫色渐变风�?,
+    description: '神秘的紫色渐变风格',
     color: '#a78bfa',
     css: `
 /* 浅色模式 */
@@ -131,7 +131,7 @@ export const builtInThemes = {
   },
   green_forest: {
     name: '翠绿森林',
-    description: '清新的绿色自然风�?,
+    description: '清新的绿色自然风格',
     color: '#10b981',
     css: `
 /* 浅色模式 */
@@ -192,7 +192,7 @@ export const builtInThemes = {
   },
   orange_sunset: {
     name: '橙色日落',
-    description: '温暖的橙色日落风�?,
+    description: '温暖的橙色日落风格',
     color: '#f97316',
     css: `
 /* 浅色模式 */
@@ -253,7 +253,7 @@ export const builtInThemes = {
   },
   pink_candy: {
     name: '粉色糖果',
-    description: '甜美的粉色糖果风�?,
+    description: '甜美的粉色糖果风格',
     color: '#ec4899',
     css: `
 /* 浅色模式 */
@@ -314,7 +314,7 @@ export const builtInThemes = {
   },
   cyan_ocean: {
     name: '青色海洋',
-    description: '清爽的青色海洋风�?,
+    description: '清爽的青色海洋风格',
     color: '#06b6d4',
     css: `
 /* 浅色模式 */

@@ -85,7 +85,7 @@ function toFinalResult(
       normalizedUrl,
       status: 'rate_limited',
       valid: null,
-      reason: raw.reason || '检测受�?,
+      reason: raw.reason || '检测受限',
       checkedAt,
       durationMs,
       isRateLimited: true,
@@ -121,7 +121,7 @@ function toFinalResult(
     normalizedUrl,
     status: 'unknown',
     valid: null,
-    reason: raw.reason || '无法确认链接状�?,
+    reason: raw.reason || '无法确认链接状态',
     checkedAt,
     durationMs,
   };
@@ -141,14 +141,14 @@ export async function checkNetdiskLink(platform: NetdiskCheckPlatform, url: stri
     try {
       const checker = CHECKERS[platform];
       if (typeof checker !== 'function') {
-        throw new Error(`未找�?${platform} 检测器`);
+        throw new Error(`未找到 ${platform} 检测器`);
       }
       const raw = await checker(normalizedUrl);
       const finalResult = toFinalResult(platform, url, normalizedUrl, raw, Date.now() - startedAt);
       setCachedNetdiskCheckResult(cacheKey, finalResult);
       return finalResult;
     } catch (error) {
-      const message = error instanceof Error ? error.message : '检测失�?;
+      const message = error instanceof Error ? error.message : '检测失败';
       const result: NetdiskCheckResult = {
         platform,
         url,

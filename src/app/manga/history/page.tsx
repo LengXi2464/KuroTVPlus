@@ -113,7 +113,8 @@ export default function MangaHistoryPage() {
   return (
     <section className='mx-auto max-w-6xl'>
       <div className='mb-4 flex items-center gap-2 text-sm text-gray-500'>
-        <History className='h-4 w-4 text-violet-500' /> �?{historyList.length} 条阅读记�?      </div>
+        <History className='h-4 w-4 text-violet-500' /> 共 {historyList.length} 条阅读记录
+      </div>
       {loading ? (
         <MangaHistorySkeleton />
       ) : historyList.length === 0 ? (

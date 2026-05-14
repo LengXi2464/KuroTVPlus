@@ -15,11 +15,11 @@ export const runtime = 'nodejs';
  */
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'xiaoya', '无权限访问小�?);
+    const authResult = await requireFeaturePermission(request, 'xiaoya', '无权限访问小雅');
     if (authResult instanceof NextResponse) return authResult;
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未授�? }, { status: 401 });
+      return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       !xiaoyaConfig.Enabled ||
       !xiaoyaConfig.ServerURL
     ) {
-      return NextResponse.json({ error: '小雅未配置或未启�? }, { status: 400 });
+      return NextResponse.json({ error: '小雅未配置或未启用' }, { status: 400 });
     }
 
     const client = new XiaoyaClient(
@@ -45,7 +45,8 @@ export async function GET(request: NextRequest) {
 
     const result = await client.listDirectory(path);
 
-    // 过滤出文件夹和视频文�?    const videoExtensions = ['.mp4', '.mkv', '.avi', '.m3u8', '.flv', '.ts', '.mov', '.wmv', '.webm'];
+    // 过滤出文件夹和视频文件
+    const videoExtensions = ['.mp4', '.mkv', '.avi', '.m3u8', '.flv', '.ts', '.mov', '.wmv', '.webm'];
 
     const folders = result.content
       .filter(item => item.is_dir)

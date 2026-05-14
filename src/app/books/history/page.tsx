@@ -23,7 +23,7 @@ function getReadableChapterLabel(item: BookReadRecord) {
     const text = (candidate || '').trim();
     if (text && !looksLikeInternalHref(text)) return text;
   }
-  return '定位已保�?;
+  return '定位已保存';
 }
 
 function formatBytes(size: number) {
@@ -133,7 +133,7 @@ export default function BookHistoryPage() {
   return (
     <div className='space-y-4'>
       <div className='flex items-center justify-between'>
-        <div className='text-sm text-gray-500'>�?{items.length} 条阅读历�?/div>
+        <div className='text-sm text-gray-500'>共 {items.length} 条阅读历史</div>
         <button
           type='button'
           onClick={() => setCacheModalOpen(true)}
@@ -184,7 +184,7 @@ export default function BookHistoryPage() {
               <div className='flex items-start justify-between gap-4'>
                 <div>
                   <div className='text-base font-semibold'>缓存管理</div>
-                  <div className='mt-1 text-xs text-gray-500'>已缓�?{cacheItems.length} �?· {formatBytes(cacheTotalSize)}</div>
+                  <div className='mt-1 text-xs text-gray-500'>已缓存 {cacheItems.length} 本 · {formatBytes(cacheTotalSize)}</div>
                 </div>
                 <div className='flex gap-2'>
                   <button type='button' onClick={() => void loadCacheItems()} className='inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 dark:border-gray-700' aria-label='刷新缓存' title='刷新缓存'><RefreshCw className='h-4 w-4' /></button>
@@ -193,8 +193,8 @@ export default function BookHistoryPage() {
                 </div>
               </div>
 
-              {cacheLoading ? <div className='text-sm text-gray-500'>正在读取缓存�?/div> : null}
-              {!cacheLoading && cacheItems.length === 0 ? <div className='text-sm text-gray-500'>当前还没有缓存书�?/div> : null}
+              {cacheLoading ? <div className='text-sm text-gray-500'>正在读取缓存…</div> : null}
+              {!cacheLoading && cacheItems.length === 0 ? <div className='text-sm text-gray-500'>当前还没有缓存书籍</div> : null}
 
               <div className='space-y-3'>
                 {cacheItems.map((item) => (
@@ -233,8 +233,8 @@ export default function BookHistoryPage() {
             </div>
             <div className='mt-2 text-sm text-gray-500 dark:text-gray-400'>
               {confirmAction.type === 'clear-all'
-                ? '确认清空当前浏览器中的全部电子书缓存吗？此操作不可撤销�?
-                : `确认删除�?{confirmAction.title || '该书'}》的本地缓存吗？`}
+                ? '确认清空当前浏览器中的全部电子书缓存吗？此操作不可撤销。'
+                : `确认删除《${confirmAction.title || '该书'}》的本地缓存吗？`}
             </div>
             <div className='mt-5 flex justify-end gap-3'>
               <button type='button' onClick={() => setConfirmAction(null)} className='rounded-2xl border border-gray-200 px-4 py-2 text-sm dark:border-gray-700'>取消</button>

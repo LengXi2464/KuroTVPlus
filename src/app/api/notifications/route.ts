@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (action === 'delete' && notificationId) {
       await storage.deleteNotification(authInfo.username, notificationId);
-      return NextResponse.json({ message: '已删�? });
+      return NextResponse.json({ message: '已删除' });
     }
 
     if (action === 'clear_all') {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: '已清空所有通知' });
     }
 
-    return NextResponse.json({ error: '无效的操�? }, { status: 400 });
+    return NextResponse.json({ error: '无效的操作' }, { status: 400 });
   } catch (error) {
     console.error('操作通知失败:', error);
     return NextResponse.json(

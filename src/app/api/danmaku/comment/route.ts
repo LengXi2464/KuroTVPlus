@@ -6,11 +6,11 @@ import { getDanmakuApiBaseUrl } from '@/lib/danmaku/config';
 
 export const runtime = 'nodejs';
 
-// 解析弹幕 XML �?JSON
+// 解析弹幕 XML 为 JSON
 function parseXmlDanmaku(xmlText: string): Array<{ p: string; m: string; cid: number }> {
   const comments: Array<{ p: string; m: string; cid: number }> = [];
 
-  // 使用正则表达式提取所�?<d> 标签
+  // 使用正则表达式提取所有 <d> 标签
   const dTagRegex = /<d\s+p="([^"]+)"[^>]*>([^<]*)<\/d>/g;
   let match;
 
@@ -18,7 +18,8 @@ function parseXmlDanmaku(xmlText: string): Array<{ p: string; m: string; cid: nu
     const p = match[1];
     const m = match[2];
 
-    // �?p 属性中提取 cid（弹幕ID�?    const pParts = p.split(',');
+    // 从 p 属性中提取 cid（弹幕ID）
+    const pParts = p.split(',');
     const cid = pParts[7] ? parseInt(pParts[7]) : 0;
 
     comments.push({
@@ -37,7 +38,8 @@ export async function GET(request: NextRequest) {
     const episodeId = searchParams.get('episodeId');
     const url = searchParams.get('url');
 
-    // 至少需要一个参�?    if (!episodeId && !url) {
+    // 至少需要一个参数
+    if (!episodeId && !url) {
       return NextResponse.json(
         {
           count: 0,
@@ -84,7 +86,7 @@ export async function GET(request: NextRequest) {
       // 获取 XML 文本
       const xmlText = await response.text();
 
-      // 解析 XML �?JSON
+      // 解析 XML 为 JSON
       const comments = parseXmlDanmaku(xmlText);
 
       return NextResponse.json({
@@ -96,7 +98,7 @@ export async function GET(request: NextRequest) {
 
       // 如果是超时错误，返回更友好的错误信息
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        throw new Error('弹幕服务器请求超时，请稍后重�?);
+        throw new Error('弹幕服务器请求超时，请稍后重试');
       }
 
       throw fetchError;

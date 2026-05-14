@@ -122,7 +122,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   const galleryScrollRef = React.useRef<HTMLDivElement>(null);
 
 
-  // 数据源状态管�?  const [currentSource, setCurrentSource] = useState<'douban' | 'bangumi' | 'cms' | 'tmdb'>('tmdb');
+  // 数据源状态管理
+  const [currentSource, setCurrentSource] = useState<'douban' | 'bangumi' | 'cms' | 'tmdb'>('tmdb');
   const [originalSource, setOriginalSource] = useState<'douban' | 'bangumi' | 'cms' | 'tmdb'>('tmdb');
   const [isUsingTmdb, setIsUsingTmdb] = useState(false);
   const [originalDetailData, setOriginalDetailData] = useState<DetailData | null>(null);
@@ -152,7 +153,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
 
   const externalUrl = getExternalUrl();
 
-  // 拖动滚动状�?  const [isDragging, setIsDragging] = useState(false);
+  // 拖动滚动状态
+  const [isDragging, setIsDragging] = useState(false);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -185,15 +187,15 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       );
 
       if (!response.ok) {
-        throw new Error('获取照片墙失�?);
+        throw new Error('获取照片墙失败');
       }
 
       const data = await response.json();
       setGalleryImages(data.list || []);
       setGalleryTotal(data.total || 0);
     } catch (err) {
-      console.error('获取照片墙失�?', err);
-      setGalleryError(err instanceof Error ? err.message : '获取照片墙失�?);
+      console.error('获取照片墙失败:', err);
+      setGalleryError(err instanceof Error ? err.message : '获取照片墙失败');
     } finally {
       setGalleryLoading(false);
     }
@@ -245,7 +247,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     };
   }, [showGallery]);
 
-  // 控制动画状�?  useEffect(() => {
+  // 控制动画状态
+  useEffect(() => {
     let animationId: number;
     let timer: NodeJS.Timeout;
 
@@ -288,7 +291,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       const body = document.body;
       const html = document.documentElement;
 
-      // 获取滚动条宽�?      const scrollBarWidth = window.innerWidth - html.clientWidth;
+      // 获取滚动条宽度
+      const scrollBarWidth = window.innerWidth - html.clientWidth;
 
       // 保存原始样式
       const originalBodyStyle = {
@@ -311,7 +315,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       body.style.paddingRight = `${scrollBarWidth}px`;
 
       return () => {
-        // 恢复所有原始样�?        body.style.position = originalBodyStyle.position;
+        // 恢复所有原始样式
+        body.style.position = originalBodyStyle.position;
         body.style.top = originalBodyStyle.top;
         body.style.left = originalBodyStyle.left;
         body.style.right = originalBodyStyle.right;
@@ -327,7 +332,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     }
   }, [isVisible, useDrawer]);
 
-  // ESC键关�?  useEffect(() => {
+  // ESC键关闭
+  useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -351,18 +357,20 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       setError(null);
 
       try {
-        // 如果正在使用 TMDB 数据，强制使�?TMDB
+        // 如果正在使用 TMDB 数据，强制使用 TMDB
         if (isUsingTmdb && title) {
           await fetchTmdbData();
           return;
         }
 
-        // 优先使用苹果CMS数据（短剧等�?        // 如果 cmsData 存在�?desc 为空，尝试通过 source-detail API 获取
+        // 优先使用苹果CMS数据（短剧等）
+        // 如果 cmsData 存在但 desc 为空，尝试通过 source-detail API 获取
         if (cmsData) {
           setCurrentSource('cms');
           setOriginalSource('cms');
           if (cmsData.desc) {
-            // �?desc，直接使�?            const data = {
+            // 有 desc，直接使用
+            const data = {
               title: title,
               intro: cmsData.desc,
               episodesCount: cmsData.episodes?.length,
@@ -374,7 +382,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
             return;
           }
 
-          // cmsData 存在�?desc 为空，尝试通过 API 获取详情
+          // cmsData 存在但 desc 为空，尝试通过 API 获取详情
           if (sourceId && source) {
             try {
               const response = await fetch(
@@ -401,7 +409,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           }
         }
 
-        // 优先使用 Bangumi ID（因�?isBangumi �?true 时，doubanId 实际上是 bangumiId�?        if (bangumiId || (isBangumi && doubanId)) {
+        // 优先使用 Bangumi ID（因为 isBangumi 为 true 时，doubanId 实际上是 bangumiId）
+        if (bangumiId || (isBangumi && doubanId)) {
           setCurrentSource('bangumi');
           setOriginalSource('bangumi');
           const actualBangumiId = bangumiId || doubanId;
@@ -475,7 +484,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           return;
         }
 
-        throw new Error('缺少必要的查询参�?);
+        throw new Error('缺少必要的查询参数');
       } catch (err) {
         console.error('获取详情失败:', err);
         setError(err instanceof Error ? err.message : '获取详情失败');
@@ -484,14 +493,16 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       }
     };
 
-    // 提取 TMDB 数据获取逻辑为独立函�?    const fetchTmdbData = async () => {
+    // 提取 TMDB 数据获取逻辑为独立函数
+    const fetchTmdbData = async () => {
       setCurrentSource('tmdb');
       // 移除季度信息进行搜索
       let searchTitle = title;
       let extractedSeasonNumber = seasonNumber;
 
-      // 匹配各种季度格式: 第一季、第1季、第一部、Season 1、S1�?      const seasonPatterns = [
-        /�?[一二三四五六七八九十\d]+)[季部]/,
+      // 匹配各种季度格式: 第一季、第1季、第一部、Season 1、S1等
+      const seasonPatterns = [
+        /第([一二三四五六七八九十\d]+)[季部]/,
         /Season\s*(\d+)/i,
         /S(\d+)/i,
       ];
@@ -503,9 +514,10 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           // 如果没有传入seasonNumber,尝试从标题中提取
           if (!extractedSeasonNumber) {
             const seasonStr = match[1];
-            // 中文数字转数�?            const chineseNumbers: Record<string, number> = {
-              '一': 1, '�?: 2, '�?: 3, '�?: 4, '�?: 5,
-              '�?: 6, '�?: 7, '�?: 8, '�?: 9, '�?: 10,
+            // 中文数字转数字
+            const chineseNumbers: Record<string, number> = {
+              '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+              '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
             };
             extractedSeasonNumber = chineseNumbers[seasonStr] || parseInt(seasonStr) || undefined;
           }
@@ -533,7 +545,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         }
         const detailResult = await detailResponse.json();
 
-        // 如果有季度信�?尝试获取季度详情
+        // 如果有季度信息,尝试获取季度详情
         let seasonData = null;
         if (extractedSeasonNumber && mediaType === 'tv') {
           try {
@@ -584,7 +596,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         return;
       }
 
-      throw new Error('未找到相关内�?);
+      throw new Error('未找到相关内容');
     };
 
     fetchDetail();
@@ -600,7 +612,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         setError(null);
       }
     } else {
-      // 切换�?TMDB
+      // 切换到 TMDB
       // 保存当前数据
       if (detailData && !originalDetailData) {
         setOriginalDetailData(detailData);
@@ -613,7 +625,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       } catch (err) {
         console.error('切换到TMDB失败:', err);
         setError(err instanceof Error ? err.message : '切换到TMDB失败');
-        // 切换失败，但保持 currentSource �?tmdb，这样可以显示切换回按钮
+        // 切换失败，但保持 currentSource 为 tmdb，这样可以显示切换回按钮
         setCurrentSource('tmdb');
       } finally {
         setLoading(false);
@@ -621,14 +633,15 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     }
   };
 
-  // 用于切换时获�?TMDB 数据
+  // 用于切换时获取 TMDB 数据
   const fetchTmdbDataForToggle = async () => {
     // 移除季度信息进行搜索
     let searchTitle = title;
     let extractedSeasonNumber = seasonNumber;
 
-    // 匹配各种季度格式: 第一季、第1季、第一部、Season 1、S1�?    const seasonPatterns = [
-      /�?[一二三四五六七八九十\d]+)[季部]/,
+    // 匹配各种季度格式: 第一季、第1季、第一部、Season 1、S1等
+    const seasonPatterns = [
+      /第([一二三四五六七八九十\d]+)[季部]/,
       /Season\s*(\d+)/i,
       /S(\d+)/i,
     ];
@@ -640,9 +653,10 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         // 如果没有传入seasonNumber,尝试从标题中提取
         if (!extractedSeasonNumber) {
           const seasonStr = match[1];
-          // 中文数字转数�?          const chineseNumbers: Record<string, number> = {
-            '一': 1, '�?: 2, '�?: 3, '�?: 4, '�?: 5,
-            '�?: 6, '�?: 7, '�?: 8, '�?: 9, '�?: 10,
+          // 中文数字转数字
+          const chineseNumbers: Record<string, number> = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
           };
           extractedSeasonNumber = chineseNumbers[seasonStr] || parseInt(seasonStr) || undefined;
         }
@@ -670,7 +684,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       }
       const detailResult = await detailResponse.json();
 
-      // 如果有季度信�?尝试获取季度详情
+      // 如果有季度信息,尝试获取季度详情
       let seasonData = null;
       if (extractedSeasonNumber && mediaType === 'tv') {
         try {
@@ -722,10 +736,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       return;
     }
 
-    throw new Error('未找到相关内�?);
+    throw new Error('未找到相关内容');
   };
 
-  // 异步获取季度和集数详情（仅TMDB�?  useEffect(() => {
+  // 异步获取季度和集数详情（仅TMDB）
+  useEffect(() => {
     if (!detailData?.tmdbId || !detailData?.mediaType || detailData.mediaType !== 'tv' || seasonsLoaded) {
       return;
     }
@@ -733,7 +748,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     const fetchSeasonData = async () => {
       setLoadingSeasons(true);
       try {
-        // 获取所有季�?        const seasonsResponse = await fetch(`/api/tmdb/seasons?tvId=${detailData.tmdbId}`);
+        // 获取所有季度
+        const seasonsResponse = await fetch(`/api/tmdb/seasons?tvId=${detailData.tmdbId}`);
         if (!seasonsResponse.ok) return;
         const seasonsData = await seasonsResponse.json();
 
@@ -741,7 +757,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         const defaultSeason = detailData.seasonNumber || 1;
         setSelectedSeason(defaultSeason);
 
-        // 获取默认季度的集数详�?        const episodesResponse = await fetch(
+        // 获取默认季度的集数详情
+        const episodesResponse = await fetch(
           `/api/tmdb/episodes?id=${detailData.tmdbId}&season=${defaultSeason}`
         );
         if (!episodesResponse.ok) return;
@@ -753,7 +770,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         });
         setSeasonsLoaded(true);
       } catch (err) {
-        console.error('获取季度和集数详情失�?', err);
+        console.error('获取季度和集数详情失败:', err);
       } finally {
         setLoadingSeasons(false);
       }
@@ -762,7 +779,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     fetchSeasonData();
   }, [detailData?.tmdbId, detailData?.mediaType, detailData?.seasonNumber, seasonsLoaded]);
 
-  // 自动滚动到当前集�?  useEffect(() => {
+  // 自动滚动到当前集数
+  useEffect(() => {
     if (!currentEpisode || !seasonData?.episodes || !episodesScrollRef.current || currentSource !== 'tmdb') {
       return;
     }
@@ -785,12 +803,14 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     return () => clearTimeout(timer);
   }, [currentEpisode, seasonData?.episodes, currentSource]);
 
-  // 异步获取演职人员信息（仅TMDB�?  useEffect(() => {
+  // 异步获取演职人员信息（仅TMDB）
+  useEffect(() => {
     if (!detailData?.tmdbId || !detailData?.mediaType || currentSource !== 'tmdb') {
       return;
     }
 
-    // 如果已经有演员信息，不重复获�?    if (detailData.actors && detailData.actors.length > 0) {
+    // 如果已经有演员信息，不重复获取
+    if (detailData.actors && detailData.actors.length > 0) {
       return;
     }
 
@@ -802,7 +822,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         if (!creditsResponse.ok) return;
         const creditsData = await creditsResponse.json();
 
-        // 更新演员和导演信�?        setDetailData(prev => prev ? {
+        // 更新演员和导演信息
+        setDetailData(prev => prev ? {
           ...prev,
           directors: creditsData.crew
             ?.filter((person: any) => person.job === 'Director')
@@ -827,7 +848,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     fetchCredits();
   }, [detailData?.tmdbId, detailData?.mediaType, currentSource, detailData?.actors]);
 
-  // 切换季度时获取集�?  const handleSeasonChange = async (seasonNumber: number) => {
+  // 切换季度时获取集数
+  const handleSeasonChange = async (seasonNumber: number) => {
     if (!detailData?.tmdbId || selectedSeason === seasonNumber) return;
 
     setSelectedSeason(seasonNumber);
@@ -839,14 +861,16 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       if (!episodesResponse.ok) return;
       const episodesData = await episodesResponse.json();
 
-      // 从当�?seasonData 中查找季度信�?      const season = seasonData?.seasons.find((s: any) => s.season_number === seasonNumber);
+      // 从当前 seasonData 中查找季度信息
+      const season = seasonData?.seasons.find((s: any) => s.season_number === seasonNumber);
 
       setSeasonData(prev => ({
         seasons: prev?.seasons || [],
         episodes: episodesData.episodes || [],
       }));
 
-      // 更新季度元信�?      setDetailData(prev => prev ? {
+      // 更新季度元信息
+      setDetailData(prev => prev ? {
         ...prev,
         title: episodesData.name || season?.name || prev.title,
         intro: episodesData.overview || season?.overview || prev.overview,
@@ -878,7 +902,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     const x = e.pageX - episodesScrollRef.current.offsetLeft;
     const distance = Math.abs(x - startX);
 
-    // 只有移动超过5px才进入拖动模�?    if (distance > 5 && !isDragging) {
+    // 只有移动超过5px才进入拖动模式
+    if (distance > 5 && !isDragging) {
       setIsDragging(true);
       episodesScrollRef.current.style.cursor = 'grabbing';
       episodesScrollRef.current.style.userSelect = 'none';
@@ -925,7 +950,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
     const x = e.pageX - actorsScrollRef.current.offsetLeft;
     const distance = Math.abs(x - actorsStartX);
 
-    // 只有移动超过5px才进入拖动模�?    if (distance > 5 && !isActorsDragging) {
+    // 只有移动超过5px才进入拖动模式
+    if (distance > 5 && !isActorsDragging) {
       setIsActorsDragging(true);
       actorsScrollRef.current.style.cursor = 'grabbing';
       actorsScrollRef.current.style.userSelect = 'none';
@@ -964,7 +990,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
       className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
     >
       <Images size={16} />
-      照片�?    </button>
+      照片墙
+    </button>
   ) : null;
 
   const virtualGalleryLayout = React.useMemo(() => {
@@ -1085,16 +1112,17 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   const galleryHeader = (
     <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">照片�?/h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">照片墙</h3>
         {!galleryLoading && (
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            �?{galleryTotal} �?          </p>
+            共 {galleryTotal} 张
+          </p>
         )}
       </div>
       <button
         onClick={() => setShowGallery(false)}
         className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        aria-label="关闭照片�?
+        aria-label="关闭照片墙"
       >
         <X size={20} className="text-gray-500 dark:text-gray-400" />
       </button>
@@ -1190,7 +1218,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                         disabled={loading}
                         className="px-3 py-1.5 text-sm rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        切换�?TMDB
+                        切换到 TMDB
                       </button>
                     )}
                     {currentSource === 'tmdb' && originalSource !== 'tmdb' && originalDetailData && (
@@ -1199,7 +1227,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                         disabled={loading}
                         className="px-3 py-1.5 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        切换�?{originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
+                        切换回 {originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
                       </button>
                     )}
                   </div>
@@ -1210,7 +1238,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
 
           {!loading && !error && detailData && (
             <div className="p-6">
-              {/* 海报和基本信�?*/}
+              {/* 海报和基本信息 */}
               <div className="flex gap-6 mb-6">
                 {detailData.poster && (
                   <div className="flex flex-col items-start gap-3 flex-shrink-0">
@@ -1270,7 +1298,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     </div>
                   )}
 
-                  {/* 年份和时�?*/}
+                  {/* 年份和时长 */}
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
                     {detailData.year && (
                       <div className="flex items-center gap-1">
@@ -1287,25 +1315,26 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     {detailData.episodesCount && (
                       <div className="flex items-center gap-1">
                         <Film size={16} />
-                        <span>{detailData.episodesCount} �?/span>
+                        <span>{detailData.episodesCount} 集</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* 简�?*/}
+              {/* 简介 */}
               {(detailData.intro || detailData.overview) && (
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    简�?                  </h4>
+                    简介
+                  </h4>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                     {detailData.intro || detailData.overview}
                   </p>
                 </div>
               )}
 
-              {/* 导演和演�?*/}
+              {/* 导演和演员 */}
               {detailData.directors && detailData.directors.length > 0 && (
                 <div className="mb-4">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
@@ -1425,7 +1454,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
 
                 {detailData.status && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">状�?/h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">状态</h4>
                     <p className="text-gray-700 dark:text-gray-300">{detailData.status}</p>
                   </div>
                 )}
@@ -1480,7 +1509,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                                     {season.name}
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {season.episode_count} �?                                  </p>
+                                    {season.episode_count} 集
+                                  </p>
                                 </div>
                               </div>
                             ))}
@@ -1492,7 +1522,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                       {seasonData.episodes.length > 0 && (
                         <div>
                           <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                            {seasonData.seasons.find((s: any) => s.season_number === selectedSeason)?.name || `�?{selectedSeason}季`}
+                            {seasonData.seasons.find((s: any) => s.season_number === selectedSeason)?.name || `第${selectedSeason}季`}
                           </h4>
                           <div
                             ref={episodesScrollRef}
@@ -1535,7 +1565,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                                       </div>
                                     )}
                                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                      第{episode.episode_number}�? {episode.name}
+                                      第{episode.episode_number}集: {episode.name}
                                     </p>
                                     {episode.overview && (
                                       <p
@@ -1590,7 +1620,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                         disabled={loading}
                         className="px-3 py-1.5 text-sm rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        切换�?TMDB
+                        切换到 TMDB
                       </button>
                     )}
                     {currentSource === 'tmdb' && originalSource !== 'tmdb' && originalDetailData && (
@@ -1599,7 +1629,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                         disabled={loading}
                         className="px-3 py-1.5 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        切换�?{originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
+                        切换回 {originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
                       </button>
                     )}
                   </div>
@@ -1610,7 +1640,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         </div>
       </div>
 
-      {/* 图片查看�?*/}
+      {/* 图片查看器 */}
       {galleryModal}
       {showImageViewer && (
         <ImageViewer
@@ -1702,7 +1732,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                       disabled={loading}
                       className="px-3 py-1.5 text-sm rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      切换�?TMDB
+                      切换到 TMDB
                     </button>
                   )}
                   {currentSource === 'tmdb' && originalSource !== 'tmdb' && originalDetailData && (
@@ -1711,7 +1741,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                       disabled={loading}
                       className="px-3 py-1.5 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      切换�?{originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
+                      切换回 {originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
                     </button>
                   )}
                 </div>
@@ -1721,7 +1751,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
 
           {!loading && !error && detailData && (
             <div className="p-6">
-              {/* 海报和基本信�?*/}
+              {/* 海报和基本信息 */}
               <div className="flex gap-6 mb-6">
                 {detailData.poster && (
                   <div className="flex flex-col items-start gap-3 flex-shrink-0">
@@ -1781,7 +1811,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     </div>
                   )}
 
-                  {/* 年份和时�?*/}
+                  {/* 年份和时长 */}
                   <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
                     {detailData.year && (
                       <div className="flex items-center gap-1">
@@ -1798,25 +1828,26 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                     {detailData.episodesCount && (
                       <div className="flex items-center gap-1">
                         <Film size={16} />
-                        <span>{detailData.episodesCount} �?/span>
+                        <span>{detailData.episodesCount} 集</span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* 简�?*/}
+              {/* 简介 */}
               {(detailData.intro || detailData.overview) && (
                 <div className="mb-6">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                    简�?                  </h4>
+                    简介
+                  </h4>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                     {detailData.intro || detailData.overview}
                   </p>
                 </div>
               )}
 
-              {/* 导演和演�?*/}
+              {/* 导演和演员 */}
               {detailData.directors && detailData.directors.length > 0 && (
                 <div className="mb-4">
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
@@ -1936,7 +1967,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
 
                 {detailData.status && (
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">状�?/h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">状态</h4>
                     <p className="text-gray-700 dark:text-gray-300">{detailData.status}</p>
                   </div>
                 )}
@@ -1991,7 +2022,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                                     {season.name}
                                   </p>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {season.episode_count} �?                                  </p>
+                                    {season.episode_count} 集
+                                  </p>
                                 </div>
                               </div>
                             ))}
@@ -2003,7 +2035,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                       {seasonData.episodes.length > 0 && (
                         <div>
                           <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                            {seasonData.seasons.find((s: any) => s.season_number === selectedSeason)?.name || `�?{selectedSeason}季`}
+                            {seasonData.seasons.find((s: any) => s.season_number === selectedSeason)?.name || `第${selectedSeason}季`}
                           </h4>
                           <div
                             ref={episodesScrollRef}
@@ -2046,7 +2078,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                                       </div>
                                     )}
                                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                      第{episode.episode_number}�? {episode.name}
+                                      第{episode.episode_number}集: {episode.name}
                                     </p>
                                     {episode.overview && (
                                       <p
@@ -2099,7 +2131,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                       disabled={loading}
                       className="px-3 py-1.5 text-sm rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      切换�?TMDB
+                      切换到 TMDB
                     </button>
                   )}
                   {currentSource === 'tmdb' && originalSource !== 'tmdb' && originalDetailData && (
@@ -2108,7 +2140,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
                       disabled={loading}
                       className="px-3 py-1.5 text-sm rounded-lg bg-gray-500 hover:bg-gray-600 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      切换�?{originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
+                      切换回 {originalSource === 'douban' ? 'Douban' : originalSource === 'bangumi' ? 'Bangumi' : 'CMS'}
                     </button>
                   )}
                 </div>
@@ -2118,7 +2150,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
         </div>
       </div>
 
-      {/* 图片查看�?*/}
+      {/* 图片查看器 */}
       {galleryModal}
       {showImageViewer && (
         <ImageViewer

@@ -38,7 +38,8 @@ export default function AIChatPanel({
 }: AIChatPanelProps) {
   const pathname = usePathname();
 
-  // 使用 useMemo 稳定 storage key，只在实际内容变化时才改�?  const storageKey = useMemo(() => {
+  // 使用 useMemo 稳定 storage key，只在实际内容变化时才改变
+  const storageKey = useMemo(() => {
     if (context?.title) {
       return `ai-chat-${context.title}-${context.year || ''}-${context.type || ''}`;
     }
@@ -58,14 +59,16 @@ export default function AIChatPanel({
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasLoadedRef = useRef(false);
 
-  // 将《》包裹的影视名称转换为链�?  const convertTitleToLink = (content: string): string => {
-    return content.replace(/�?[^》]+)�?g, (match, title) => {
+  // 将《》包裹的影视名称转换为链接
+  const convertTitleToLink = (content: string): string => {
+    return content.replace(/《([^》]+)》/g, (match, title) => {
       const encodedTitle = encodeURIComponent(title);
-      return `[�?{title}》](/play?title=${encodedTitle})`;
+      return `[《${title}》](/play?title=${encodedTitle})`;
     });
   };
 
-  // 自动滚动到底�?  const scrollToBottom = () => {
+  // 自动滚动到底部
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -78,13 +81,14 @@ export default function AIChatPanel({
     setCurrentUsername(authInfo?.username || '用户');
   }, []);
 
-  const userAvatarText = currentUsername.trim().charAt(0).toUpperCase() || '�?;
+  const userAvatarText = currentUsername.trim().charAt(0).toUpperCase() || '用';
 
   // 从sessionStorage加载消息记录
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 如果已经加载过当�?storageKey，跳�?    if (hasLoadedRef.current) return;
+    // 如果已经加载过当前 storageKey，跳过
+    if (hasLoadedRef.current) return;
 
     const savedMessages = sessionStorage.getItem(storageKey);
 
@@ -101,7 +105,8 @@ export default function AIChatPanel({
 
     // 标记为已加载
     hasLoadedRef.current = true;
-  }, [storageKey]); // �?storageKey 变化时重新加�?
+  }, [storageKey]); // 当 storageKey 变化时重新加载
+
   // 保存消息记录到sessionStorage
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -111,8 +116,10 @@ export default function AIChatPanel({
     } catch (error) {
       console.error('保存聊天记录失败:', error);
     }
-  }, [messages, storageKey]); // 消息变化时保�?
-  // 检测VideoContext变化，清除旧的聊天记�?  useEffect(() => {
+  }, [messages, storageKey]); // 消息变化时保存
+
+  // 检测VideoContext变化，清除旧的聊天记录
+  useEffect(() => {
     if (typeof window === 'undefined') return;
 
     if (prevStorageKeyRef.current !== storageKey) {
@@ -128,13 +135,15 @@ export default function AIChatPanel({
       console.log('视频上下文变化，清除聊天记录');
       setMessages([{ role: 'assistant', content: welcomeMessage }]);
 
-      // 重置加载标记，允许加载新视频的聊天记�?      hasLoadedRef.current = false;
+      // 重置加载标记，允许加载新视频的聊天记录
+      hasLoadedRef.current = false;
 
       prevStorageKeyRef.current = storageKey;
     }
   }, [storageKey, welcomeMessage]); // 监听 storageKey 变化
 
-  // 通知父组�?streaming 状态变�?  useEffect(() => {
+  // 通知父组件 streaming 状态变化
+  useEffect(() => {
     onStreamingChange?.(isStreaming);
   }, [isStreaming, onStreamingChange]);
 
@@ -147,7 +156,8 @@ export default function AIChatPanel({
       };
       checkMobile();
 
-      // 只在非移动设备上聚焦输入�?      if (inputRef.current && window.innerWidth >= 768) {
+      // 只在非移动设备上聚焦输入框
+      if (inputRef.current && window.innerWidth >= 768) {
         inputRef.current.focus();
       }
 
@@ -156,7 +166,8 @@ export default function AIChatPanel({
         const originalOverflow = document.body.style.overflow;
         const originalPaddingRight = document.body.style.paddingRight;
 
-        // 获取滚动条宽�?        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+        // 获取滚动条宽度
+        const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
 
         document.body.style.overflow = 'hidden';
         document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -178,7 +189,8 @@ export default function AIChatPanel({
     // 添加用户消息
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
 
-    // 开始流式响�?    setIsStreaming(true);
+    // 开始流式响应
+    setIsStreaming(true);
 
     // 先添加一个空的助手消息用于流式更新或显示错误
     setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
@@ -216,11 +228,12 @@ export default function AIChatPanel({
         const decoder = new TextDecoder();
 
         if (!reader) {
-          throw new Error('无法读取响应�?);
+          throw new Error('无法读取响应流');
         }
 
         let assistantMessage = '';
-        let buffer = ''; // 缓冲区，用于保存不完整的�?
+        let buffer = ''; // 缓冲区，用于保存不完整的行
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -228,7 +241,8 @@ export default function AIChatPanel({
           const chunk = decoder.decode(value, { stream: true });
           // 将新chunk与缓冲区拼接
           const text = buffer + chunk;
-          // 按换行符分割，最后一个元素可能是不完整的�?          const parts = text.split('\n');
+          // 按换行符分割，最后一个元素可能是不完整的行
+          const parts = text.split('\n');
           // 保存最后一个不完整的行到缓冲区
           buffer = parts.pop() || '';
 
@@ -250,7 +264,8 @@ export default function AIChatPanel({
                 if (text) {
                   assistantMessage += text;
 
-              // 更新最后一条消�?                  setMessages((prev) => {
+              // 更新最后一条消息
+                  setMessages((prev) => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1] = {
                       role: 'assistant',
@@ -266,7 +281,8 @@ export default function AIChatPanel({
           }
         }
 
-        // 处理缓冲区中剩余的数�?        if (buffer.trim()) {
+        // 处理缓冲区中剩余的数据
+        if (buffer.trim()) {
           const line = buffer.trim();
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
@@ -292,7 +308,8 @@ export default function AIChatPanel({
           }
         }
       } else {
-        // 处理非流式响�?        const data = await response.json();
+        // 处理非流式响应
+        const data = await response.json();
         const content = data.content || '';
 
         // 更新最后一条消息为完整响应
@@ -306,18 +323,20 @@ export default function AIChatPanel({
         });
       }
     } catch (error) {
-      // 如果是主动取消的请求（切换视频或其他原因），不显示错�?      if ((error as Error).name === 'AbortError') {
-        console.log('请求已取�?);
+      // 如果是主动取消的请求（切换视频或其他原因），不显示错误
+      if ((error as Error).name === 'AbortError') {
+        console.log('请求已取消');
         return;
       }
 
-      console.error('发送消息失�?', error);
+      console.error('发送消息失败:', error);
 
-      // 更新最后一条空消息为错误消�?      setMessages((prev) => {
+      // 更新最后一条空消息为错误消息
+      setMessages((prev) => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = {
           role: 'assistant',
-          content: `�?抱歉，出现了错误：\n\n${(error as Error).message}\n\n请检查：\n- AI服务配置是否正确\n- API密钥是否有效\n- 网络连接是否正常`,
+          content: `❌ 抱歉，出现了错误：\n\n${(error as Error).message}\n\n请检查：\n- AI服务配置是否正确\n- API密钥是否有效\n- 网络连接是否正常`,
         };
         return newMessages;
       });
@@ -334,13 +353,15 @@ export default function AIChatPanel({
     }
   };
 
-  // 清空聊天上下�?  const handleClearContext = () => {
+  // 清空聊天上下文
+  const handleClearContext = () => {
     if (typeof window === 'undefined') return;
 
     // 清除sessionStorage
     sessionStorage.removeItem(storageKey);
 
-    // 重置消息为欢迎消�?    setMessages([{ role: 'assistant', content: welcomeMessage }]);
+    // 重置消息为欢迎消息
+    setMessages([{ role: 'assistant', content: welcomeMessage }]);
 
     console.log('已清空聊天上下文');
   };
@@ -429,9 +450,9 @@ export default function AIChatPanel({
                           remarkPlugins={[remarkGfm as any]}
                           components={{
                             a: ({ node, href, children, ...props }) => {
-                              // 如果是内部链接（�?/ 开头），使�?Next.js Link
+                              // 如果是内部链接（以 / 开头），使用 Next.js Link
                               if (href?.startsWith('/')) {
-                                // 如果当前�?/play 页面且链接也�?/play，不做处理（返回纯文本）
+                                // 如果当前在 /play 页面且链接也是 /play，不做处理（返回纯文本）
                                 if (pathname === '/play' && href.startsWith('/play')) {
                                   return <span>{children}</span>;
                                 }
@@ -441,7 +462,7 @@ export default function AIChatPanel({
                                   </Link>
                                 );
                               }
-                              // 外部链接使用普�?a 标签
+                              // 外部链接使用普通 a 标签
                               return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
                             }
                           }}
@@ -455,7 +476,7 @@ export default function AIChatPanel({
               </div>
             ))}
 
-            {/* 加载指示�?*/}
+            {/* 加载指示器 */}
             {isStreaming && (
               <div className='flex justify-start'>
                 <div className='flex max-w-[80%] gap-3'>
@@ -465,7 +486,7 @@ export default function AIChatPanel({
                   <div className='flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-2 dark:bg-gray-800'>
                     <Loader2 size={16} className='animate-spin text-gray-500' />
                     <span className='text-sm text-gray-500 dark:text-gray-400'>
-                      AI正在思�?..
+                      AI正在思考...
                     </span>
                   </div>
                 </div>
@@ -523,16 +544,17 @@ export default function AIChatPanel({
           {messages.length === 1 && !isStreaming && (
             <div className='mt-3 flex flex-wrap gap-2'>
               <button
-                onClick={() => setInput('推荐一些高分电�?)}
+                onClick={() => setInput('推荐一些高分电影')}
                 className='rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
               >
                 推荐高分电影
               </button>
               <button
-                onClick={() => setInput('最近有什么新电影上映�?)}
+                onClick={() => setInput('最近有什么新电影上映？')}
                 className='rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
               >
-                最新上�?              </button>
+                最新上映
+              </button>
               {context?.title && (
                 <button
                   onClick={() =>
@@ -549,12 +571,14 @@ export default function AIChatPanel({
       </div>
     </div>
   ) : (
-    // 原有的居中弹窗模�?    <div
+    // 原有的居中弹窗模式
+    <div
       className={`fixed inset-0 z-[1002] flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-hidden transition-opacity duration-200 ${
         isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
       }`}
       onClick={(e) => {
-        // 点击遮罩层关闭弹�?        if (e.target === e.currentTarget && isOpen) {
+        // 点击遮罩层关闭弹窗
+        if (e.target === e.currentTarget && isOpen) {
           onClose();
         }
       }}
@@ -632,9 +656,9 @@ export default function AIChatPanel({
                           remarkPlugins={[remarkGfm as any]}
                           components={{
                             a: ({ node, href, children, ...props }) => {
-                              // 如果是内部链接（�?/ 开头），使�?Next.js Link
+                              // 如果是内部链接（以 / 开头），使用 Next.js Link
                               if (href?.startsWith('/')) {
-                                // 如果当前�?/play 页面且链接也�?/play，不做处理（返回纯文本）
+                                // 如果当前在 /play 页面且链接也是 /play，不做处理（返回纯文本）
                                 if (pathname === '/play' && href.startsWith('/play')) {
                                   return <span>{children}</span>;
                                 }
@@ -644,7 +668,7 @@ export default function AIChatPanel({
                                   </Link>
                                 );
                               }
-                              // 外部链接使用普�?a 标签
+                              // 外部链接使用普通 a 标签
                               return <a href={href} target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
                             }
                           }}
@@ -658,7 +682,7 @@ export default function AIChatPanel({
               </div>
             ))}
 
-            {/* 加载指示�?*/}
+            {/* 加载指示器 */}
             {isStreaming && (
               <div className='flex justify-start'>
                 <div className='flex max-w-[80%] gap-3'>
@@ -668,7 +692,7 @@ export default function AIChatPanel({
                   <div className='flex items-center gap-2 rounded-2xl bg-gray-100 px-4 py-2 dark:bg-gray-800'>
                     <Loader2 size={16} className='animate-spin text-gray-500' />
                     <span className='text-sm text-gray-500 dark:text-gray-400'>
-                      AI正在思�?..
+                      AI正在思考...
                     </span>
                   </div>
                 </div>
@@ -726,16 +750,17 @@ export default function AIChatPanel({
           {messages.length === 1 && !isStreaming && (
             <div className='mt-3 flex flex-wrap gap-2'>
               <button
-                onClick={() => setInput('推荐一些高分电�?)}
+                onClick={() => setInput('推荐一些高分电影')}
                 className='rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
               >
                 推荐高分电影
               </button>
               <button
-                onClick={() => setInput('最近有什么新电影上映�?)}
+                onClick={() => setInput('最近有什么新电影上映？')}
                 className='rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-600 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
               >
-                最新上�?              </button>
+                最新上映
+              </button>
               {context?.title && (
                 <button
                   onClick={() =>

@@ -226,7 +226,7 @@ export function useScreenShare(qualityPreset: ScreenShareQualityPreset = 'smooth
       );
     } catch (err: any) {
       console.error('[ScreenShare] Failed to start sharing:', err);
-      setError(err?.message || '开启屏幕共享失�?);
+      setError(err?.message || '开启屏幕共享失败');
     } finally {
       setIsStarting(false);
     }

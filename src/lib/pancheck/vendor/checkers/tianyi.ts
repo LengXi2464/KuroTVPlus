@@ -12,7 +12,7 @@ export async function checkTianyi(link) {
     const noCache = Math.random();
     let shareCodeParam = codeValue;
     if (accessCode) {
-      shareCodeParam = `${codeValue}（访问码�?{accessCode}）`;
+      shareCodeParam = `${codeValue}（访问码：${accessCode}）`;
     }
 
     const apiURL = `https://cloud.189.cn/api/open/share/getShareInfoByCodeV2.action?noCache=${noCache}&shareCode=${encodeURIComponent(shareCodeParam)}`;
@@ -43,7 +43,7 @@ export async function checkTianyi(link) {
     return { valid: false, reason: failReason };
   } catch (err) {
     if (err.message === '请求超时') return { valid: false, reason: '请求超时' };
-    return { valid: false, reason: `检测失�? ${err.message}` };
+    return { valid: false, reason: `检测失败: ${err.message}` };
   }
 }
 
@@ -71,7 +71,7 @@ export function extractCodeFromURL(urlStr) {
       return { codeValue: '', accessCode: '', refererValue: '', error: '输入URL中未找到code参数' };
     }
 
-    const match = urlStr.match(/[�?]访问码[�?]\s*([a-zA-Z0-9]+)[�?]/);
+    const match = urlStr.match(/[（(]访问码[：:]\s*([a-zA-Z0-9]+)[）)]/);
     if (match && match[1]) {
       accessCode = match[1];
     }

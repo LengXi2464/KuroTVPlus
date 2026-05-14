@@ -208,7 +208,8 @@ function DuanjuPageClient() {
 
         {selectedSource && !selectedCategory && (
           <div className='text-center text-gray-500 py-8 dark:text-gray-400'>
-            当前采集源暂无短剧分�?          </div>
+            当前采集源暂无短剧分类
+          </div>
         )}
 
         {selectedSource && selectedCategory && (
@@ -259,7 +260,8 @@ function DuanjuPageClient() {
                   )}
                   {!hasMore && videos.length > 0 && (
                     <span className='text-sm text-gray-500 dark:text-gray-400'>
-                      没有更多�?                    </span>
+                      没有更多了
+                    </span>
                   )}
                 </div>
               </>

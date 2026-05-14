@@ -41,7 +41,7 @@ export function parseTianyiNetdiskId(id: string): { shareUrl: string; passcode?:
       passcode: typeof parsed.passcode === 'string' ? parsed.passcode : '',
     };
   } catch {
-    throw new Error('无效的天翼云盘播�?ID');
+    throw new Error('无效的天翼云盘播放 ID');
   }
 }
 

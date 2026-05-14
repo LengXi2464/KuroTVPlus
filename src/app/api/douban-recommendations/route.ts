@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     const recommendations: DoubanRecommendation[] = [];
 
-    console.log('开始解析豆瓣推�?);
+    console.log('开始解析豆瓣推荐');
 
     // 解析推荐模块
     $('.recommendations-bd dl').each((index, element) => {
@@ -82,7 +82,8 @@ export async function GET(request: NextRequest) {
     const processedRecommendations: DoubanRecommendation[] = [];
 
     for (const rec of recommendations) {
-      // 检查标题是否被截断（包含三个点�?      if (rec.title.includes('...')) {
+      // 检查标题是否被截断（包含三个点）
+      if (rec.title.includes('...')) {
         console.log(`检测到截断标题: ${rec.title}, ID: ${rec.doubanId}`);
 
         try {
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
               title: detailData.title,
             });
           } else {
-            console.log(`详情接口未返回标题，移除该视�? ${rec.doubanId}`);
+            console.log(`详情接口未返回标题，移除该视频: ${rec.doubanId}`);
             // 补充失败，不添加到结果中
           }
         } catch (error) {
@@ -105,11 +106,12 @@ export async function GET(request: NextRequest) {
           // 补充失败，不添加到结果中
         }
       } else {
-        // 标题正常，直接添�?        processedRecommendations.push(rec);
+        // 标题正常，直接添加
+        processedRecommendations.push(rec);
       }
     }
 
-    console.log('处理后的推荐�?', processedRecommendations.length);
+    console.log('处理后的推荐数:', processedRecommendations.length);
 
     return NextResponse.json(
       {

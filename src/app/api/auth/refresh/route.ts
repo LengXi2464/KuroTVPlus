@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
   const now = Date.now();
 
-  // 只检�?Refresh Token 是否过期
+  // 只检查 Refresh Token 是否过期
   if (now >= authInfo.refreshExpires) {
     return NextResponse.json(
       { error: 'Refresh token expired' },
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 只要 Refresh Token 有效，就允许刷新（即�?Access Token 已过期）
+  // 只要 Refresh Token 有效，就允许刷新（即使 Access Token 已过期）
 
   const newAuthData = await refreshAccessToken(
     authInfo.username,

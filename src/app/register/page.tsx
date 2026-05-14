@@ -58,7 +58,7 @@ function VersionDisplay() {
           {updateStatus === UpdateStatus.NO_UPDATE && (
             <>
               <CheckCircle className='w-3.5 h-3.5' />
-              <span className='font-semibold text-xs'>已是最�?/span>
+              <span className='font-semibold text-xs'>已是最新</span>
             </>
           )}
         </div>
@@ -86,11 +86,13 @@ function RegisterPageClient() {
 
   const { siteName } = useSite();
 
-  // 在客户端挂载后设置配�?  useEffect(() => {
+  // 在客户端挂载后设置配置
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const runtimeConfig = (window as any).RUNTIME_CONFIG;
 
-      // 设置背景图（支持多张随机选择�?      const registerBg = runtimeConfig?.REGISTER_BACKGROUND_IMAGE;
+      // 设置背景图（支持多张随机选择）
+      const registerBg = runtimeConfig?.REGISTER_BACKGROUND_IMAGE;
       if (registerBg) {
         const urls = registerBg
           .split('\n')
@@ -113,7 +115,8 @@ function RegisterPageClient() {
       };
       setSiteConfig(config);
 
-      // 如果未开启注册，重定向到登录�?      if (!config.EnableRegistration) {
+      // 如果未开启注册，重定向到登录页
+      if (!config.EnableRegistration) {
         router.replace('/login');
       }
     }
@@ -162,7 +165,7 @@ function RegisterPageClient() {
     setError(null);
 
     if (!username || !password || !confirmPassword) {
-      setError('请填写所有字�?);
+      setError('请填写所有字段');
       return;
     }
 
@@ -172,18 +175,18 @@ function RegisterPageClient() {
     }
 
     if (password !== confirmPassword) {
-      setError('两次输入的密码不一�?);
+      setError('两次输入的密码不一致');
       return;
     }
 
     if (password.length < 6) {
-      setError('密码长度至少�?�?);
+      setError('密码长度至少为6位');
       return;
     }
 
     // 检查Turnstile验证
     if (siteConfig?.RegistrationRequireTurnstile && !turnstileToken) {
-      setError('请完成人机验�?);
+      setError('请完成人机验证');
       return;
     }
 
@@ -201,7 +204,8 @@ function RegisterPageClient() {
       });
 
       if (res.ok) {
-        // 注册成功，跳转到登录�?        const redirect = searchParams.get('redirect') || '/login';
+        // 注册成功，跳转到登录页
+        const redirect = searchParams.get('redirect') || '/login';
         router.replace(redirect);
       } else {
         // 注册失败，重置Turnstile
@@ -217,7 +221,7 @@ function RegisterPageClient() {
           setError('用户名已存在');
         } else {
           const data = await res.json().catch(() => ({}));
-          setError(data.error ?? '服务器错�?);
+          setError(data.error ?? '服务器错误');
         }
       }
     } catch (error) {
@@ -232,10 +236,11 @@ function RegisterPageClient() {
     }
   };
 
-  // 如果配置未加载或未开启注册，显示加载�?  if (!siteConfig) {
+  // 如果配置未加载或未开启注册，显示加载中
+  if (!siteConfig) {
     return (
       <div className='relative min-h-screen flex items-center justify-center px-4'>
-        <div className='text-gray-500 dark:text-gray-400'>加载�?..</div>
+        <div className='text-gray-500 dark:text-gray-400'>加载中...</div>
       </div>
     );
   }
@@ -258,11 +263,13 @@ function RegisterPageClient() {
           {siteName}
         </h1>
         <p className='text-center text-sm text-gray-600 dark:text-gray-400 mb-8'>
-          创建新账�?        </p>
+          创建新账号
+        </p>
         <form onSubmit={handleSubmit} className='space-y-6'>
           <div>
             <label htmlFor='username' className='sr-only'>
-              用户�?            </label>
+              用户名
+            </label>
             <div className='relative'>
               <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
                 <User className='h-5 w-5 text-gray-400 dark:text-gray-500' />
@@ -272,7 +279,7 @@ function RegisterPageClient() {
                 type='text'
                 autoComplete='username'
                 className='block w-full rounded-lg border-0 py-3 pl-10 pr-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60'
-                placeholder='输入用户�?
+                placeholder='输入用户名'
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
@@ -292,7 +299,7 @@ function RegisterPageClient() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete='new-password'
                 className='block w-full rounded-lg border-0 py-3 pl-10 pr-12 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60'
-                placeholder='输入密码（至�?位）'
+                placeholder='输入密码（至少6位）'
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -381,7 +388,7 @@ function RegisterPageClient() {
             }
             className='inline-flex w-full justify-center rounded-lg bg-green-600 py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-green-600 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
           >
-            {loading ? '注册�?..' : '注册'}
+            {loading ? '注册中...' : '注册'}
           </button>
 
           {/* 返回登录链接 */}
@@ -391,7 +398,8 @@ function RegisterPageClient() {
               onClick={() => router.push('/login')}
               className='text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors'
             >
-              已有账号？返回登�?            </button>
+              已有账号？返回登录
+            </button>
           </div>
         </form>
       </div>

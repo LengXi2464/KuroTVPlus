@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   const username = authInfo.username;
 
   if (username !== process.env.USERNAME) {
-    return NextResponse.json({ error: '仅支持站长重载配�? }, { status: 401 });
+    return NextResponse.json({ error: '仅支持站长重载配置' }, { status: 401 });
   }
 
   try {

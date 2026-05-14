@@ -59,7 +59,8 @@ export async function refreshAccessToken(
   const authData = {
     username,
     role,
-    timestamp: now, // 新的 Access Token 时间�?    tokenId,
+    timestamp: now, // 新的 Access Token 时间戳
+    tokenId,
     refreshToken,
     refreshExpires,
     signature
@@ -70,7 +71,8 @@ export async function refreshAccessToken(
   return encodeURIComponent(JSON.stringify(authData));
 }
 
-// 检查是否需要续�?export function shouldRenewToken(timestamp: number): boolean {
+// 检查是否需要续期
+export function shouldRenewToken(timestamp: number): boolean {
   const age = Date.now() - timestamp;
   const remaining = TOKEN_CONFIG.ACCESS_TOKEN_AGE - age;
 

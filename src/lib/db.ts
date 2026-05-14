@@ -10,7 +10,7 @@ import { RedisStorage } from './redis.db';
 import { DanmakuFilterConfig,Favorite, IStorage, PlayRecord, SkipConfig } from './types';
 import { UpstashRedisStorage } from './upstash.db';
 
-// storage type 常量: 'localstorage' | 'redis' | 'upstash' | 'kvrocks' | 'd1' | 'postgres'，默�?'localstorage'
+// storage type 常量: 'localstorage' | 'redis' | 'upstash' | 'kvrocks' | 'd1' | 'postgres'，默认 'localstorage'
 const STORAGE_TYPE =
   (process.env.NEXT_PUBLIC_STORAGE_TYPE as
     | 'localstorage'
@@ -31,19 +31,21 @@ function createStorage(): IStorage {
     case 'kvrocks':
       return new KvrocksStorage();
     case 'd1':
-      // D1Storage 只能在服务端使用，客户端会报�?      if (typeof window !== 'undefined') {
+      // D1Storage 只能在服务端使用，客户端会报错
+      if (typeof window !== 'undefined') {
         throw new Error('D1Storage can only be used on the server side');
       }
       const d1Adapter = getD1Adapter();
-      // 动态导�?D1Storage 以避免客户端打包
+      // 动态导入 D1Storage 以避免客户端打包
       const { D1Storage } = require('./d1.db');
       return new D1Storage(d1Adapter);
     case 'postgres':
-      // PostgresStorage 只能在服务端使用，客户端会报�?      if (typeof window !== 'undefined') {
+      // PostgresStorage 只能在服务端使用，客户端会报错
+      if (typeof window !== 'undefined') {
         throw new Error('PostgresStorage can only be used on the server side');
       }
       const postgresAdapter = getPostgresAdapter();
-      // 动态导�?PostgresStorage 以避免客户端打包
+      // 动态导入 PostgresStorage 以避免客户端打包
       const { PostgresStorage } = require('./postgres.db');
       return new PostgresStorage(postgresAdapter);
     case 'localstorage':
@@ -53,10 +55,12 @@ function createStorage(): IStorage {
 }
 
 /**
- * 获取 Postgres 适配�? * 使用 Vercel Postgres (@vercel/postgres)
+ * 获取 Postgres 适配器
+ * 使用 Vercel Postgres (@vercel/postgres)
  */
 function getPostgresAdapter(): any {
-  // 动态导入适配器以避免客户端打�?  const { PostgresAdapter } = require('./postgres-adapter');
+  // 动态导入适配器以避免客户端打包
+  const { PostgresAdapter } = require('./postgres-adapter');
 
   console.log('Using Vercel Postgres database');
 
@@ -64,23 +68,26 @@ function getPostgresAdapter(): any {
 }
 
 /**
- * 获取 D1 适配�? * 开发环境：使用 better-sqlite3
- * 生产环境：使�?Cloudflare D1
+ * 获取 D1 适配器
+ * 开发环境：使用 better-sqlite3
+ * 生产环境：使用 Cloudflare D1
  */
 function getD1Adapter(): any {
-  // 动态导入适配器以避免客户端打�?  const { CloudflareD1Adapter, SQLiteAdapter } = require('./d1-adapter');
+  // 动态导入适配器以避免客户端打包
+  const { CloudflareD1Adapter, SQLiteAdapter } = require('./d1-adapter');
 
   // 检查是否为 Cloudflare 构建
   const isCloudflare = process.env.CF_PAGES === '1' || process.env.BUILD_TARGET === 'cloudflare';
 
   // 生产环境：Cloudflare Workers/Pages
   if (isCloudflare) {
-    // 创建一个懒加载的适配器，延迟到实际使用时才获�?D1 绑定
+    // 创建一个懒加载的适配器，延迟到实际使用时才获取 D1 绑定
     let cachedAdapter: any = null;
 
     return new Proxy({}, {
       get(target, prop) {
-        // 懒加载：第一次访问时才获取真实的 D1 适配�?        if (!cachedAdapter) {
+        // 懒加载：第一次访问时才获取真实的 D1 适配器
+        if (!cachedAdapter) {
           try {
             const { getCloudflareContext } = require('@opennextjs/cloudflare');
             const { env } = getCloudflareContext();
@@ -111,8 +118,9 @@ function getD1Adapter(): any {
 
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL'); // 启用 WAL 模式提升性能
-  db.pragma('foreign_keys = ON'); // �?D1 保持一致，启用外键约束
-  db.pragma('busy_timeout = 5000'); // 避免启动阶段或并发写入时立即锁失�?
+  db.pragma('foreign_keys = ON'); // 与 D1 保持一致，启用外键约束
+  db.pragma('busy_timeout = 5000'); // 避免启动阶段或并发写入时立即锁失败
+
   console.log('Using SQLite database (non-Cloudflare mode)');
   console.log('Database location:', dbPath);
 
@@ -266,7 +274,8 @@ export class DbManager {
   async listMusicV2History(userName: string): Promise<MusicV2HistoryRecord[]> {
     if (typeof (this.storage as any).listMusicV2History === 'function') {
       // 按播放队列顺序返回（createdAt ASC），
-      // 当前播放项由调用方基�?lastPlayedAt 决定�?      return (this.storage as any).listMusicV2History(userName);
+      // 当前播放项由调用方基于 lastPlayedAt 决定。
+      return (this.storage as any).listMusicV2History(userName);
     }
     return [];
   }
@@ -470,7 +479,7 @@ export class DbManager {
     await this.storage.deleteUser(userName);
   }
 
-  // ---------- 用户相关（新版本�?----------
+  // ---------- 用户相关（新版本） ----------
   async createUserV2(
     userName: string,
     password: string,
@@ -623,7 +632,7 @@ export class DbManager {
   // ---------- 数据迁移 ----------
   async migrateUsersFromConfig(adminConfig: AdminConfig): Promise<void> {
     if (typeof (this.storage as any).createUserV2 !== 'function') {
-      throw new Error('当前存储类型不支持新版用户存�?);
+      throw new Error('当前存储类型不支持新版用户存储');
     }
 
     const users = adminConfig.UserConfig.Users;
@@ -631,7 +640,7 @@ export class DbManager {
       return;
     }
 
-    console.log(`开始迁�?${users.length} 个用�?..`);
+    console.log(`开始迁移 ${users.length} 个用户...`);
 
     for (const user of users) {
       try {
@@ -641,7 +650,8 @@ export class DbManager {
           continue;
         }
 
-        // 检查用户是否已经迁�?        const exists = await this.checkUserExistV2(user.username);
+        // 检查用户是否已经迁移
+        const exists = await this.checkUserExistV2(user.username);
         if (exists) {
           console.log(`用户 ${user.username} 已存在，跳过迁移`);
           continue;
@@ -677,12 +687,14 @@ export class DbManager {
           }
         }
 
-        // 将站长角色转换为普通角�?        const migratedRole = user.role === 'owner' ? 'user' : user.role;
+        // 将站长角色转换为普通角色
+        const migratedRole = user.role === 'owner' ? 'user' : user.role;
         if (user.role === 'owner') {
-          console.log(`用户 ${user.username} 的角色从 owner 转换�?user`);
+          console.log(`用户 ${user.username} 的角色从 owner 转换为 user`);
         }
 
-        // 创建新用�?        await this.createUserV2(
+        // 创建新用户
+        await this.createUserV2(
           user.username,
           password,
           migratedRole,
@@ -691,7 +703,8 @@ export class DbManager {
           user.enabledApis
         );
 
-        // 如果用户被封禁，更新状�?        if (user.banned) {
+        // 如果用户被封禁，更新状态
+        if (user.banned) {
           await this.updateUserInfoV2(user.username, { banned: true });
         }
 
@@ -751,7 +764,7 @@ export class DbManager {
     await this.storage.deleteMangaReadRecord(userName, generateStorageKey(sourceId, mangaId));
   }
 
-  // ---------- 电子书书�?----------
+  // ---------- 电子书书架 ----------
   async getBookShelf(userName: string, sourceId: string, bookId: string): Promise<BookShelfItem | null> {
     return this.storage.getBookShelf(userName, generateStorageKey(sourceId, bookId));
   }
@@ -768,7 +781,7 @@ export class DbManager {
     await this.storage.deleteBookShelf(userName, generateStorageKey(sourceId, bookId));
   }
 
-  // ---------- 电子书阅读历�?----------
+  // ---------- 电子书阅读历史 ----------
   async getBookReadRecord(userName: string, sourceId: string, bookId: string): Promise<BookReadRecord | null> {
     return this.storage.getBookReadRecord(userName, generateStorageKey(sourceId, bookId));
   }
@@ -785,14 +798,15 @@ export class DbManager {
     await this.storage.deleteBookReadRecord(userName, generateStorageKey(sourceId, bookId));
   }
 
-  // 获取全部用户�?  async getAllUsers(): Promise<string[]> {
+  // 获取全部用户名
+  async getAllUsers(): Promise<string[]> {
     if (typeof (this.storage as any).getAllUsers === 'function') {
       return (this.storage as any).getAllUsers();
     }
     return [];
   }
 
-  // ---------- 管理员配�?----------
+  // ---------- 管理员配置 ----------
   async getAdminConfig(): Promise<AdminConfig | null> {
     if (typeof (this.storage as any).getAdminConfig === 'function') {
       return (this.storage as any).getAdminConfig();
@@ -876,11 +890,11 @@ export class DbManager {
     if (typeof (this.storage as any).clearAllData === 'function') {
       await (this.storage as any).clearAllData();
     } else {
-      throw new Error('存储类型不支持清空数据操�?);
+      throw new Error('存储类型不支持清空数据操作');
     }
   }
 
-  // ---------- 通用键值存�?----------
+  // ---------- 通用键值存储 ----------
   async getGlobalValue(key: string): Promise<string | null> {
     if (typeof (this.storage as any).getGlobalValue === 'function') {
       return (this.storage as any).getGlobalValue(key);

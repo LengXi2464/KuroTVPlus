@@ -35,7 +35,7 @@ interface HomeModule {
 }
 
 function HomeClient() {
-  // 移除�?activeTab 状态，收藏夹功能已移到 UserMenu
+  // 移除了 activeTab 状态，收藏夹功能已移到 UserMenu
   const [hotMovies, setHotMovies] = useState<DoubanItem[]>([]);
   const [hotTvShows, setHotTvShows] = useState<DoubanItem[]>([]);
   const [hotVarietyShows, setHotVarietyShows] = useState<DoubanItem[]>([]);
@@ -46,10 +46,11 @@ function HomeClient() {
   >([]);
   const [loading, setLoading] = useState(true);
   const { announcement } = useSite();
-  // 首页模块配置状�?  const [homeModules, setHomeModules] = useState<HomeModule[]>([
+  // 首页模块配置状态
+  const [homeModules, setHomeModules] = useState<HomeModule[]>([
     { id: 'hotMovies', name: '热门电影', enabled: true, order: 0 },
     { id: 'hotDuanju', name: '热播短剧', enabled: true, order: 1 },
-    { id: 'bangumiCalendar', name: '新番放�?, enabled: true, order: 2 },
+    { id: 'bangumiCalendar', name: '新番放送', enabled: true, order: 2 },
     { id: 'hotTvShows', name: '热门剧集', enabled: true, order: 3 },
     { id: 'hotVarietyShows', name: '热门综艺', enabled: true, order: 4 },
     { id: 'upcomingContent', name: '即将上映', enabled: true, order: 5 },
@@ -83,7 +84,7 @@ function HomeClient() {
 
     const inlinePasscode = (text: string) =>
       pickPasscode(
-        text.match(/(?:提取码|访问码|密码)\s*[:�?]?\s*([a-zA-Z0-9]{4,8})/i)?.[1],
+        text.match(/(?:提取码|访问码|密码)\s*[:：=]?\s*([a-zA-Z0-9]{4,8})/i)?.[1],
         text.match(/[?&](?:pwd|passcode|accessCode)=([^&\s]+)/i)?.[1]
       );
 
@@ -275,21 +276,24 @@ function HomeClient() {
     }
   }, []);
 
-  // 检查源站寻片功能是否启�?  useEffect(() => {
+  // 检查源站寻片功能是否启用
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const enabled = (window as any).RUNTIME_CONFIG?.ENABLE_SOURCE_SEARCH !== false;
       setSourceSearchEnabled(enabled);
     }
   }, []);
 
-  // 检查音乐功能是否启�?  useEffect(() => {
+  // 检查音乐功能是否启用
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const enabled = !!(window as any).RUNTIME_CONFIG?.MUSIC_ENABLED;
       setMusicEnabled(enabled);
     }
   }, []);
 
-  // 检查漫画功能是否启�?  useEffect(() => {
+  // 检查漫画功能是否启用
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const enabled = !!(window as any).RUNTIME_CONFIG?.SUWAYOMI_ENABLED;
       setMangaEnabled(enabled);
@@ -304,7 +308,8 @@ function HomeClient() {
     }
   }, []);
 
-  // 检查公告弹窗状�?  useEffect(() => {
+  // 检查公告弹窗状态
+  useEffect(() => {
     if (typeof window !== 'undefined' && announcement) {
       const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
       if (hasSeenAnnouncement !== announcement) {
@@ -435,9 +440,11 @@ function HomeClient() {
 
   const handleCloseAnnouncement = (announcement: string) => {
     setShowAnnouncement(false);
-    localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹�?  };
+    localStorage.setItem('hasSeenAnnouncement', announcement); // 记录已查看弹窗
+  };
 
-  // 渲染模块的函�?  const renderModule = (moduleId: string) => {
+  // 渲染模块的函数
+  const renderModule = (moduleId: string) => {
     switch (moduleId) {
       case 'hotMovies':
         return (
@@ -546,7 +553,8 @@ function HomeClient() {
           <section key="bangumiCalendar" className='mb-8'>
             <div className='mb-4 flex items-center justify-between'>
               <h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>
-                新番放�?              </h2>
+                新番放送
+              </h2>
               <Link
                 href='/douban?type=anime'
                 className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
@@ -742,7 +750,7 @@ function HomeClient() {
   return (
     <PageLayout>
       <FireworksCanvas />
-      {/* TMDB 热门轮播�?*/}
+      {/* TMDB 热门轮播图 */}
       {homeBannerEnabled && (
         <div className='w-full mb-4'>
           <BannerCarousel delayLoad={true} />
@@ -823,7 +831,7 @@ function HomeClient() {
             {/* 继续观看 */}
             {homeContinueWatchingEnabled && <ContinueWatching />}
 
-            {/* 根据配置动态渲染首页模�?*/}
+            {/* 根据配置动态渲染首页模块 */}
             {homeModules
               .filter(module => module.enabled)
               .sort((a, b) => a.order - b.order)
@@ -860,7 +868,8 @@ function HomeClient() {
               onClick={() => handleCloseAnnouncement(announcement || '')}
               className='w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors'
             >
-              知道�?            </button>
+              知道了
+            </button>
           </div>
         </div>
       )}
@@ -888,9 +897,11 @@ function HomeClient() {
             </div>
             <div className='p-4 space-y-4'>
               <div className='text-sm text-gray-600 dark:text-gray-300'>
-                请输入可直接播放的视频链接�?              </div>
+                请输入可直接播放的视频链接。
+              </div>
               <div className='text-xs text-gray-500 dark:text-gray-400'>
-                支持夸克、UC、百度、天翼、移动�?23�?15 网盘在线播放�?              </div>
+                支持夸克、UC、百度、天翼、移动、123、115 网盘在线播放。
+              </div>
               <input
                 value={directPlayUrl}
                 onChange={(event) => setDirectPlayUrl(event.target.value)}
@@ -914,7 +925,7 @@ function HomeClient() {
                   disabled={!directPlayUrl.trim() || directPlaySubmitting}
                   className='px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                 >
-                  {directPlaySubmitting ? '处理�?..' : '开始播�?}
+                  {directPlaySubmitting ? '处理中...' : '开始播放'}
                 </button>
               </div>
             </div>

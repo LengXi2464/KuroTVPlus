@@ -42,7 +42,8 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
   const [latestVersion, setLatestVersion] = useState<string>('');
   const [showRemoteContent, setShowRemoteContent] = useState(false);
 
-  // 确保组件已挂�?  useEffect(() => {
+  // 确保组件已挂载
+  useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
   }, []);
@@ -57,11 +58,13 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
       const originalBodyOverflow = body.style.overflow;
       const originalHtmlOverflow = html.style.overflow;
 
-      // 只设�?overflow 来阻止滚�?      body.style.overflow = 'hidden';
+      // 只设置 overflow 来阻止滚动
+      body.style.overflow = 'hidden';
       html.style.overflow = 'hidden';
 
       return () => {
-        // 恢复所有原始样�?        body.style.overflow = originalBodyOverflow;
+        // 恢复所有原始样式
+        body.style.overflow = originalBodyOverflow;
         html.style.overflow = originalHtmlOverflow;
       };
     }
@@ -116,7 +119,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
     for (const line of lines) {
       const trimmedLine = line.trim();
 
-      // 匹配版本�? ## [X.Y.Z] - YYYY-MM-DD
+      // 匹配版本行: ## [X.Y.Z] - YYYY-MM-DD
       const versionMatch = trimmedLine.match(
         /^## \[([\d.]+)\] - (\d{4}-\d{2}-\d{2})$/
       );
@@ -137,7 +140,8 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
         continue;
       }
 
-      // 如果遇到下一个版本或到达文件末尾，停止处理当前版�?      if (inVersionContent && currentVersion) {
+      // 如果遇到下一个版本或到达文件末尾，停止处理当前版本
+      if (inVersionContent && currentVersion) {
         // 匹配章节标题
         if (trimmedLine === '### Added') {
           currentSection = 'added';
@@ -164,7 +168,8 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
       }
     }
 
-    // 添加最后一个版�?    if (currentVersion) {
+    // 添加最后一个版本
+    if (currentVersion) {
       versions.push(currentVersion);
     }
 
@@ -203,7 +208,8 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
             {isUpdate && (
               <span className='px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 rounded-full flex items-center gap-1'>
                 <Download className='w-3 h-3' />
-                可更�?              </span>
+                可更新
+              </span>
             )}
           </div>
           <div className='flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400'>
@@ -308,7 +314,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
           touchAction: 'auto', // 允许面板内的正常触摸操作
         }}
       >
-        {/* 标题�?*/}
+        {/* 标题栏 */}
         <div className='flex items-center justify-between p-3 sm:p-6 border-b border-gray-200 dark:border-gray-700'>
           <div className='flex items-center gap-2 sm:gap-3'>
             <h3 className='text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200'>
@@ -322,7 +328,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                 <span className='px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 rounded-full flex items-center gap-1'>
                   <Download className='w-3 h-3 sm:w-4 sm:h-4' />
                   <span className='hidden sm:inline'>有新版本可用</span>
-                  <span className='sm:hidden'>可更�?/span>
+                  <span className='sm:hidden'>可更新</span>
                 </span>
               )}
             </div>
@@ -349,9 +355,10 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     </div>
                     <div className='min-w-0 flex-1'>
                       <h4 className='text-sm sm:text-base font-semibold text-yellow-800 dark:text-yellow-200'>
-                        发现新版�?                      </h4>
+                        发现新版本
+                      </h4>
                       <p className='text-xs sm:text-sm text-yellow-700 dark:text-yellow-300 break-all'>
-                        v{CURRENT_VERSION} �?v{latestVersion}
+                        v{CURRENT_VERSION} → v{latestVersion}
                       </p>
                     </div>
                   </div>
@@ -368,7 +375,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
               </div>
             )}
 
-            {/* 当前为最新版本信�?*/}
+            {/* 当前为最新版本信息 */}
             {!hasUpdate && (
               <div className='bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4'>
                 <div className='flex flex-col gap-3'>
@@ -378,9 +385,10 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     </div>
                     <div className='min-w-0 flex-1'>
                       <h4 className='text-sm sm:text-base font-semibold text-green-800 dark:text-green-200'>
-                        当前为最新版�?                      </h4>
+                        当前为最新版本
+                      </h4>
                       <p className='text-xs sm:text-sm text-green-700 dark:text-green-300 break-all'>
-                        已是最新版�?v{CURRENT_VERSION}
+                        已是最新版本 v{CURRENT_VERSION}
                       </p>
                     </div>
                   </div>
@@ -397,7 +405,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
               </div>
             )}
 
-            {/* 远程可更新内�?*/}
+            {/* 远程可更新内容 */}
             {hasUpdate && (
               <div className='space-y-4'>
                 <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
@@ -448,7 +456,8 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                               </h4>
                               {entry.version === latestVersion && (
                                 <span className='px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 rounded-full flex items-center gap-1'>
-                                  远程最�?                                </span>
+                                  远程最新
+                                </span>
                               )}
                             </div>
                             <div className='flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400'>
@@ -545,7 +554,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
     </>
   );
 
-  // 使用 Portal 渲染�?document.body
+  // 使用 Portal 渲染到 document.body
   if (!mounted || !isOpen) return null;
 
   return createPortal(versionPanelContent, document.body);

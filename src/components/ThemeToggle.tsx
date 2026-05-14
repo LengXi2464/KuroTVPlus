@@ -28,7 +28,8 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
-  // 监听主题变化和路由变化，确保主题色始终同�?  useEffect(() => {
+  // 监听主题变化和路由变化，确保主题色始终同步
+  useEffect(() => {
     if (mounted) {
       setThemeColor(resolvedTheme);
     }

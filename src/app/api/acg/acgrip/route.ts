@@ -15,10 +15,11 @@ export const runtime = 'nodejs';
  */
 export async function POST(req: NextRequest) {
   try {
-    // 检查权�?    const authInfo = getAuthInfoFromCookie(req);
+    // 检查权限
+    const authInfo = getAuthInfoFromCookie(req);
     if (!authInfo?.username || !(await hasFeaturePermission(authInfo.username, 'magnet_search'))) {
       return NextResponse.json(
-        { error: '无权限访�? },
+        { error: '无权限访问' },
         { status: 403 }
       );
     }
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     if (!keyword || typeof keyword !== 'string') {
       return NextResponse.json(
-        { error: '搜索关键词不能为�? },
+        { error: '搜索关键词不能为空' },
         { status: 400 }
       );
     }
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     const trimmedKeyword = keyword.trim();
     if (!trimmedKeyword) {
       return NextResponse.json(
-        { error: '搜索关键词不能为�? },
+        { error: '搜索关键词不能为空' },
         { status: 400 }
       );
     }
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     const pageNum = parseInt(String(page), 10);
     if (isNaN(pageNum) || pageNum < 1) {
       return NextResponse.json(
-        { error: '页码必须是大�?的整�? },
+        { error: '页码必须是大于0的整数' },
         { status: 400 }
       );
     }
@@ -84,10 +85,12 @@ export async function POST(req: NextRequest) {
 
     const items = parsed.rss.channel[0].item;
 
-    // 转换为标准格�?    const results = items.map((item: any) => {
+    // 转换为标准格式
+    const results = items.map((item: any) => {
       const description = item.description?.[0] || '';
 
-      // 提取描述中的图片（如果有�?      let images: string[] = [];
+      // 提取描述中的图片（如果有）
+      let images: string[] = [];
       if (description) {
         const imgMatches = description.match(/src="([^"]+)"/g);
         if (imgMatches) {

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'; // 禁用缓存
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireFeaturePermission(request, 'web_live', '无权限访问网络直�?);
+    const authResult = await requireFeaturePermission(request, 'web_live', '无权限访问网络直播');
     if (authResult instanceof NextResponse) return authResult;
     const config = await getConfig();
     if (!config?.WebLiveConfig) {

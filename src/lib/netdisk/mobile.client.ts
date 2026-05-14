@@ -168,7 +168,7 @@ async function collectFiles(linkId: string, path = 'root', authorization?: strin
     ? info.coLst
         .filter((item: any) => item && item.coType === 3)
         .map((item: any) => ({
-          name: String(item.coName || '未命名视�?),
+          name: String(item.coName || '未命名视频'),
           contentId: String(item.path || ''),
           linkID: linkId,
           size: Number(item.coSize || 0),
@@ -200,7 +200,7 @@ export async function listMobileShareVideos(shareUrl: string, authorization?: st
   const linkId = parseShareId(shareUrl);
   const files = sortFiles(await collectFiles(linkId, 'root', authorization));
   if (files.length === 0) {
-    throw new Error('移动云盘分享中没有视频文�?);
+    throw new Error('移动云盘分享中没有视频文件');
   }
   return {
     title: files.length === 1 ? files[0].name.replace(/\.[^.]+$/, '') : '移动云盘立即播放',
@@ -288,7 +288,7 @@ export async function getMobileShareDownloadUrl(
 
   const account = extractAccountFromAuthorization(authorization);
   if (!account) {
-    throw new Error('无法从移动云盘验证头中解析账�?);
+    throw new Error('无法从移动云盘验证头中解析账号');
   }
 
   const requestPayload = {

@@ -73,7 +73,8 @@ export class OpenListClient {
   }
 
   /**
-   * 获取缓存�?Token 或重新登�?   */
+   * 获取缓存的 Token 或重新登录
+   */
   private async getToken(): Promise<string> {
     const cacheKey = `${this.baseURL}:${this.username}`;
     const cached = tokenCache.get(cacheKey);
@@ -92,13 +93,13 @@ export class OpenListClient {
       this.password
     );
 
-    // 缓存 Token，设�?1 小时过期
+    // 缓存 Token，设置 1 小时过期
     tokenCache.set(cacheKey, {
       token: this.token,
       expiresAt: Date.now() + 60 * 60 * 1000,
     });
 
-    console.log('[OpenListClient] 登录成功，Token 已缓�?);
+    console.log('[OpenListClient] 登录成功，Token 已缓存');
     return this.token;
   }
 
@@ -108,11 +109,12 @@ export class OpenListClient {
   private clearTokenCache(): void {
     const cacheKey = `${this.baseURL}:${this.username}`;
     tokenCache.delete(cacheKey);
-    console.log('[OpenListClient] Token 缓存已清�?);
+    console.log('[OpenListClient] Token 缓存已清除');
   }
 
   /**
-   * 执行请求，如�?01则清除缓存并重新登录后重�?   */
+   * 执行请求，如果401则清除缓存并重新登录后重试
+   */
   private async fetchWithRetry(
     url: string,
     options: RequestInit,
@@ -121,7 +123,7 @@ export class OpenListClient {
     // 获取 Token
     const token = await this.getToken();
 
-    // 更新请求头中�?Token
+    // 更新请求头中的 Token
     const requestOptions = {
       ...options,
       headers: {
@@ -132,21 +134,22 @@ export class OpenListClient {
 
     const response = await fetch(url, requestOptions);
 
-    // 检�?HTTP status 401
+    // 检查 HTTP status 401
     if (response.status === 401 && !retried) {
-      console.log('[OpenListClient] 收到 HTTP 401，清�?Token 缓存并重�?);
+      console.log('[OpenListClient] 收到 HTTP 401，清除 Token 缓存并重试');
       this.clearTokenCache();
       return this.fetchWithRetry(url, options, true);
     }
 
-    // 检查响应体中的 code 字段（OpenList �?Token 过期�?HTTP status �?200，但 code �?401�?    if (response.ok && !retried) {
+    // 检查响应体中的 code 字段（OpenList 的 Token 过期时 HTTP status 是 200，但 code 是 401）
+    if (response.ok && !retried) {
       try {
         // 克隆响应以便读取 JSON
         const clonedResponse = response.clone();
         const data = await clonedResponse.json();
 
         if (data.code === 401) {
-          console.log('[OpenListClient] 响应�?code �?401，Token 已过期，清除缓存并重�?);
+          console.log('[OpenListClient] 响应体 code 为 401，Token 已过期，清除缓存并重试');
           this.clearTokenCache();
           return this.fetchWithRetry(url, options, true);
         }
@@ -229,7 +232,8 @@ export class OpenListClient {
       throw new Error(`OpenList 上传失败: ${response.status} - ${errorText}`);
     }
 
-    // 上传成功后刷新目录缓�?    const dir = path.substring(0, path.lastIndexOf('/')) || '/';
+    // 上传成功后刷新目录缓存
+    const dir = path.substring(0, path.lastIndexOf('/')) || '/';
     await this.refreshDirectory(dir);
   }
 
@@ -275,7 +279,8 @@ export class OpenListClient {
     }
   }
 
-  // 获取视频预览�?  async getVideoPreview(path: string): Promise<any> {
+  // 获取视频预览流
+  async getVideoPreview(path: string): Promise<any> {
     const response = await this.fetchWithRetry(`${this.baseURL}/api/fs/other`, {
       method: 'POST',
       headers: await this.getHeaders(),
@@ -299,7 +304,8 @@ export class OpenListClient {
     return data;
   }
 
-  // 检查连通�?  async checkConnectivity(): Promise<{ success: boolean; message: string }> {
+  // 检查连通性
+  async checkConnectivity(): Promise<{ success: boolean; message: string }> {
     try {
       const response = await this.fetchWithRetry(`${this.baseURL}/api/me`, {
         method: 'GET',
@@ -318,7 +324,7 @@ export class OpenListClient {
       if (data.code !== 200) {
         return {
           success: false,
-          message: `响应码错�? ${data.code}`,
+          message: `响应码错误: ${data.code}`,
         };
       }
 

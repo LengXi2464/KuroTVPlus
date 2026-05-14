@@ -161,12 +161,12 @@ export default function BookDetailPage() {
     <div className='space-y-6'>
       <section className='grid gap-6 rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950 md:grid-cols-[220px_1fr]'>
         <div className='overflow-hidden rounded-3xl bg-gray-100 dark:bg-gray-900'>
-          {detail.cover ? <img src={detail.cover} alt={detail.title} className='h-full w-full object-cover' /> : <div className='flex aspect-[3/4] items-center justify-center text-sm text-gray-400'>无封�?/div>}
+          {detail.cover ? <img src={detail.cover} alt={detail.title} className='h-full w-full object-cover' /> : <div className='flex aspect-[3/4] items-center justify-center text-sm text-gray-400'>无封面</div>}
         </div>
         <div className='space-y-4'>
           <div>
             <h1 className='text-2xl font-semibold'>{detail.title}</h1>
-            <div className='mt-2 text-sm text-gray-500 dark:text-gray-400'>{detail.author || '未知作�?}</div>
+            <div className='mt-2 text-sm text-gray-500 dark:text-gray-400'>{detail.author || '未知作者'}</div>
             <div className='mt-1 text-xs text-gray-400 dark:text-gray-500'>{detail.sourceName}</div>
           </div>
           {detail.summary ? <div className='text-sm leading-7 text-gray-700 dark:text-gray-300'>{detail.summary}</div> : null}
@@ -176,7 +176,7 @@ export default function BookDetailPage() {
           <div className='flex flex-wrap gap-3'>
             {readable ? <Link href={buildBookReadPath(detail.sourceId, detail.id)} onClick={() => cacheBookDetail(detail)} className='rounded-2xl bg-sky-600 px-4 py-2 text-sm text-white'>在线阅读</Link> : null}
             <button onClick={toggleShelf} className='rounded-2xl border border-gray-200 px-4 py-2 text-sm dark:border-gray-700'>{shelf[`${detail.sourceId}+${detail.id}`] ? '移出书架' : '加入书架'}</button>
-            {readable ? <button onClick={async () => { try { setFileBusy('download'); await openBookFile(detail.sourceId, detail.id, readableFormat, true, readable?.href, detail.title); } catch (err) { setError((err as Error).message || '下载文件失败'); } finally { setFileBusy(''); } }} disabled={fileBusy !== ''} className='rounded-2xl border border-gray-200 px-4 py-2 text-sm dark:border-gray-700'>{fileBusy === 'download' ? '下载�?..' : '下载文件'}</button> : null}
+            {readable ? <button onClick={async () => { try { setFileBusy('download'); await openBookFile(detail.sourceId, detail.id, readableFormat, true, readable?.href, detail.title); } catch (err) { setError((err as Error).message || '下载文件失败'); } finally { setFileBusy(''); } }} disabled={fileBusy !== ''} className='rounded-2xl border border-gray-200 px-4 py-2 text-sm dark:border-gray-700'>{fileBusy === 'download' ? '下载中...' : '下载文件'}</button> : null}
           </div>
         </div>
       </section>

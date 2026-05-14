@@ -7,7 +7,8 @@ import { useDownload } from '@/contexts/DownloadContext';
 export function DownloadBubble() {
   const { tasks, downloadingCount, setShowDownloadPanel } = useDownload();
 
-  // 拖动状�?  const [position, setPosition] = useState({ x: 0, y: 0 });
+  // 拖动状态
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -142,7 +143,7 @@ export function DownloadBubble() {
           />
         </svg>
 
-        {/* 下载中数量徽�?*/}
+        {/* 下载中数量徽章 */}
         {downloadingCount > 0 && (
           <div className='absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center animate-pulse'>
             {downloadingCount}

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const query = searchParams.get('q');
 
   if (!query) {
-    return NextResponse.json({ error: '缺少搜索关键�? }, { status: 400 });
+    return NextResponse.json({ error: '缺少搜索关键词' }, { status: 400 });
   }
 
   try {

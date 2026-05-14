@@ -66,21 +66,21 @@ const PageLayout = ({ children, activePath = '/', hideNavigation = false }: Page
           </>
         )}
 
-        {/* 移动端头�?*/}
+        {/* 移动端头部 */}
         {!hideNavigation && (
           <MobileHeader showBackButton={['/play', '/live'].includes(activePath)} />
         )}
 
         {/* 主要布局容器 */}
         <div className='relative z-10 flex md:grid md:grid-cols-[auto_1fr] w-full min-h-screen md:min-h-auto'>
-          {/* 侧边�?- 桌面端显示，移动端隐�?*/}
+          {/* 侧边栏 - 桌面端显示，移动端隐藏 */}
           {!hideNavigation && (
             <div className='hidden md:block'>
               <Sidebar activePath={activePath} />
             </div>
           )}
 
-          {/* 主内容区�?*/}
+          {/* 主内容区域 */}
           <div className='relative min-w-0 flex-1 transition-all duration-300'>
             {/* 桌面端左上角返回按钮 */}
             {!hideNavigation && ['/play', '/live'].includes(activePath) && (
@@ -89,7 +89,7 @@ const PageLayout = ({ children, activePath = '/', hideNavigation = false }: Page
               </div>
             )}
 
-            {/* 桌面端顶部按�?*/}
+            {/* 桌面端顶部按钮 */}
             {!hideNavigation && (
               <div className='absolute top-2 right-4 z-20 hidden md:flex items-center gap-2'>
                 <ThemeToggle />
@@ -98,7 +98,7 @@ const PageLayout = ({ children, activePath = '/', hideNavigation = false }: Page
               </div>
             )}
 
-            {/* 主内�?*/}
+            {/* 主内容 */}
             <main
               className='flex-1 md:min-h-0 mb-14 md:mb-0 md:mt-0 mt-12'
               style={{
@@ -110,7 +110,7 @@ const PageLayout = ({ children, activePath = '/', hideNavigation = false }: Page
           </div>
         </div>
 
-        {/* 移动端底部导�?*/}
+        {/* 移动端底部导航 */}
         {!hideNavigation && (
           <div className='md:hidden'>
             <MobileBottomNav activePath={activePath} />

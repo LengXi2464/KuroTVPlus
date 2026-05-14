@@ -46,7 +46,7 @@ export function parseMobileNetdiskId(id: string): {
       passcode: typeof parsed.passcode === 'string' ? parsed.passcode : '',
     };
   } catch {
-    throw new Error('无效的移动云盘播�?ID');
+    throw new Error('无效的移动云盘播放 ID');
   }
 }
 

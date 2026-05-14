@@ -299,7 +299,7 @@ async function parseFeed(xml: string, baseUrl: string): Promise<ParsedFeed> {
 
   const feedNode = parsed.feed ? feed : { entry: [feed] };
   return {
-    title: textValue(feedNode.title?.[0] || '电子书目�?),
+    title: textValue(feedNode.title?.[0] || '电子书目录'),
     subtitle: textValue(feedNode.subtitle?.[0] || ''),
     id: textValue(feedNode.id?.[0] || ''),
     links: parseLinks(asArray(feedNode.link), baseUrl),
@@ -352,7 +352,7 @@ async function resolveSearchTargetUrl(source: BookSource, q: string): Promise<st
     const urlNodes = asArray(description?.Url || description?.url);
     const preferred = urlNodes.find((item) => (item?.$?.type || '').toLowerCase().includes('atom+xml')) || urlNodes[0];
     const template = preferred?.$?.template;
-    if (!template) throw new Error('未找到搜索模�?);
+    if (!template) throw new Error('未找到搜索模板');
     return fillSearchTermsTemplate(normalizeUrl(searchLink.href, template), q);
   }
 
@@ -542,7 +542,7 @@ export class OPDSClient {
           navigation: fallback.navigation || [],
         } as BookDetail;
       }
-      throw new Error('详情页没有可用书籍条�?);
+      throw new Error('详情页没有可用书籍条目');
     }
 
     const detail = mapEntryToDetail(source, entry);

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未授�? }, { status: 401 });
+      return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 
     if (!tmdbApiKey) {
       return NextResponse.json(
-        { error: 'TMDB API Key 未配�? },
+        { error: 'TMDB API Key 未配置' },
         { status: 400 }
       );
     }

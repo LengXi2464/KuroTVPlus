@@ -109,7 +109,7 @@ async function runTask(taskId: string, links: string[]) {
           try {
             return await withTimeout(checkNetdiskLink(task.platform, url), NETDISK_CHECK_RULE.requestTimeoutMs);
           } catch (error) {
-            const reason = error instanceof Error ? error.message : '检测失�?;
+            const reason = error instanceof Error ? error.message : '检测失败';
             return {
               platform: task.platform,
               url,
@@ -149,7 +149,7 @@ async function runTask(taskId: string, links: string[]) {
     task.updatedAt = Date.now();
   } catch (error) {
     task.status = 'failed';
-    task.error = error instanceof Error ? error.message : '检测任务失�?;
+    task.error = error instanceof Error ? error.message : '检测任务失败';
     task.updatedAt = Date.now();
   } finally {
     activeTaskIds.delete(taskId);

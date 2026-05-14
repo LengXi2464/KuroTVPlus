@@ -12,7 +12,7 @@ export async function resolveUCSession(id: string) {
   const config = await getConfig();
   const ucConfig = config.NetDiskConfig?.UC;
   if (!ucConfig?.Enabled || !ucConfig.Cookie) {
-    throw new Error('UC网盘未配置或未启�?);
+    throw new Error('UC网盘未配置或未启用');
   }
 
   let session = refreshUCNetdiskSession(id) || getUCNetdiskSession(id);

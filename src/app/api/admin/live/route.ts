@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    // 权限检�?- 使用v2用户系统
+    // 权限检查 - 使用v2用户系统
     const authInfo = getAuthInfoFromCookie(request);
     const username = authInfo?.username;
     const config = await getConfig();
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const { action, key, name, url, ua, epg, proxyMode } = body;
 
     if (!config) {
-      return NextResponse.json({ error: '配置不存�? }, { status: 404 });
+      return NextResponse.json({ error: '配置不存在' }, { status: 404 });
     }
 
     // 确保 LiveConfig 存在
@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'add':
-        // 检查是否已存在相同�?key
+        // 检查是否已存在相同的 key
         if (config.LiveConfig.some((l) => l.key === key)) {
-          return NextResponse.json({ error: '直播�?key 已存�? }, { status: 400 });
+          return NextResponse.json({ error: '直播源 key 已存在' }, { status: 400 });
         }
 
         const liveInfo = {
@@ -56,22 +56,24 @@ export async function POST(request: NextRequest) {
           const nums = await refreshLiveChannels(liveInfo);
           liveInfo.channelNumber = nums;
         } catch (error) {
-          console.error('刷新直播源失�?', error);
+          console.error('刷新直播源失败:', error);
           liveInfo.channelNumber = 0;
         }
 
-        // 添加新的直播�?        config.LiveConfig.push(liveInfo);
+        // 添加新的直播源
+        config.LiveConfig.push(liveInfo);
         break;
 
       case 'delete':
-        // 删除直播�?        const deleteIndex = config.LiveConfig.findIndex((l) => l.key === key);
+        // 删除直播源
+        const deleteIndex = config.LiveConfig.findIndex((l) => l.key === key);
         if (deleteIndex === -1) {
           return NextResponse.json({ error: '直播源不存在' }, { status: 404 });
         }
 
         const liveSource = config.LiveConfig[deleteIndex];
         if (liveSource.from === 'config') {
-          return NextResponse.json({ error: '不能删除配置文件中的直播�? }, { status: 400 });
+          return NextResponse.json({ error: '不能删除配置文件中的直播源' }, { status: 400 });
         }
 
         deleteCachedLiveChannels(key);
@@ -80,7 +82,8 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'enable':
-        // 启用直播�?        const enableSource = config.LiveConfig.find((l) => l.key === key);
+        // 启用直播源
+        const enableSource = config.LiveConfig.find((l) => l.key === key);
         if (!enableSource) {
           return NextResponse.json({ error: '直播源不存在' }, { status: 404 });
         }
@@ -88,7 +91,8 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'disable':
-        // 禁用直播�?        const disableSource = config.LiveConfig.find((l) => l.key === key);
+        // 禁用直播源
+        const disableSource = config.LiveConfig.find((l) => l.key === key);
         if (!disableSource) {
           return NextResponse.json({ error: '直播源不存在' }, { status: 404 });
         }
@@ -96,32 +100,36 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'edit':
-        // 编辑直播�?        const editSource = config.LiveConfig.find((l) => l.key === key);
+        // 编辑直播源
+        const editSource = config.LiveConfig.find((l) => l.key === key);
         if (!editSource) {
           return NextResponse.json({ error: '直播源不存在' }, { status: 404 });
         }
 
         // 配置文件中的直播源不允许编辑
         if (editSource.from === 'config') {
-          return NextResponse.json({ error: '不能编辑配置文件中的直播�? }, { status: 400 });
+          return NextResponse.json({ error: '不能编辑配置文件中的直播源' }, { status: 400 });
         }
 
-        // 更新字段（除�?key �?from�?        editSource.name = name as string;
+        // 更新字段（除了 key 和 from）
+        editSource.name = name as string;
         editSource.url = url as string;
         editSource.ua = ua || '';
         editSource.epg = epg || '';
 
-        // 刷新频道�?        try {
+        // 刷新频道数
+        try {
           const nums = await refreshLiveChannels(editSource);
           editSource.channelNumber = nums;
         } catch (error) {
-          console.error('刷新直播源失�?', error);
+          console.error('刷新直播源失败:', error);
           editSource.channelNumber = 0;
         }
         break;
 
       case 'sort':
-        // 排序直播�?        const { order } = body;
+        // 排序直播源
+        const { order } = body;
         if (!Array.isArray(order)) {
           return NextResponse.json({ error: '排序数据格式错误' }, { status: 400 });
         }
@@ -135,7 +143,8 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        // 添加未在排序列表中的直播源（保持原有顺序�?        config.LiveConfig.forEach((source) => {
+        // 添加未在排序列表中的直播源（保持原有顺序）
+        config.LiveConfig.forEach((source) => {
           if (!order.includes(source.key)) {
             sortedLiveConfig.push(source);
           }
@@ -151,7 +160,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: '直播源不存在' }, { status: 404 });
         }
         if (!proxyMode || !['full', 'm3u8-only', 'direct'].includes(proxyMode)) {
-          return NextResponse.json({ error: '无效的代理模�? }, { status: 400 });
+          return NextResponse.json({ error: '无效的代理模式' }, { status: 400 });
         }
         setProxySource.proxyMode = proxyMode as 'full' | 'm3u8-only' | 'direct';
         break;

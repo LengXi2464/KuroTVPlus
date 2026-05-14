@@ -20,7 +20,7 @@ export default function WebLivePage() {
   const artPlayerRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [loadingStage, setLoadingStage] = useState<'loading' | 'fetching' | 'ready'>('loading');
-  const [loadingMessage, setLoadingMessage] = useState('正在加载直播�?..');
+  const [loadingMessage, setLoadingMessage] = useState('正在加载直播源...');
   const [sources, setSources] = useState<any[]>([]);
   const [currentSource, setCurrentSource] = useState<any | null>(null);
   const [videoUrl, setVideoUrl] = useState('');
@@ -35,7 +35,8 @@ export default function WebLivePage() {
   const [librariesLoaded, setLibrariesLoaded] = useState(false);
   const hasAutoLoadedRef = useRef(false); // 防止重复自动加载
 
-  // 观影室同步功�?  const webLiveSync = useWebLiveSync({
+  // 观影室同步功能
+  const webLiveSync = useWebLiveSync({
     currentSourceKey: currentSource?.key || '',
     currentSourceName: currentSource?.name || '',
     currentSourcePlatform: currentSource?.platform || '',
@@ -66,7 +67,8 @@ export default function WebLivePage() {
         setLibrariesLoaded(true);
       });
 
-      // 检查网络直播功能是否启�?      const runtimeConfig = (window as any).RUNTIME_CONFIG;
+      // 检查网络直播功能是否启用
+      const runtimeConfig = (window as any).RUNTIME_CONFIG;
       const enabled = runtimeConfig?.WEB_LIVE_ENABLED ?? false;
       setIsWebLiveEnabled(enabled);
 
@@ -86,7 +88,7 @@ export default function WebLivePage() {
     try {
       setLoading(true);
       setLoadingStage('loading');
-      setLoadingMessage('正在加载直播�?..');
+      setLoadingMessage('正在加载直播源...');
       const res = await fetch('/api/web-live/sources');
       if (res.ok) {
         setLoadingStage('fetching');
@@ -96,17 +98,18 @@ export default function WebLivePage() {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     } catch (err) {
-      console.error('获取直播源失�?', err);
+      console.error('获取直播源失败:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  // �?sources 加载完成后，检�?URL 参数并自动加载对应的频道
+  // 当 sources 加载完成后，检查 URL 参数并自动加载对应的频道
   useEffect(() => {
     if (!sources || sources.length === 0) return;
-    if (!librariesLoaded) return; // 等待库加载完�?
-    // 直接�?searchParams 读取，而不是从 useState
+    if (!librariesLoaded) return; // 等待库加载完成
+
+    // 直接从 searchParams 读取，而不是从 useState
     const needLoadPlatform = searchParams.get('platform');
     const needLoadRoomId = searchParams.get('roomId');
 
@@ -127,7 +130,7 @@ export default function WebLivePage() {
 
     hasAutoLoadedRef.current = true;
 
-    // 查找匹配�?source
+    // 查找匹配的 source
     const foundSource = sources.find(s => s.platform === needLoadPlatform && s.roomId === needLoadRoomId);
     if (foundSource) {
       handleSourceClick(foundSource);
@@ -161,19 +164,20 @@ export default function WebLivePage() {
   const cleanupPlayer = () => {
     if (artPlayerRef.current) {
       try {
-        // 先暂停播�?        if (artPlayerRef.current.video) {
+        // 先暂停播放
+        if (artPlayerRef.current.video) {
           artPlayerRef.current.video.pause();
           artPlayerRef.current.video.src = '';
           artPlayerRef.current.video.load();
         }
 
-        // 销�?HLS 实例
+        // 销毁 HLS 实例
         if (artPlayerRef.current.video && artPlayerRef.current.video.hls) {
           artPlayerRef.current.video.hls.destroy();
           artPlayerRef.current.video.hls = null;
         }
 
-        // 销�?FLV 实例
+        // 销毁 FLV 实例
         if (artPlayerRef.current.video && (artPlayerRef.current.video as any).flv) {
           try {
             if ((artPlayerRef.current.video as any).flv.unload) {
@@ -191,7 +195,7 @@ export default function WebLivePage() {
         artPlayerRef.current.off('ready');
         artPlayerRef.current.off('error');
 
-        // 销�?ArtPlayer 实例
+        // 销毁 ArtPlayer 实例
         artPlayerRef.current.destroy();
         artPlayerRef.current = null;
       } catch (err) {
@@ -225,13 +229,15 @@ export default function WebLivePage() {
     };
   }, [videoUrl]);
 
-  // 组件卸载时清�?  useEffect(() => {
+  // 组件卸载时清理
+  useEffect(() => {
     return () => {
       cleanupPlayer();
     };
   }, []);
 
-  // 页面卸载前清�?  useEffect(() => {
+  // 页面卸载前清理
+  useEffect(() => {
     const handleBeforeUnload = () => {
       cleanupPlayer();
     };
@@ -245,7 +251,8 @@ export default function WebLivePage() {
   }, []);
 
   const handleSourceClick = async (source: any) => {
-    // 立即清理旧的播放�?    cleanupPlayer();
+    // 立即清理旧的播放器
+    cleanupPlayer();
 
     setCurrentSource(source);
     setIsVideoLoading(true);
@@ -273,7 +280,8 @@ export default function WebLivePage() {
           }
         };
 
-        // 使用 requestAnimationFrame 等待下一�?        requestAnimationFrame(waitForDom);
+        // 使用 requestAnimationFrame 等待下一帧
+        requestAnimationFrame(waitForDom);
 
         // 保存主播信息
         if (data.name || data.title) {
@@ -284,11 +292,11 @@ export default function WebLivePage() {
         }
       } else {
         const data = await res.json();
-        setErrorMessage(data.error || '获取直播流失�?);
+        setErrorMessage(data.error || '获取直播流失败');
       }
     } catch (err) {
-      console.error('获取直播流失�?', err);
-      setErrorMessage(err instanceof Error ? err.message : '获取直播流失�?);
+      console.error('获取直播流失败:', err);
+      setErrorMessage(err instanceof Error ? err.message : '获取直播流失败');
     } finally {
       setIsVideoLoading(false);
     }
@@ -309,7 +317,8 @@ export default function WebLivePage() {
 
   const platforms = Array.from(new Set(sources.map(s => s.platform)));
 
-  // 根据选中的平台筛选房�?  const filteredSources = selectedPlatform
+  // 根据选中的平台筛选房间
+  const filteredSources = selectedPlatform
     ? sources.filter(s => s.platform === selectedPlatform)
     : sources;
 
@@ -319,7 +328,8 @@ export default function WebLivePage() {
     setActiveTab('rooms');
   };
 
-  // 清除平台筛�?  const clearPlatformFilter = () => {
+  // 清除平台筛选
+  const clearPlatformFilter = () => {
     setSelectedPlatform(null);
   };
 
@@ -337,10 +347,11 @@ export default function WebLivePage() {
             </div>
 
             <div className='space-y-4'>
-              <h3 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>功能未启�?/h3>
+              <h3 className='text-2xl font-bold text-gray-900 dark:text-gray-100'>功能未启用</h3>
               <div className='bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4'>
                 <p className='text-sm text-gray-700 dark:text-gray-300 leading-relaxed'>
-                  网络直播功能当前未启用。请联系管理员在管理面板中开启此功能�?                </p>
+                  网络直播功能当前未启用。请联系管理员在管理面板中开启此功能。
+                </p>
               </div>
             </div>
           </div>
@@ -376,7 +387,7 @@ export default function WebLivePage() {
               </div>
             </div>
 
-            {/* 进度指示�?*/}
+            {/* 进度指示器 */}
             <div className='mb-6 w-80 mx-auto'>
               <div className='flex justify-center space-x-2 mb-4'>
                 <div
@@ -390,7 +401,7 @@ export default function WebLivePage() {
                 ></div>
               </div>
 
-              {/* 进度�?*/}
+              {/* 进度条 */}
               <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'>
                 <div
                   className='h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full transition-all duration-1000 ease-out'
@@ -463,11 +474,11 @@ export default function WebLivePage() {
                         </div>
                       </div>
                       <div className='space-y-4'>
-                        <h3 className='text-xl font-semibold text-white'>获取直播流失�?/h3>
+                        <h3 className='text-xl font-semibold text-white'>获取直播流失败</h3>
                         <div className='bg-orange-500/20 border border-orange-500/30 rounded-lg p-4'>
                           <p className='text-orange-300 font-medium'>{errorMessage}</p>
                         </div>
-                        <p className='text-sm text-gray-300'>请尝试其他房�?/p>
+                        <p className='text-sm text-gray-300'>请尝试其他房间</p>
                       </div>
                     </div>
                   </div>
@@ -483,14 +494,14 @@ export default function WebLivePage() {
                         </div>
                       </div>
                       <div className='space-y-2'>
-                        <p className='text-xl font-semibold text-white animate-pulse'>🔄 加载�?..</p>
+                        <p className='text-xl font-semibold text-white animate-pulse'>🔄 加载中...</p>
                       </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 外部播放器按�?*/}
+              {/* 外部播放器按钮 */}
               {currentSource && !webLiveSync.isInRoom && (
                 <div className='mt-3 px-2 lg:flex-shrink-0 flex justify-end'>
                   <div className='bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-lg p-2 border border-gray-200/50 dark:border-gray-700/50 w-full lg:w-auto overflow-x-auto'>
@@ -705,7 +716,7 @@ export default function WebLivePage() {
                     {selectedPlatform && (
                       <div className='mb-3 flex items-center justify-between px-2 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800'>
                         <div className='flex items-center gap-2'>
-                          <span className='text-xs text-green-700 dark:text-green-300'>筛选平�?</span>
+                          <span className='text-xs text-green-700 dark:text-green-300'>筛选平台:</span>
                           <span className='text-sm font-medium text-green-800 dark:text-green-200'>
                             {selectedPlatform === 'huya' ? '虎牙' : selectedPlatform === 'bilibili' ? '哔哩哔哩' : selectedPlatform === 'douyin' ? '抖音' : selectedPlatform}
                           </span>
@@ -714,7 +725,8 @@ export default function WebLivePage() {
                           onClick={clearPlatformFilter}
                           className='text-xs text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100 underline'
                         >
-                          清除筛�?                        </button>
+                          清除筛选
+                        </button>
                       </div>
                     )}
                     {filteredSources.length > 0 ? (
@@ -745,7 +757,7 @@ export default function WebLivePage() {
                           <Radio className='w-8 h-8 text-gray-400 dark:text-gray-600' />
                         </div>
                         <p className='text-gray-500 dark:text-gray-400 font-medium'>
-                          {selectedPlatform ? '该平台暂无可用房�? : '暂无可用房间'}
+                          {selectedPlatform ? '该平台暂无可用房间' : '暂无可用房间'}
                         </p>
                       </div>
                     )}
@@ -779,7 +791,8 @@ export default function WebLivePage() {
                                 {platform === 'huya' ? '虎牙' : platform === 'bilibili' ? '哔哩哔哩' : platform === 'douyin' ? '抖音' : platform}
                               </div>
                               <div className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                                {sources.filter(s => s.platform === platform).length} 个房�?                              </div>
+                                {sources.filter(s => s.platform === platform).length} 个房间
+                              </div>
                             </div>
                           </button>
                         ))

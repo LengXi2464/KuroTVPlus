@@ -277,7 +277,7 @@ export default function BooksCatalogPage() {
                      className='min-w-[180px] rounded-2xl border border-gray-200 bg-white p-4 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-950'
                    >
                     <div className='line-clamp-2 font-medium'>{item.title.trim()}</div>
-                    <div className='mt-2 text-xs text-gray-500 dark:text-gray-400'>点击进入子目�?/div>
+                    <div className='mt-2 text-xs text-gray-500 dark:text-gray-400'>点击进入子目录</div>
                   </Link>
                 ))}
               </div>

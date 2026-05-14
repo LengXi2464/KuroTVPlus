@@ -10,7 +10,8 @@ export function useRecommendationDataSource(): string {
   const [dataSource, setDataSource] = useState<string>('Mixed');
 
   useEffect(() => {
-    // 从运行时配置中读�?    if (typeof window !== 'undefined' && window.RUNTIME_CONFIG) {
+    // 从运行时配置中读取
+    if (typeof window !== 'undefined' && window.RUNTIME_CONFIG) {
       const configValue = window.RUNTIME_CONFIG.RecommendationDataSource;
       setDataSource(configValue || 'Mixed');
     }

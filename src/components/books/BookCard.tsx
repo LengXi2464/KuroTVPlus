@@ -13,7 +13,7 @@ export default function BookCard({ item, href, extra, onNavigate }: { item: Book
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.cover} alt={item.title} className='h-full w-full object-cover' />
           ) : (
-            <div className='flex h-full items-center justify-center text-sm text-gray-400'>无封�?/div>
+            <div className='flex h-full items-center justify-center text-sm text-gray-400'>无封面</div>
           )}
           <div className='absolute right-2 top-2 max-w-[70%] truncate rounded-full bg-black/70 px-2 py-1 text-[11px] text-white'>
             {item.sourceName}
@@ -22,7 +22,7 @@ export default function BookCard({ item, href, extra, onNavigate }: { item: Book
       </Link>
       <div className='space-y-2 p-3'>
         <Link href={href} onClick={onNavigate} className='line-clamp-2 text-sm font-medium hover:text-sky-600'>{item.title}</Link>
-        <div className='line-clamp-1 text-xs text-gray-500 dark:text-gray-400'>{item.author || '未知作�?}</div>
+        <div className='line-clamp-1 text-xs text-gray-500 dark:text-gray-400'>{item.author || '未知作者'}</div>
         {extra}
       </div>
     </div>

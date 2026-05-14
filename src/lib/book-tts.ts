@@ -83,7 +83,7 @@ function resolveEdgeTtsModule(): EdgeTtsModule {
     // eslint-disable-next-line no-eval
     return eval('require')('edge-tts-universal') as EdgeTtsModule;
   } catch (error) {
-    throw new Error(`未安�?edge-tts-universal，请先执�?pnpm add edge-tts-universal�?{(error as Error).message}`);
+    throw new Error(`未安装 edge-tts-universal，请先执行 pnpm add edge-tts-universal。${(error as Error).message}`);
   }
 }
 
@@ -117,7 +117,7 @@ async function toBuffer(audio: unknown): Promise<Buffer> {
   if (audio instanceof ArrayBuffer) return Buffer.from(audio);
   if (isArrayBufferLike(audio)) return Buffer.from(await audio.arrayBuffer());
   if (typeof audio === 'string') return Buffer.from(audio, 'base64');
-  throw new Error('无法识别 edge-tts-universal 返回的音频格�?);
+  throw new Error('无法识别 edge-tts-universal 返回的音频格式');
 }
 
 function buildCacheKey(input: {
@@ -153,7 +153,7 @@ export async function getBookTtsConfig(): Promise<BookTtsRuntimeConfig> {
 export async function listBookTtsVoices(): Promise<BookTtsVoice[]> {
   const mod = resolveEdgeTtsModule();
   const VoicesManager = mod.VoicesManager || mod.default?.VoicesManager;
-  if (!VoicesManager) throw new Error('edge-tts-universal 未导�?VoicesManager');
+  if (!VoicesManager) throw new Error('edge-tts-universal 未导出 VoicesManager');
 
   let voices: RawVoice[] = [];
   if (typeof VoicesManager.create === 'function') {
@@ -188,7 +188,7 @@ export async function synthesizeBookTts(input: {
   const normalizedText = input.text.trim();
   if (!normalizedText) throw new Error('缺少朗读文本');
   if (normalizedText.length > config.maxTextLengthPerRequest) {
-    throw new Error(`单次朗读文本过长，最�?${config.maxTextLengthPerRequest} 个字符`);
+    throw new Error(`单次朗读文本过长，最多 ${config.maxTextLengthPerRequest} 个字符`);
   }
 
   const cacheKey = buildCacheKey({
@@ -198,7 +198,7 @@ export async function synthesizeBookTts(input: {
 
   const mod = resolveEdgeTtsModule();
   const EdgeTTS = mod.EdgeTTS || mod.default?.EdgeTTS;
-  if (!EdgeTTS) throw new Error('edge-tts-universal 未导�?EdgeTTS');
+  if (!EdgeTTS) throw new Error('edge-tts-universal 未导出 EdgeTTS');
 
   const tts = new EdgeTTS(
     normalizedText,

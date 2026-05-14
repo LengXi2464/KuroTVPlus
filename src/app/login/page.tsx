@@ -2,14 +2,15 @@
 
 'use client';
 
-import { Eye, EyeOff, User, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
 import { useSite } from '@/components/SiteProvider';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
-// 根据按钮文本识别OIDC提供商并返回对应的图�?function getOIDCProviderIcon(buttonText: string) {
+// 根据按钮文本识别OIDC提供商并返回对应的图标
+function getOIDCProviderIcon(buttonText: string) {
   const text = buttonText.toLowerCase();
 
   const providers = [
@@ -60,14 +61,16 @@ function LoginPageClient() {
     }
   }, [searchParams]);
 
-  // 在客户端挂载后设置配�?  useEffect(() => {
+  // 在客户端挂载后设置配置
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const runtimeConfig = (window as any).RUNTIME_CONFIG;
       const storageType = runtimeConfig?.STORAGE_TYPE;
       const shouldAsk = storageType && storageType !== 'localstorage';
       setShouldAskUsername(shouldAsk);
 
-      // 设置背景图（支持多张随机选择�?      const loginBg = runtimeConfig?.LOGIN_BACKGROUND_IMAGE;
+      // 设置背景图（支持多张随机选择）
+      const loginBg = runtimeConfig?.LOGIN_BACKGROUND_IMAGE;
       if (loginBg) {
         const urls = loginBg
           .split('\n')
@@ -90,7 +93,8 @@ function LoginPageClient() {
         OIDCButtonText: runtimeConfig?.OIDC_BUTTON_TEXT || '',
       });
 
-      // 从localStorage读取记住的密码信�?      const rememberedCredentials = localStorage.getItem('rememberedCredentials');
+      // 从localStorage读取记住的密码信息
+      const rememberedCredentials = localStorage.getItem('rememberedCredentials');
       if (rememberedCredentials) {
         try {
           const credentials = JSON.parse(rememberedCredentials);
@@ -102,7 +106,8 @@ function LoginPageClient() {
           }
           setRememberPassword(true);
         } catch (error) {
-          // 清除无效的数�?          localStorage.removeItem('rememberedCredentials');
+          // 清除无效的数据
+          localStorage.removeItem('rememberedCredentials');
         }
       }
     }
@@ -154,7 +159,7 @@ function LoginPageClient() {
 
     // 检查Turnstile验证
     if (siteConfig?.LoginRequireTurnstile && !turnstileToken) {
-      setError('请完成人机验�?);
+      setError('请完成人机验证');
       return;
     }
 
@@ -197,7 +202,7 @@ function LoginPageClient() {
           setError('密码错误');
         } else {
           const data = await res.json().catch(() => ({}));
-          setError(data.error ?? '服务器错�?);
+          setError(data.error ?? '服务器错误');
         }
       }
     } catch (error) {
@@ -235,7 +240,8 @@ function LoginPageClient() {
           {shouldAskUsername && (
             <div>
               <label htmlFor='username' className='sr-only'>
-                用户�?              </label>
+                用户名
+              </label>
               <div className='relative'>
                 <div className='absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none'>
                   <User className='h-5 w-5 text-gray-400 dark:text-gray-500' />
@@ -245,7 +251,7 @@ function LoginPageClient() {
                   type='text'
                   autoComplete='username'
                   className='block w-full rounded-lg border-0 py-3 pl-10 pr-4 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-white/60 dark:ring-white/20 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:outline-none sm:text-base bg-white/60 dark:bg-zinc-800/60'
-                  placeholder='输入用户�?
+                  placeholder='输入用户名'
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
@@ -319,7 +325,7 @@ function LoginPageClient() {
             }
             className='inline-flex w-full justify-center rounded-lg bg-green-600 py-3 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:from-green-600 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50'
           >
-            {loading ? '登录�?..' : '登录'}
+            {loading ? '登录中...' : '登录'}
           </button>
 
           {/* 注册按钮 */}
@@ -345,7 +351,8 @@ function LoginPageClient() {
               </div>
               <div className='relative flex justify-center text-sm'>
                 <span className='px-2 bg-white/60 dark:bg-zinc-900/60 text-gray-500 dark:text-gray-400'>
-                  �?                </span>
+                  或
+                </span>
               </div>
             </div>
             <button

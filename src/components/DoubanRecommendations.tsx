@@ -41,7 +41,7 @@ export default function DoubanRecommendations({ doubanId }: DoubanRecommendation
       const cached = getRecommendationCache<DoubanRecommendation[]>(cacheKey);
 
       if (cached) {
-        console.log('使用缓存的推荐数�?);
+        console.log('使用缓存的推荐数据');
         setRecommendations(cached);
         setLoading(false);
         return;
@@ -56,7 +56,7 @@ export default function DoubanRecommendations({ doubanId }: DoubanRecommendation
       }
 
       const result = await response.json();
-      console.log('获取到推�?', result.recommendations);
+      console.log('获取到推荐:', result.recommendations);
 
       const recommendationsData = result.recommendations || [];
       setRecommendations(recommendationsData);

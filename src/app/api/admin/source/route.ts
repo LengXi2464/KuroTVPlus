@@ -8,7 +8,8 @@ import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
-// 支持的操作类�?type Action =
+// 支持的操作类型
+type Action =
   | 'add'
   | 'disable'
   | 'enable'
@@ -64,10 +65,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '参数格式错误' }, { status: 400 });
     }
 
-    // 获取配置与存�?    const adminConfig = await getConfig();
+    // 获取配置与存储
+    const adminConfig = await getConfig();
 
-    // 权限与身份校�?    if (username !== process.env.USERNAME) {
-      // 从V2存储中获取用户信�?      const userInfoV2 = await db.getUserInfoV2(username);
+    // 权限与身份校验
+    if (username !== process.env.USERNAME) {
+      // 从V2存储中获取用户信息
+      const userInfoV2 = await db.getUserInfoV2(username);
       if (!userInfoV2 || userInfoV2.role !== 'admin' || userInfoV2.banned) {
         return NextResponse.json({ error: '权限不足' }, { status: 401 });
       }
@@ -84,7 +88,8 @@ export async function POST(request: NextRequest) {
         if (!key || !name || !api) {
           return NextResponse.json({ error: '缺少必要参数' }, { status: 400 });
         }
-        // 禁止添加保留关键�?        if (key === 'openlist' || key === 'xiaoya') {
+        // 禁止添加保留关键字
+        if (key === 'openlist' || key === 'xiaoya') {
           return NextResponse.json(
             { error: `${key} 是保留关键字，不能作为视频源 key` },
             { status: 400 }
@@ -97,7 +102,7 @@ export async function POST(request: NextRequest) {
           );
         }
         if (adminConfig.SourceConfig.some((s) => s.key === key)) {
-          return NextResponse.json({ error: '该源已存�? }, { status: 400 });
+          return NextResponse.json({ error: '该源已存在' }, { status: 400 });
         }
         adminConfig.SourceConfig.push({
           key,
@@ -142,7 +147,9 @@ export async function POST(request: NextRequest) {
         }
         adminConfig.SourceConfig.splice(idx, 1);
 
-        // 检查并清理用户组和用户的权限数�?        // 清理用户组权�?        if (adminConfig.UserConfig.Tags) {
+        // 检查并清理用户组和用户的权限数组
+        // 清理用户组权限
+        if (adminConfig.UserConfig.Tags) {
           adminConfig.UserConfig.Tags.forEach((tag) => {
             if (tag.enabledApis) {
               tag.enabledApis = tag.enabledApis.filter((api) => api !== key);
@@ -162,7 +169,7 @@ export async function POST(request: NextRequest) {
         const { keys } = body as { keys?: string[] };
         if (!Array.isArray(keys) || keys.length === 0) {
           return NextResponse.json(
-            { error: '缺少 keys 参数或为�? },
+            { error: '缺少 keys 参数或为空' },
             { status: 400 }
           );
         }
@@ -178,7 +185,7 @@ export async function POST(request: NextRequest) {
         const { keys } = body as { keys?: string[] };
         if (!Array.isArray(keys) || keys.length === 0) {
           return NextResponse.json(
-            { error: '缺少 keys 参数或为�? },
+            { error: '缺少 keys 参数或为空' },
             { status: 400 }
           );
         }
@@ -194,11 +201,11 @@ export async function POST(request: NextRequest) {
         const { keys } = body as { keys?: string[] };
         if (!Array.isArray(keys) || keys.length === 0) {
           return NextResponse.json(
-            { error: '缺少 keys 参数或为�? },
+            { error: '缺少 keys 参数或为空' },
             { status: 400 }
           );
         }
-        // 过滤�?from=config 的源，记录跳过的数量
+        // 过滤掉 from=config 的源，记录跳过的数量
         const keysToDelete: string[] = [];
         const skippedKeys: string[] = [];
 
@@ -219,8 +226,10 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        // 检查并清理用户组和用户的权限数�?        if (keysToDelete.length > 0) {
-          // 清理用户组权�?          if (adminConfig.UserConfig.Tags) {
+        // 检查并清理用户组和用户的权限数组
+        if (keysToDelete.length > 0) {
+          // 清理用户组权限
+          if (adminConfig.UserConfig.Tags) {
             adminConfig.UserConfig.Tags.forEach((tag) => {
               if (tag.enabledApis) {
                 tag.enabledApis = tag.enabledApis.filter(
@@ -264,7 +273,8 @@ export async function POST(request: NextRequest) {
             map.delete(k);
           }
         });
-        // 未在 order 中的保持原顺�?        adminConfig.SourceConfig.forEach((item) => {
+        // 未在 order 中的保持原顺序
+        adminConfig.SourceConfig.forEach((item) => {
           if (map.has(item.key)) newList.push(item);
         });
         adminConfig.SourceConfig = newList;
@@ -287,7 +297,7 @@ export async function POST(request: NextRequest) {
         };
         if (!Array.isArray(weights) || weights.length === 0) {
           return NextResponse.json(
-            { error: '缺少 weights 参数或为�? },
+            { error: '缺少 weights 参数或为空' },
             { status: 400 }
           );
         }
@@ -295,7 +305,7 @@ export async function POST(request: NextRequest) {
         for (const item of weights) {
           if (!item?.key) {
             return NextResponse.json(
-              { error: 'weights 中存在无�?key' },
+              { error: 'weights 中存在无效 key' },
               { status: 400 }
             );
           }
@@ -305,7 +315,7 @@ export async function POST(request: NextRequest) {
             item.weight > 100
           ) {
             return NextResponse.json(
-              { error: '权重必须�?0-100 之间的数�? },
+              { error: '权重必须是 0-100 之间的数字' },
               { status: 400 }
             );
           }
@@ -351,7 +361,7 @@ export async function POST(request: NextRequest) {
           );
         if (typeof weight !== 'number' || weight < 0 || weight > 100)
           return NextResponse.json(
-            { error: '权重必须�?0-100 之间的数�? },
+            { error: '权重必须是 0-100 之间的数字' },
             { status: 400 }
           );
         const entry = adminConfig.SourceConfig.find((s) => s.key === key);
@@ -367,12 +377,14 @@ export async function POST(request: NextRequest) {
     // 持久化到存储
     await db.saveAdminConfig(adminConfig);
 
-    // 清除短剧视频源缓存（因为视频源发生了变动�?    try {
+    // 清除短剧视频源缓存（因为视频源发生了变动）
+    try {
       await db.deleteGlobalValue('duanju');
       console.log('已清除短剧视频源缓存');
     } catch (error) {
-      console.error('清除短剧视频源缓存失�?', error);
-      // 不影响主流程，继续执�?    }
+      console.error('清除短剧视频源缓存失败:', error);
+      // 不影响主流程，继续执行
+    }
 
     // 构建响应数据
     const responseData: Record<string, any> = { ok: true };
@@ -389,10 +401,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('视频源管理操作失�?', error);
+    console.error('视频源管理操作失败:', error);
     return NextResponse.json(
       {
-        error: '视频源管理操作失�?,
+        error: '视频源管理操作失败',
         details: (error as Error).message,
       },
       { status: 500 }

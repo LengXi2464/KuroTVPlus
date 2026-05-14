@@ -33,8 +33,10 @@ export async function GET(request: NextRequest) {
 
     const apiUrl = `${baseUrl}/api/v2/bangumi/${animeId}`;
 
-    // 添加超时控制和重试机�?    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 10秒超�?
+    // 添加超时控制和重试机制
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 10秒超时
+
     try {
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -42,7 +44,8 @@ export async function GET(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         signal: controller.signal,
-        // 添加 keepalive 避免连接被重�?        keepalive: true,
+        // 添加 keepalive 避免连接被重置
+        keepalive: true,
       });
 
       clearTimeout(timeoutId);
@@ -59,7 +62,7 @@ export async function GET(request: NextRequest) {
 
       // 如果是超时错误，返回更友好的错误信息
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        throw new Error('弹幕服务器请求超时，请稍后重�?);
+        throw new Error('弹幕服务器请求超时，请稍后重试');
       }
 
       throw fetchError;

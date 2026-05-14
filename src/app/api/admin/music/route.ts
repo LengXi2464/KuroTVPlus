@@ -68,14 +68,16 @@ export async function POST(request: NextRequest) {
       ProxyEnabled: ProxyEnabled ?? true,
     };
 
-    // 写入数据�?    await db.saveAdminConfig(adminConfig);
+    // 写入数据库
+    await db.saveAdminConfig(adminConfig);
     await setCachedConfig(adminConfig);
 
     return NextResponse.json(
       { ok: true },
       {
         headers: {
-          'Cache-Control': 'no-store', // 不缓存结�?        },
+          'Cache-Control': 'no-store', // 不缓存结果
+        },
       }
     );
   } catch (error) {

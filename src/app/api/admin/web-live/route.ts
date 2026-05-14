@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (!config) {
-      return NextResponse.json({ error: '配置不存�? }, { status: 404 });
+      return NextResponse.json({ error: '配置不存在' }, { status: 404 });
     }
 
     if (!config.WebLiveConfig) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
         const key = `web_${Date.now()}`;
         if (config.WebLiveConfig.some((s) => s.key === key)) {
-          return NextResponse.json({ error: 'Key已存�? }, { status: 400 });
+          return NextResponse.json({ error: 'Key已存在' }, { status: 400 });
         }
 
         config.WebLiveConfig.push({
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: '源不存在' }, { status: 404 });
         }
         if (source.from === 'config') {
-          return NextResponse.json({ error: '无法删除配置文件中的�? }, { status: 400 });
+          return NextResponse.json({ error: '无法删除配置文件中的源' }, { status: 400 });
         }
         config.WebLiveConfig = config.WebLiveConfig.filter((s) => s.key !== key);
         break;
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: '源不存在' }, { status: 404 });
         }
         if (source.from === 'config') {
-          return NextResponse.json({ error: '无法编辑配置文件中的�? }, { status: 400 });
+          return NextResponse.json({ error: '无法编辑配置文件中的源' }, { status: 400 });
         }
         source.name = name;
         source.platform = platform;
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       case 'sort': {
         const { keys } = body;
         if (!Array.isArray(keys)) {
-          return NextResponse.json({ error: '无效的排序数�? }, { status: 400 });
+          return NextResponse.json({ error: '无效的排序数据' }, { status: 400 });
         }
         const sortedSources = keys
           .map((key) => config.WebLiveConfig!.find((s) => s.key === key))

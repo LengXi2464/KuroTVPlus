@@ -5,7 +5,7 @@ import { request } from './http';
 export async function check115(link) {
   const { shareCode, receiveCode, error: parseError } = extractParams115(link);
   if (parseError || !shareCode || !receiveCode) {
-    return { valid: false, reason: parseError || (!shareCode ? '缺少分享�? : '缺少提取�?) };
+    return { valid: false, reason: parseError || (!shareCode ? '缺少分享码' : '缺少提取码') };
   }
 
   try {
@@ -39,14 +39,14 @@ export async function check115(link) {
         return { valid: true, reason: '' };
       }
 
-      const failReason = (data.data?.shareinfo?.forbid_reason || '').trim() || `链接状态异�?share_state=${shareState})`;
+      const failReason = (data.data?.shareinfo?.forbid_reason || '').trim() || `链接状态异常(share_state=${shareState})`;
       return { valid: false, reason: failReason };
     }
 
     return { valid: false, reason: data.error || '未知错误' };
   } catch (err) {
     if (err.message === '请求超时') return { valid: false, reason: '请求超时' };
-    return { valid: false, reason: `检测失�? ${err.message}` };
+    return { valid: false, reason: `检测失败: ${err.message}` };
   }
 }
 

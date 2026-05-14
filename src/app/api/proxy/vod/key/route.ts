@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   try {
     const decodedUrl = decodeURIComponent(url);
 
-    // 安全校验：防 SSRF 拦截请求内网或非�?URL
+    // 安全校验：防 SSRF 拦截请求内网或非法 URL
     const isSafeUrl = await validateProxyUrlServerSide(decodedUrl);
     if (!isSafeUrl) {
       return NextResponse.json({ error: 'Proxy request to local or invalid network is forbidden' }, { status: 403 });

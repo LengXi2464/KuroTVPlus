@@ -16,13 +16,13 @@ export function DownloadPanel() {
   const getStatusText = (status: M3U8DownloadTask['status']) => {
     switch (status) {
       case 'ready':
-        return '等待�?;
+        return '等待中';
       case 'downloading':
-        return '下载�?;
+        return '下载中';
       case 'pause':
-        return '已暂�?;
+        return '已暂停';
       case 'done':
-        return '已完�?;
+        return '已完成';
       case 'error':
         return '错误';
       default:
@@ -50,7 +50,7 @@ export function DownloadPanel() {
   return (
     <div className='fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm'>
       <div className='bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-4xl max-h-[80vh] flex flex-col'>
-        {/* 标题�?*/}
+        {/* 标题栏 */}
         <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
           <h2 className='text-xl font-bold text-gray-900 dark:text-white'>下载任务列表</h2>
           <button
@@ -103,7 +103,7 @@ export function DownloadPanel() {
                     </div>
                   </div>
 
-                  {/* 进度�?*/}
+                  {/* 进度条 */}
                   <div className='mb-3'>
                     <div className='flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 mb-1'>
                       <span>
@@ -131,7 +131,8 @@ export function DownloadPanel() {
                   {task.errorNum > 0 && (
                     <div className='mb-3 flex items-center justify-between'>
                       <div className='text-xs text-red-500 dark:text-red-400'>
-                        {task.errorNum} 个片段下载失�?                      </div>
+                        {task.errorNum} 个片段下载失败
+                      </div>
                       <button
                         onClick={() => retryFailedSegments(task.id)}
                         className='text-xs text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline'
@@ -164,7 +165,7 @@ export function DownloadPanel() {
                           <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z' />
                           <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M21 12a9 9 0 11-18 0 9 9 0 0118 0z' />
                         </svg>
-                        {task.status === 'error' ? '重试' : '开�?}
+                        {task.status === 'error' ? '重试' : '开始'}
                       </button>
                     )}
 
@@ -189,9 +190,9 @@ export function DownloadPanel() {
           <div className='p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30'>
             <div className='flex items-center justify-between text-sm text-gray-600 dark:text-gray-300'>
               <span>总任务数: {tasks.length}</span>
-              <span>下载�? {tasks.filter(t => t.status === 'downloading').length}</span>
-              <span>已完�? {tasks.filter(t => t.status === 'done').length}</span>
-              <span>已暂�? {tasks.filter(t => t.status === 'pause').length}</span>
+              <span>下载中: {tasks.filter(t => t.status === 'downloading').length}</span>
+              <span>已完成: {tasks.filter(t => t.status === 'done').length}</span>
+              <span>已暂停: {tasks.filter(t => t.status === 'pause').length}</span>
             </div>
           </div>
         )}

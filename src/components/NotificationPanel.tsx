@@ -38,7 +38,8 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
     }
   };
 
-  // 标记为已�?  const markAsRead = async (notificationId: string) => {
+  // 标记为已读
+  const markAsRead = async (notificationId: string) => {
     try {
       const response = await fetch('/api/notifications', {
         method: 'POST',
@@ -78,7 +79,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
       if (response.ok) {
         const deletedNotification = notifications.find((n) => n.id === notificationId);
         setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
-        // 如果删除的是未读通知，触发事件更�?UserMenu
+        // 如果删除的是未读通知，触发事件更新 UserMenu
         if (deletedNotification && !deletedNotification.read) {
           window.dispatchEvent(new Event('notificationsUpdated'));
         }
@@ -111,7 +112,8 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
 
   // 处理通知点击
   const handleNotificationClick = (notification: Notification) => {
-    // 标记为已�?    if (!notification.read) {
+    // 标记为已读
+    if (!notification.read) {
       markAsRead(notification.id);
     }
 
@@ -159,7 +161,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
 
       {/* 通知面板 */}
       <div className='fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg max-h-[80vh] bg-white dark:bg-gray-900 rounded-xl shadow-xl z-[1001] flex flex-col overflow-hidden'>
-        {/* 标题�?*/}
+        {/* 标题栏 */}
         <div className='flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700'>
           <div className='flex items-center gap-2'>
             <Bell className='w-5 h-5 text-gray-600 dark:text-gray-400' />
@@ -168,7 +170,8 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
             </h3>
             {notifications.length > 0 && (
               <span className='px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-full'>
-                {notifications.filter((n) => !n.read).length} 条未�?              </span>
+                {notifications.filter((n) => !n.read).length} 条未读
+              </span>
             )}
           </div>
           <div className='flex items-center gap-2'>
@@ -242,7 +245,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
                           markAsRead(notification.id);
                         }}
                         className='p-1.5 rounded-full bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors'
-                        title='标记为已�?
+                        title='标记为已读'
                       >
                         <Check className='w-3.5 h-3.5 text-green-600 dark:text-green-400' />
                       </button>

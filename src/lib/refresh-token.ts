@@ -38,7 +38,8 @@ export function generateRefreshToken(): string {
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-// 存储 Refresh Token（使�?Redis Hash�?export async function storeRefreshToken(
+// 存储 Refresh Token（使用 Redis Hash）
+export async function storeRefreshToken(
   username: string,
   tokenId: string,
   tokenData: TokenData
@@ -87,7 +88,8 @@ export async function verifyRefreshToken(
 
     const tokenData: TokenData = JSON.parse(dataStr);
 
-    // 检查是否过�?    if (Date.now() > tokenData.expiresAt) {
+    // 检查是否过期
+    if (Date.now() > tokenData.expiresAt) {
       // 过期了，删除
       await (storage as any).adapter.hDel(hashKey, tokenId);
       return false;
@@ -98,7 +100,8 @@ export async function verifyRefreshToken(
       return false;
     }
 
-    // 更新最后使用时�?    tokenData.lastUsed = Date.now();
+    // 更新最后使用时间
+    tokenData.lastUsed = Date.now();
     await (storage as any).adapter.hSet(
       hashKey,
       tokenId,
@@ -133,7 +136,8 @@ export async function revokeRefreshToken(
   }
 }
 
-// 获取用户的所有设�?export async function getUserDevices(username: string): Promise<Array<{
+// 获取用户的所有设备
+export async function getUserDevices(username: string): Promise<Array<{
   tokenId: string;
   deviceInfo: string;
   createdAt: number;
@@ -162,7 +166,8 @@ export async function revokeRefreshToken(
       try {
         const tokenData: TokenData = JSON.parse(dataStr as string);
 
-        // 检查是否过�?        if (now > tokenData.expiresAt) {
+        // 检查是否过期
+        if (now > tokenData.expiresAt) {
           // 过期了，删除
           await (storage as any).adapter.hDel(hashKey, tokenId);
           continue;
@@ -187,7 +192,7 @@ export async function revokeRefreshToken(
   }
 }
 
-// 撤销所�?Token
+// 撤销所有 Token
 export async function revokeAllRefreshTokens(username: string): Promise<void> {
   const hashKey = `user_tokens:${username}`;
   const storage = await loadStorage();
@@ -205,7 +210,7 @@ export async function revokeAllRefreshTokens(username: string): Promise<void> {
   }
 }
 
-// 清理过期�?Token（定期任务）
+// 清理过期的 Token（定期任务）
 export async function cleanupExpiredTokens(username: string): Promise<number> {
   const hashKey = `user_tokens:${username}`;
   const storage = await loadStorage();

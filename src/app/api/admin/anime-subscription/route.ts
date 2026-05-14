@@ -10,12 +10,14 @@ export const runtime = 'nodejs';
 
 /**
  * GET /api/admin/anime-subscription
- * 获取订阅列表和配�? */
+ * 获取订阅列表和配置
+ */
 export async function GET(req: NextRequest) {
   try {
-    // 权限检�?    const authInfo = getAuthInfoFromCookie(req);
+    // 权限检查
+    const authInfo = getAuthInfoFromCookie(req);
     if (!authInfo || (authInfo.role !== 'admin' && authInfo.role !== 'owner')) {
-      return NextResponse.json({ error: '无权限访�? }, { status: 403 });
+      return NextResponse.json({ error: '无权限访问' }, { status: 403 });
     }
 
     const config = await getConfig();
@@ -36,12 +38,14 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/admin/anime-subscription
- * 创建新订�? */
+ * 创建新订阅
+ */
 export async function POST(req: NextRequest) {
   try {
-    // 权限检�?    const authInfo = getAuthInfoFromCookie(req);
+    // 权限检查
+    const authInfo = getAuthInfoFromCookie(req);
     if (!authInfo || (authInfo.role !== 'admin' && authInfo.role !== 'owner')) {
-      return NextResponse.json({ error: '无权限访�? }, { status: 403 });
+      return NextResponse.json({ error: '无权限访问' }, { status: 403 });
     }
 
     const { title, filterText, source, enabled, lastEpisode } =
@@ -68,13 +72,14 @@ export async function POST(req: NextRequest) {
       episodeNum = parseInt(String(lastEpisode), 10);
       if (isNaN(episodeNum) || episodeNum < 0) {
         return NextResponse.json(
-          { error: '集数必须是非负整�? },
+          { error: '集数必须是非负整数' },
           { status: 400 }
         );
       }
     }
 
-    // 创建新订�?    const newSubscription: AnimeSubscription = {
+    // 创建新订阅
+    const newSubscription: AnimeSubscription = {
       id: crypto.randomUUID(),
       title: title.trim(),
       filterText: filterText.trim(),

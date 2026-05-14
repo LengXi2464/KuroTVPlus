@@ -12,7 +12,7 @@ export async function resolveTianyiSession(id: string) {
   const config = await getConfig();
   const tianyiConfig = config.NetDiskConfig?.Tianyi;
   if (!tianyiConfig?.Enabled || !tianyiConfig.Account || !tianyiConfig.Password) {
-    throw new Error('天翼云盘未配置或未启�?);
+    throw new Error('天翼云盘未配置或未启用');
   }
 
   let session = refreshTianyiNetdiskSession(id) || getTianyiNetdiskSession(id);

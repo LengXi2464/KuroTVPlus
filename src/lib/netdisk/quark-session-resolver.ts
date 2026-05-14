@@ -12,7 +12,7 @@ export async function resolveQuarkSession(id: string) {
   const config = await getConfig();
   const quarkConfig = config.NetDiskConfig?.Quark;
   if (!quarkConfig?.Enabled || !quarkConfig.Cookie) {
-    throw new Error('夸克网盘未配置或未启�?);
+    throw new Error('夸克网盘未配置或未启用');
   }
 
   let session = refreshQuarkNetdiskSession(id) || getQuarkNetdiskSession(id);

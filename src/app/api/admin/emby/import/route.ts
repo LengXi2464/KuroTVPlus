@@ -21,7 +21,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 仅站长可�?    if (authInfo.username !== process.env.USERNAME) {
+    // 仅站长可用
+    if (authInfo.username !== process.env.USERNAME) {
       return NextResponse.json({ error: '权限不足，仅站长可用' }, { status: 403 });
     }
 
@@ -38,7 +39,8 @@ export async function POST(request: NextRequest) {
     if (data.Sources && Array.isArray(data.Sources)) {
       const existingSources = adminConfig.EmbyConfig?.Sources || [];
 
-      // 覆盖已存在的，追加新�?      const mergedSources = [...existingSources];
+      // 覆盖已存在的，追加新的
+      const mergedSources = [...existingSources];
       for (const importSource of data.Sources) {
         const existingIndex = mergedSources.findIndex(s => s.key === importSource.key);
         if (existingIndex >= 0) {

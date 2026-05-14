@@ -1,23 +1,26 @@
-// metainfo.json 缓存 (7�?
+// metainfo.json 缓存 (7天)
 interface MetaInfoCacheEntry {
   expiresAt: number;
   data: MetaInfo;
 }
 
-// videoinfo.json 缓存 (1�?
+// videoinfo.json 缓存 (1天)
 interface VideoInfoCacheEntry {
   expiresAt: number;
   data: VideoInfo;
 }
 
-const METAINFO_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7�?const VIDEOINFO_CACHE_TTL_MS = (parseInt(process.env.VIDEOINFO_CACHE_MINUTES || '1440', 10)) * 60 * 1000; // 默认1�?
+const METAINFO_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7天
+const VIDEOINFO_CACHE_TTL_MS = (parseInt(process.env.VIDEOINFO_CACHE_MINUTES || '1440', 10)) * 60 * 1000; // 默认1天
+
 const METAINFO_CACHE: Map<string, MetaInfoCacheEntry> = new Map();
 const VIDEOINFO_CACHE: Map<string, VideoInfoCacheEntry> = new Map();
 
 export interface MetaInfo {
   folders: {
     [key: string]: {
-      folderName: string; // 原始文件夹名�?      tmdb_id: number;
+      folderName: string; // 原始文件夹名称
+      tmdb_id: number;
       title: string;
       poster_path: string | null;
       release_date: string;
@@ -46,7 +49,8 @@ export interface VideoInfo {
   last_updated: number;
 }
 
-// MetaInfo 缓存操作（使用固定键�?const METAINFO_CACHE_KEY = 'openlist_meta';
+// MetaInfo 缓存操作（使用固定键）
+const METAINFO_CACHE_KEY = 'openlist_meta';
 
 export function getCachedMetaInfo(): MetaInfo | null {
   const entry = METAINFO_CACHE.get(METAINFO_CACHE_KEY);

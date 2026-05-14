@@ -13,7 +13,7 @@ export async function getAuthorizedUsername(request: NextRequest): Promise<strin
   if (authInfo.username !== process.env.USERNAME) {
     const userInfoV2 = await db.getUserInfoV2(authInfo.username);
     if (!userInfoV2) {
-      return NextResponse.json({ error: '用户不存�? }, { status: 401 });
+      return NextResponse.json({ error: '用户不存在' }, { status: 401 });
     }
     if (userInfoV2.banned) {
       return NextResponse.json({ error: '用户已被封禁' }, { status: 401 });
@@ -22,7 +22,7 @@ export async function getAuthorizedUsername(request: NextRequest): Promise<strin
 
   const allowed = await hasFeaturePermission(authInfo.username, 'manga');
   if (!allowed) {
-    return NextResponse.json({ error: '无权限访问漫画功�? }, { status: 403 });
+    return NextResponse.json({ error: '无权限访问漫画功能' }, { status: 403 });
   }
 
   return authInfo.username;

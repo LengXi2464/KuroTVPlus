@@ -195,7 +195,7 @@ async function lxFetch(path: string, init: RequestInit = {}, authMode: LxFetchAu
   const { enabled, baseUrl, token } = await getMusicV2Config();
 
   if (!enabled) {
-    throw new Error('音乐功能未开�?);
+    throw new Error('音乐功能未开启');
   }
   if (!baseUrl) {
     throw new Error('未配置音乐服务地址');
@@ -209,7 +209,7 @@ async function lxFetch(path: string, init: RequestInit = {}, authMode: LxFetchAu
   if (authMode !== 'none' && token) {
     headers.set('x-user-token', token);
   } else if (authMode === 'required' && !token) {
-    throw new Error('未配置音乐服务访�?Token');
+    throw new Error('未配置音乐服务访问 Token');
   }
 
   const response = await fetch(`${baseUrl}${path}`, {

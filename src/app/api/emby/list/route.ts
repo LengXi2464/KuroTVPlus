@@ -19,21 +19,24 @@ export async function GET(request: NextRequest) {
   const sortOrder = searchParams.get('sortOrder') || 'Ascending';
 
   try {
-    const authResult = await requireFeaturePermission(request, 'emby', '无权限访�?Emby');
+    const authResult = await requireFeaturePermission(request, 'emby', '无权限访问 Emby');
     if (authResult instanceof NextResponse) return authResult;
     // 判断是否是默认排序（只有默认排序才使用缓存）
     const isDefaultSort = sortBy === 'SortName' && sortOrder === 'Ascending';
 
-    // 只有默认排序才检查缓�?    if (isDefaultSort) {
+    // 只有默认排序才检查缓存
+    if (isDefaultSort) {
       const cached = getCachedEmbyList(page, pageSize, parentId, embyKey);
       if (cached) {
         return NextResponse.json(cached);
       }
     }
 
-    // 获取Emby客户�?    const client = await embyManager.getClient(embyKey);
+    // 获取Emby客户端
+    const client = await embyManager.getClient(embyKey);
 
-    // 获取代理 token（如果启用了代理�?    const proxyToken = client.isProxyEnabled() ? await getProxyToken(request) : null;
+    // 获取代理 token（如果启用了代理）
+    const proxyToken = client.isProxyEnabled() ? await getProxyToken(request) : null;
 
     // 获取媒体列表
     const result = await client.getItems({
@@ -66,7 +69,8 @@ export async function GET(request: NextRequest) {
       total: result.TotalRecordCount,
     };
 
-    // 只有默认排序才缓存结�?    if (isDefaultSort) {
+    // 只有默认排序才缓存结果
+    if (isDefaultSort) {
       setCachedEmbyList(page, pageSize, response, parentId, embyKey);
     }
 

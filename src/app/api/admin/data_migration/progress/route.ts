@@ -8,7 +8,8 @@ import { getProgress } from '@/lib/data-migration-progress';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
-  // 验证身份和权�?  const authInfo = getAuthInfoFromCookie(req);
+  // 验证身份和权限
+  const authInfo = getAuthInfoFromCookie(req);
   if (!authInfo || !authInfo.username) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     return new Response('Forbidden', { status: 403 });
   }
 
-  const username = authInfo.username; // 存储到局部变量以�?TypeScript 类型推断
+  const username = authInfo.username; // 存储到局部变量以便 TypeScript 类型推断
 
   const { searchParams } = new URL(req.url);
   const operation = searchParams.get('operation'); // 'export' or 'import'
@@ -47,9 +48,11 @@ export async function GET(req: NextRequest) {
         }
       };
 
-      // 立即发送一�?      sendProgress();
+      // 立即发送一次
+      sendProgress();
 
-      // 每秒发送一次进度更�?      interval = setInterval(sendProgress, 1000);
+      // 每秒发送一次进度更新
+      interval = setInterval(sendProgress, 1000);
 
       // 30秒后自动关闭连接
       timeout = setTimeout(() => {
@@ -57,11 +60,13 @@ export async function GET(req: NextRequest) {
         try {
           controller.close();
         } catch (error) {
-          // 控制器可能已经关�?        }
+          // 控制器可能已经关闭
+        }
       }, 30000);
     },
     cancel() {
-      // 当客户端断开连接时清�?      if (interval) clearInterval(interval);
+      // 当客户端断开连接时清理
+      if (interval) clearInterval(interval);
       if (timeout) clearTimeout(timeout);
     },
   });

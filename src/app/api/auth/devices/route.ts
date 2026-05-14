@@ -11,7 +11,8 @@ import {
 
 export const runtime = 'nodejs';
 
-// 获取所有设�?export async function GET(request: NextRequest) {
+// 获取所有设备
+export async function GET(request: NextRequest) {
   const authInfo = getAuthInfoFromCookie(request);
 
   if (!authInfo || !authInfo.username) {
@@ -58,7 +59,8 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// 登出所有设�?export async function POST(request: NextRequest) {
+// 登出所有设备
+export async function POST(request: NextRequest) {
   const authInfo = getAuthInfoFromCookie(request);
 
   if (!authInfo || !authInfo.username) {
@@ -70,7 +72,7 @@ export async function DELETE(request: NextRequest) {
 
     const response = NextResponse.json({ ok: true });
 
-    // 清除当前设备�?Cookie
+    // 清除当前设备的 Cookie
     response.cookies.set('auth', '', {
       path: '/',
       expires: new Date(0),

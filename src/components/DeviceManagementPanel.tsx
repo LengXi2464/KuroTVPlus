@@ -75,7 +75,7 @@ export function DeviceManagementPanel({
                   </div>
                 ))}
                 <div className='text-center text-sm text-gray-500 dark:text-gray-400 mt-4'>
-                  加载�?..
+                  加载中...
                 </div>
               </div>
             ) : devices.length === 0 ? (
@@ -118,7 +118,7 @@ export function DeviceManagementPanel({
                             </div>
                             <div className='space-y-1 text-xs text-gray-500 dark:text-gray-400'>
                               <div>登录时间: {new Date(device.createdAt).toLocaleString('zh-CN')}</div>
-                              <div>最后活�? {new Date(device.lastUsed).toLocaleString('zh-CN')}</div>
+                              <div>最后活跃: {new Date(device.lastUsed).toLocaleString('zh-CN')}</div>
                             </div>
                           </div>
                           {!device.isCurrent && (
@@ -127,7 +127,7 @@ export function DeviceManagementPanel({
                               disabled={revoking === device.tokenId}
                               className='ml-3 px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 border border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                             >
-                              {revoking === device.tokenId ? '撤销�?..' : '撤销'}
+                              {revoking === device.tokenId ? '撤销中...' : '撤销'}
                             </button>
                           )}
                         </div>
@@ -144,9 +144,11 @@ export function DeviceManagementPanel({
               disabled={devices.length === 0}
               className='w-full px-4 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-400 dark:bg-red-600 dark:hover:bg-red-700 dark:disabled:bg-red-500 text-white text-sm font-medium rounded-lg transition-colors disabled:cursor-not-allowed'
             >
-              登出所有设�?            </button>
+              登出所有设备
+            </button>
             <p className='text-xs text-gray-500 dark:text-gray-400 text-center'>
-              登出所有设备后需要重新登�?            </p>
+              登出所有设备后需要重新登录
+            </p>
           </div>
         </div>
       </div>

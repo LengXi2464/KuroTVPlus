@@ -23,7 +23,7 @@ async function resolveFileHref(username: string, payload: FilePayload): Promise<
   }
 
   const bookId = payload.bookId?.trim();
-  if (!bookId) throw new Error('缺少 bookId �?href');
+  if (!bookId) throw new Error('缺少 bookId 或 href');
 
   const shelfItem = await db.getBookShelf(username, sourceId, bookId);
   const readRecord = await db.getBookReadRecord(username, sourceId, bookId);
@@ -39,7 +39,7 @@ async function resolveFileHref(username: string, payload: FilePayload): Promise<
   if (payload.format && preferred.format !== payload.format) {
     const detail = await opdsClient.getBookDetail(sourceId, detailHref);
     const matched = detail.acquisitionLinks.find((item) => (payload.format === 'pdf' ? item.type.toLowerCase().includes('pdf') : item.type.toLowerCase().includes('epub')));
-    if (!matched?.href) throw new Error('找不到对应格式文�?);
+    if (!matched?.href) throw new Error('找不到对应格式文件');
     return { sourceId, href: matched.href };
   }
 

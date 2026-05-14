@@ -10,7 +10,7 @@ export async function checkBaidu(link) {
 
   const surl = extractBaiduShareID(normalizedLink);
   if (!surl) {
-    return { valid: false, reason: '无效的分享链接格�? };
+    return { valid: false, reason: '无效的分享链接格式' };
   }
 
   let password = '';
@@ -36,13 +36,13 @@ export async function checkBaidu(link) {
       });
 
       if (vStatus !== 200) {
-        return { valid: false, reason: `验证提取码请求失�? ${vStatus}` };
+        return { valid: false, reason: `验证提取码请求失败: ${vStatus}` };
       }
 
       const vData = JSON.parse(vBody);
       if (vData.errno !== 0) {
         const errmsg = vData.errmsg || vData.err_msg || '未知错误';
-        return { valid: false, reason: `验证提取码失�? errno=${vData.errno}, ${errmsg}` };
+        return { valid: false, reason: `验证提取码失败: errno=${vData.errno}, ${errmsg}` };
       }
       bdclnd = vData.randsk || '';
     }
@@ -73,7 +73,7 @@ export async function checkBaidu(link) {
     return { valid: false, reason: failureReason, isRateLimited };
   } catch (err) {
     if (err.message === '请求超时') return { valid: false, reason: '请求超时' };
-    return { valid: false, reason: `检测失�? ${err.message}` };
+    return { valid: false, reason: `检测失败: ${err.message}` };
   }
 }
 
@@ -85,7 +85,7 @@ export function normalizeBaiduURL(link) {
   while (endIdx < cleaned.length) {
     const char = cleaned[endIdx];
     if (char === ' ' || char === '\n' || char === '\r' || char === '\t') break;
-    if (cleaned.substring(endIdx).startsWith('提取�?) || cleaned.substring(endIdx).startsWith('密码')) break;
+    if (cleaned.substring(endIdx).startsWith('提取码') || cleaned.substring(endIdx).startsWith('密码')) break;
     endIdx++;
   }
   return cleaned.substring(startIdx, endIdx).trim();
@@ -110,10 +110,10 @@ export function extractBaiduShareID(shareURL) {
 function getFailureReason(errno, errMsg) {
   if (errMsg) return `分享链接无效 (errno: ${errno}, err_msg: ${errMsg})`;
   switch (errno) {
-    case -12: return '缺少提取�?(errno: -12)';
-    case -9: return '提取码错�?(errno: -9)';
+    case -12: return '缺少提取码 (errno: -12)';
+    case -9: return '提取码错误 (errno: -9)';
     case -62: return '请求接口受限 (errno: -62)';
-    case -8: return '分享文件已过�?(errno: -8)';
+    case -8: return '分享文件已过期 (errno: -8)';
     default: return `分享链接无效 (errno: ${errno})`;
   }
 }

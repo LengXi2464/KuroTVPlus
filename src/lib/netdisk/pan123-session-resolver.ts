@@ -12,7 +12,7 @@ export async function resolvePan123Session(id: string) {
   const config = await getConfig();
   const pan123Config = config.NetDiskConfig?.Pan123;
   if (!pan123Config?.Enabled || !pan123Config.Account || !pan123Config.Password) {
-    throw new Error('123网盘未配置或未启�?);
+    throw new Error('123网盘未配置或未启用');
   }
 
   let session = refreshPan123NetdiskSession(id) || getPan123NetdiskSession(id);

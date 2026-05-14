@@ -13,10 +13,10 @@ export async function POST(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo?.username) {
-      return NextResponse.json({ error: '未登�? }, { status: 401 });
+      return NextResponse.json({ error: '未登录' }, { status: 401 });
     }
     if (!(await hasFeaturePermission(authInfo.username, 'netdisk_temp_play'))) {
-      return NextResponse.json({ error: '无权限使用临时播�? }, { status: 403 });
+      return NextResponse.json({ error: '无权限使用临时播放' }, { status: 403 });
     }
 
     const { shareUrl, passcode, title } = await request.json();
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const config = await getConfig();
     const tianyiConfig = config.NetDiskConfig?.Tianyi;
     if (!tianyiConfig?.Enabled || !tianyiConfig.Account || !tianyiConfig.Password) {
-      return NextResponse.json({ error: '天翼云盘未配置或未启�? }, { status: 400 });
+      return NextResponse.json({ error: '天翼云盘未配置或未启用' }, { status: 400 });
     }
 
     const result = await listTianyiShareVideos(

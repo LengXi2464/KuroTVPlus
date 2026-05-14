@@ -30,7 +30,7 @@ export function parsePan115NetdiskId(id: string): { shareUrl: string; passcode?:
       passcode: typeof parsed.passcode === 'string' ? parsed.passcode : '',
     };
   } catch {
-    throw new Error('无效�?15网盘播放 ID');
+    throw new Error('无效的115网盘播放 ID');
   }
 }
 

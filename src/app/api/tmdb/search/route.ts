@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const authInfo = getAuthInfoFromCookie(request);
     if (!authInfo || !authInfo.username) {
-      return NextResponse.json({ error: '未授�? }, { status: 401 });
+      return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     if (!tmdbApiKey) {
       return NextResponse.json(
-        { error: 'TMDB API Key 未配�? },
+        { error: 'TMDB API Key 未配置' },
         { status: 400 }
       );
     }
@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 过滤出电影和电视�?    const validResults = response.results.filter(
+    // 过滤出电影和电视剧
+    const validResults = response.results.filter(
       (item: any) => item.media_type === 'movie' || item.media_type === 'tv'
     );
 

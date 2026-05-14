@@ -43,7 +43,8 @@ export async function GET(request: Request) {
     headers.set('Accept-Ranges', 'bytes');
     headers.set('Access-Control-Expose-Headers', 'Content-Length, Content-Range');
 
-    // 使用流式传输，避免占用内�?    const stream = new ReadableStream({
+    // 使用流式传输，避免占用内存
+    const stream = new ReadableStream({
       start(controller) {
         if (!response?.body) {
           controller.close();
@@ -93,7 +94,8 @@ export async function GET(request: Request) {
         pump();
       },
       cancel() {
-        // 当流被取消时，确保释放所有资�?        if (reader) {
+        // 当流被取消时，确保释放所有资源
+        if (reader) {
           try {
             reader.releaseLock();
           } catch (e) {
@@ -114,7 +116,8 @@ export async function GET(request: Request) {
 
     return new Response(stream, { headers });
   } catch (error) {
-    // 确保在错误情况下也释放资�?    if (reader) {
+    // 确保在错误情况下也释放资源
+    if (reader) {
       try {
         (reader as ReadableStreamDefaultReader<Uint8Array>).releaseLock();
       } catch (e) {
