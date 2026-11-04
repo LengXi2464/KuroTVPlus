@@ -3,6 +3,9 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 main = "./cloudflare-worker.ts"
 minify = true
+# 部署时保留面板上设置的变量/机密（否则每次 Git 构建都会把
+# 面板里的 PASSWORD/USERNAME 抹掉，站点就会跳 /warning）
+keep_vars = true
 
 # 静态资源配置
 # Cloudflare Workers Assets 用于服务静态文件
