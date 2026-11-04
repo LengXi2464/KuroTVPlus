@@ -14,7 +14,7 @@ binding = "ASSETS"
 [[d1_databases]]
 binding = "DB"
 database_name = "kurotvplus"
-database_id = "da37ec94-1c8b-4f23-b1f9-afce31ef58a8"
+database_id = "da37ec94-1c8b-4f23-b1fb-afc61eef58a8"
 
 # 观影室的 Durable Object。
 # 单个 hub DO 装下所有房间：客户端是先建连、后 emit room:create/join，
