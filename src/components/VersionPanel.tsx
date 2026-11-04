@@ -32,6 +32,86 @@ interface RemoteChangelogEntry {
   fixed: string[];
 }
 
+// 变更日志支持有限的 HTML 样式（加粗、变色等）。
+// 只保留白名单标签与内联样式，远程日志内容也走同一过滤，避免注入。
+const CHANGELOG_ALLOWED_TAGS = new Set([
+  'B',
+  'STRONG',
+  'I',
+  'EM',
+  'U',
+  'S',
+  'DEL',
+  'BR',
+  'CODE',
+  'MARK',
+  'SPAN',
+  'SMALL',
+  'SUB',
+  'SUP',
+]);
+
+const CHANGELOG_ALLOWED_STYLES = new Set([
+  'color',
+  'background-color',
+  'font-weight',
+  'font-style',
+  'text-decoration',
+  'text-decoration-line',
+  'font-size',
+]);
+
+const escapeHtml = (text: string) =>
+  text.replace(
+    /[&<>]/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char] ?? char)
+  );
+
+const sanitizeChangelogHtml = (html: string): string => {
+  if (typeof document === 'undefined' || !html.includes('<')) {
+    return escapeHtml(html);
+  }
+
+  const parsed = new DOMParser().parseFromString(html, 'text/html');
+  const container = document.createElement('div');
+
+  const cloneChildren = (source: Node, target: Node) => {
+    source.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        target.appendChild(document.createTextNode(node.textContent ?? ''));
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+        if (!CHANGELOG_ALLOWED_TAGS.has(element.tagName)) {
+          // 未允许的标签直接解包，仅保留其中的文本
+          cloneChildren(element, target);
+          return;
+        }
+        const clean = document.createElement(element.tagName.toLowerCase());
+        if (element.tagName === 'SPAN') {
+          CHANGELOG_ALLOWED_STYLES.forEach((prop) => {
+            const value = element.style.getPropertyValue(prop);
+            if (value) clean.style.setProperty(prop, value);
+          });
+        }
+        cloneChildren(element, clean);
+        target.appendChild(clean);
+      }
+    });
+  };
+
+  cloneChildren(parsed.body, container);
+  return container.innerHTML;
+};
+
+const changelogHtmlCache = new Map<string, string>();
+const renderChangelogText = (html: string): string => {
+  const cached = changelogHtmlCache.get(html);
+  if (cached !== undefined) return cached;
+  const sanitized = sanitizeChangelogHtml(html);
+  changelogHtmlCache.set(html, sanitized);
+  return sanitized;
+};
+
 export const VersionPanel: React.FC<VersionPanelProps> = ({
   isOpen,
   onClose,
@@ -81,7 +161,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
   const fetchRemoteChangelog = async () => {
     try {
       const response = await fetch(
-        'https://raw.githubusercontent.com/mtvpls/KuroTVPlus/main/CHANGELOG'
+        'https://raw.githubusercontent.com/mtvpls/MoonTVPlus/main/CHANGELOG'
       );
       if (response.ok) {
         const content = await response.text();
@@ -232,7 +312,12 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     className='text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2'
                   >
                     <span className='w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0'></span>
-                    {item}
+                    <span
+                      className='min-w-0 flex-1'
+                      dangerouslySetInnerHTML={{
+                        __html: renderChangelogText(item),
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -252,7 +337,12 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     className='text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2'
                   >
                     <span className='w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0'></span>
-                    {item}
+                    <span
+                      className='min-w-0 flex-1'
+                      dangerouslySetInnerHTML={{
+                        __html: renderChangelogText(item),
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -272,7 +362,12 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     className='text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2'
                   >
                     <span className='w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0'></span>
-                    {item}
+                    <span
+                      className='min-w-0 flex-1'
+                      dangerouslySetInnerHTML={{
+                        __html: renderChangelogText(item),
+                      }}
+                    />
                   </li>
                 ))}
               </ul>
@@ -363,7 +458,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     </div>
                   </div>
                   <a
-                    href='https://github.com/mtvpls/KuroTVPlus.git'
+                    href='https://github.com/mtvpls/MoonTVPlus.git'
                     target='_blank'
                     rel='noopener noreferrer'
                     className='inline-flex items-center justify-center gap-2 px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs sm:text-sm rounded-lg transition-colors shadow-sm w-full'
@@ -393,7 +488,7 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                     </div>
                   </div>
                   <a
-                    href='https://github.com/mtvpls/KuroTVPlus.git'
+                    href='https://github.com/mtvpls/MoonTVPlus.git'
                     target='_blank'
                     rel='noopener noreferrer'
                     className='inline-flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm rounded-lg transition-colors shadow-sm w-full'
@@ -478,7 +573,12 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                                     className='text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2'
                                   >
                                     <span className='w-1.5 h-1.5 bg-green-400 rounded-full mt-2 flex-shrink-0'></span>
-                                    {item}
+                                    <span
+                                      className='min-w-0 flex-1'
+                                      dangerouslySetInnerHTML={{
+                                        __html: renderChangelogText(item),
+                                      }}
+                                    />
                                   </li>
                                 ))}
                               </ul>
@@ -498,7 +598,12 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                                     className='text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2'
                                   >
                                     <span className='w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0'></span>
-                                    {item}
+                                    <span
+                                      className='min-w-0 flex-1'
+                                      dangerouslySetInnerHTML={{
+                                        __html: renderChangelogText(item),
+                                      }}
+                                    />
                                   </li>
                                 ))}
                               </ul>
@@ -518,7 +623,12 @@ export const VersionPanel: React.FC<VersionPanelProps> = ({
                                     className='text-sm text-gray-700 dark:text-gray-300 flex items-start gap-2'
                                   >
                                     <span className='w-1.5 h-1.5 bg-purple-500 rounded-full mt-2 flex-shrink-0'></span>
-                                    {item}
+                                    <span
+                                      className='min-w-0 flex-1'
+                                      dangerouslySetInnerHTML={{
+                                        __html: renderChangelogText(item),
+                                      }}
+                                    />
                                   </li>
                                 ))}
                               </ul>

@@ -2,7 +2,22 @@
 
 'use client';
 
-import { GitBranch, Heart, Radio, Tv } from 'lucide-react';
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Download,
+  Gauge,
+  GitBranch,
+  Heart,
+  Loader2,
+  Play,
+  Radio,
+  RefreshCw,
+  Tv,
+  Wand2,
+  X,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -10,6 +25,8 @@ import {
   deleteFavorite,
   generateStorageKey,
   isFavorited as checkIsFavorited,
+  isLiveAutoSpeedTestEnabled,
+  isLivePlayRecordSavingEnabled,
   saveFavorite,
   savePlayRecord,
   subscribeToDataUpdates,
@@ -18,6 +35,10 @@ import { parseCustomTimeFormat } from '@/lib/time';
 import { useLiveSync } from '@/hooks/useLiveSync';
 
 import EpgScrollableRow from '@/components/EpgScrollableRow';
+import LoadingStyle, {
+  LoadingErrorStyle,
+  type LoadingStep,
+} from '@/components/LoadingStyle';
 import PageLayout from '@/components/PageLayout';
 
 // 扩展 HTMLVideoElement 类型以支持 hls 和 flv 属性
@@ -70,6 +91,41 @@ interface LiveSource {
   disabled?: boolean;
   proxyMode?: 'full' | 'm3u8-only' | 'direct'; // 代理模式
 }
+
+type LiveLineTestResult = {
+  status: 'testing' | 'ok' | 'fail';
+  type?: 'm3u8' | 'flv' | 'mp4' | 'unknown';
+  firstByteMs?: number;
+  speedKBps?: number;
+  bytesRead?: number;
+  testedAt?: number;
+  error?: string;
+};
+
+/* -----------------------------------------------------------------------------
+ * 初始化加载动画（后台「个性化配置 → 初始化加载样式」可切换旧版/方格/魔法阵）
+ * 直播是真正的三步线性流程：加载直播源 → 获取直播源 → 就绪。
+ * 款式本身见 components/LoadingStyle。
+ * -------------------------------------------------------------------------- */
+type LiveLoadingStepKey = 'loading' | 'fetching' | 'ready';
+
+const LIVE_LOADING_STEP_META: Record<LiveLoadingStepKey, LoadingStep> = {
+  loading: { label: '加载', icon: <Radio /> },
+  fetching: { label: '获取', icon: <Download /> },
+  ready: { label: '就绪', icon: <Play /> },
+};
+
+const LIVE_LOADING_STEPS: LiveLoadingStepKey[] = [
+  'loading',
+  'fetching',
+  'ready',
+];
+
+/* 播放器蒙层只有两步：加载，然后播放 */
+const LIVE_PLAYER_STEPS: LoadingStep[] = [
+  { label: '加载', icon: <Loader2 /> },
+  { label: '播放', icon: <Play /> },
+];
 
 function LivePageClient() {
   const router = useRouter();
@@ -141,6 +197,8 @@ function LivePageClient() {
   // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('');
   const [expandedMergedChannels, setExpandedMergedChannels] = useState<string[]>([]);
+  const [lineTestResults, setLineTestResults] = useState<Record<string, LiveLineTestResult>>({});
+  const [liveAutoSpeedTest, setLiveAutoSpeedTest] = useState(false);
 
   // 节目单信息
   const [epgData, setEpgData] = useState<{
@@ -167,7 +225,7 @@ function LivePageClient() {
     currentChannelId: currentChannel?.id || '',
     currentChannelName: currentChannel?.name || '',
     currentChannelUrl: currentChannel?.url || '',
-    onChannelChange: (channelId, channelUrl) => {
+    onChannelChange: (channelId, _channelUrl) => {
       // 房员接收到频道切换指令
       if (!currentChannels || !Array.isArray(currentChannels)) return;
       const channel = currentChannels.find(c => c.id === channelId);
@@ -307,11 +365,32 @@ function LivePageClient() {
   // 播放器引用
   const artPlayerRef = useRef<any>(null);
   const artRef = useRef<HTMLDivElement | null>(null);
+  const syncAnime4KCanvasFlip = (flip?: string) => {
+    const canvas = anime4kRef.current?.canvas as HTMLCanvasElement | undefined;
+    if (!canvas) return;
+
+    const currentFlip = flip || artPlayerRef.current?.flip || 'normal';
+    canvas.style.transformOrigin = 'center center';
+    canvas.style.transform =
+      currentFlip === 'horizontal'
+        ? 'scaleX(-1)'
+        : currentFlip === 'vertical'
+          ? 'scaleY(-1)'
+          : 'none';
+  };
 
   // 分组标签滚动相关
   const groupContainerRef = useRef<HTMLDivElement>(null);
   const groupButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const channelListRef = useRef<HTMLDivElement>(null);
+  // 记录自动测速已处理过的「直播源:分组」，避免重复测速
+  const autoTestedGroupRef = useRef<string>('');
+  // 当前测速会话的中断控制器：自动/手动测速共用，切换分组或直播源时统一中断
+  const testAbortRef = useRef<AbortController | null>(null);
+  // 正在测速的线路 key（同步锁，避免自动/手动在同一帧内重复测同一条线路）
+  const inFlightKeysRef = useRef<Set<string>>(new Set());
+  // lineTestResults 的同步镜像：handleTestLines 内部逻辑据此判断「已完成/在测」
+  const lineTestResultsRef = useRef<Record<string, LiveLineTestResult>>({});
 
   // -----------------------------------------------------------------------------
   // 工具函数（Utils）
@@ -457,23 +536,25 @@ function LivePageClient() {
         if (selectedChannel) {
           fetchEpgData(selectedChannel, source);
 
-          // 保存播放记录
-          try {
-            await savePlayRecord(`live_${source.key}`, `live_${selectedChannel.id}`, {
-              title: selectedChannel.name,
-              source_name: source.name,
-              year: '',
-              cover: getLogoUrl(selectedChannel.logo, source.key),
-              index: 1,
-              total_episodes: 1,
-              play_time: 0,
-              total_time: 0,
-              save_time: Date.now(),
-              search_title: '',
-              origin: 'live',
-            });
-          } catch (err) {
-            console.error('保存播放记录失败:', err);
+          // 保存播放记录（由本地设置控制，默认关闭）
+          if (isLivePlayRecordSavingEnabled()) {
+            try {
+              await savePlayRecord(`live_${source.key}`, `live_${selectedChannel.id}`, {
+                title: selectedChannel.name,
+                source_name: source.name,
+                year: '',
+                cover: getLogoUrl(selectedChannel.logo, source.key),
+                index: 1,
+                total_episodes: 1,
+                play_time: 0,
+                total_time: 0,
+                save_time: Date.now(),
+                search_title: '',
+                origin: 'live',
+              });
+            } catch (err) {
+              console.error('保存播放记录失败:', err);
+            }
           }
 
           // 更新URL参数
@@ -647,8 +728,8 @@ function LivePageClient() {
       await fetchEpgData(channel, currentSource);
     }
 
-    // 保存播放记录
-    if (currentSource) {
+    // 保存播放记录（由本地设置控制，默认关闭）
+    if (currentSource && isLivePlayRecordSavingEnabled()) {
       try {
         await savePlayRecord(`live_${currentSource.key}`, `live_${channel.id}`, {
           title: channel.name,
@@ -894,6 +975,7 @@ function LivePageClient() {
         handleCanvasClick,
         handleCanvasDblClick,
       };
+      syncAnime4KCanvasFlip();
 
       console.log('Anime4K超分已启用，模式:', anime4kModeRef.current, '倍数:', scale);
       if (artPlayerRef.current) {
@@ -1183,7 +1265,10 @@ function LivePageClient() {
     });
 
     return order.map((key) => {
-      const item = mergedMap.get(key)!;
+      const item = mergedMap.get(key);
+      if (!item) {
+        return null;
+      }
       if (item.channels.length === 1) {
         return {
           type: 'single',
@@ -1200,7 +1285,7 @@ function LivePageClient() {
         logo: item.logo,
         channels: item.channels,
       };
-    });
+    }).filter((item): item is MergedChannelItem => item !== null);
   }, [filteredChannels]);
 
   const toggleMergedChannel = (key: string) => {
@@ -1211,10 +1296,479 @@ function LivePageClient() {
     ));
   };
 
+  const getLineTestKey = (channel: LiveChannel) => {
+    return `${currentSourceRef.current?.key || currentSource?.key || ''}:${channel.id}:${channel.url}`;
+  };
+
+  const formatLineSpeed = (speedKBps?: number) => {
+    if (!speedKBps || speedKBps <= 0) return '';
+    if (speedKBps >= 1024) return `${(speedKBps / 1024).toFixed(1)} MB/s`;
+    return `${speedKBps.toFixed(0)} KB/s`;
+  };
+
+  // 卡片上的紧凑速度，避免占满一行
+  const formatLineSpeedCompact = (speedKBps?: number) => {
+    if (!speedKBps || speedKBps <= 0) return '';
+    if (speedKBps >= 1024) return `${(speedKBps / 1024).toFixed(1)}M/s`;
+    return `${speedKBps.toFixed(0)}K/s`;
+  };
+
+  const formatLineLatency = (firstByteMs?: number) => {
+    if (!firstByteMs || firstByteMs <= 0) return '';
+    return `${Math.round(firstByteMs)}ms`;
+  };
+
+  const getLineTestLabel = (channel: LiveChannel) => {
+    const result = lineTestResults[getLineTestKey(channel)];
+    if (!result) return '';
+    if (result.status === 'testing') return '测量中...';
+    if (result.status === 'fail') return '不可用';
+
+    const speed = formatLineSpeed(result.speedKBps);
+    const latency = formatLineLatency(result.firstByteMs);
+    if (speed && latency) return `${speed} · ${latency}`;
+    return speed || latency || '可用';
+  };
+
+  // 卡片上展示的徽标文字：短、不会换行
+  const getLineTestBadge = (channel: LiveChannel) => {
+    const result = lineTestResults[getLineTestKey(channel)];
+    if (!result) return '';
+    if (result.status === 'testing') return '测速中';
+    if (result.status === 'fail') return '不可用';
+    return formatLineSpeedCompact(result.speedKBps) || '可用';
+  };
+
+  const getBestTestedLine = (channels: LiveChannel[]) => {
+    const okChannels = channels
+      .map((channel) => ({ channel, result: lineTestResults[getLineTestKey(channel)] }))
+      .filter((item): item is { channel: LiveChannel; result: LiveLineTestResult } => item.result?.status === 'ok');
+
+    if (okChannels.length === 0) return null;
+
+    return okChannels.sort((a, b) => {
+      const speedDiff = (b.result.speedKBps || 0) - (a.result.speedKBps || 0);
+      if (Math.abs(speedDiff) > 1) return speedDiff;
+      return (a.result.firstByteMs || Number.MAX_SAFE_INTEGER) - (b.result.firstByteMs || Number.MAX_SAFE_INTEGER);
+    })[0].channel;
+  };
+
+  // 从本次测速的即时结果中选出最优线路（不依赖异步 state，供「测速并选择推荐线路」使用）
+  const getBestChannelFromResults = (channels: LiveChannel[], results: Record<string, LiveLineTestResult>) => {
+    const okChannels = channels
+      .map((channel) => ({ channel, result: results[getLineTestKey(channel)] }))
+      .filter((item): item is { channel: LiveChannel; result: LiveLineTestResult } => item.result?.status === 'ok');
+
+    if (okChannels.length === 0) return null;
+
+    return okChannels.sort((a, b) => {
+      const speedDiff = (b.result.speedKBps || 0) - (a.result.speedKBps || 0);
+      if (Math.abs(speedDiff) > 1) return speedDiff;
+      return (a.result.firstByteMs || Number.MAX_SAFE_INTEGER) - (b.result.firstByteMs || Number.MAX_SAFE_INTEGER);
+    })[0].channel;
+  };
+
+  const getPreferredLine = (channels: LiveChannel[]) => {
+    if (!channels || channels.length === 0) return null;
+    const activeLine = currentChannel ? channels.find((channel) => channel.id === currentChannel.id) : null;
+    return activeLine || getBestTestedLine(channels) || channels[0];
+  };
+
+  const getItemChannels = (item: MergedChannelItem) => {
+    return item.type === 'single' ? [item.channel] : item.channels;
+  };
+
+  const isTestingLineGroup = (channels: LiveChannel[]) => {
+    return channels.some((channel) => {
+      const key = getLineTestKey(channel);
+      // 同步锁优先，避免自动/手动在同一帧内重复测同一条线路
+      return inFlightKeysRef.current.has(key) || lineTestResults[key]?.status === 'testing';
+    });
+  };
+
+  // 复用或新建当前测速会话的中断控制器（已中断则重建）
+  const ensureTestSignal = () => {
+    if (!testAbortRef.current || testAbortRef.current.signal.aborted) {
+      testAbortRef.current = new AbortController();
+    }
+    return testAbortRef.current.signal;
+  };
+
+  // 中断当前所有测速（自动 + 手动）
+  const abortLiveTests = () => {
+    testAbortRef.current?.abort();
+    testAbortRef.current = null;
+  };
+
+  // 更新测速结果（同时同步 ref，供 handleTestLines 内部同步读取）
+  const commitTestResults = (next: Record<string, LiveLineTestResult>) => {
+    lineTestResultsRef.current = next;
+    setLineTestResults(next);
+  };
+
+  const testLineGroup = (event: React.MouseEvent, channels: LiveChannel[]) => {
+    event.stopPropagation();
+    if (isTestingLineGroup(channels)) return;
+    handleTestLines(channels, ensureTestSignal());
+  };
+
+  // 测速并自动切换到推荐（最优）线路
+  const testAndPickLineGroup = (event: React.MouseEvent, channels: LiveChannel[], mergedKey?: string) => {
+    event.stopPropagation();
+    if (isTestingLineGroup(channels)) return;
+    handleTestAndPlayLines(channels, mergedKey);
+  };
+
+  const iconButtonClassName = (disabled: boolean, active = false) => (
+    `inline-flex h-7 w-7 items-center justify-center rounded-md border flex-shrink-0 transition-colors ${disabled
+      ? 'border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
+      : active
+        ? 'border-green-500 text-green-600 dark:border-green-500 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+        : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-green-500 hover:text-green-600 dark:hover:border-green-500 dark:hover:text-green-400'
+    }`
+  );
+
+  const resolveClientUrl = (baseUrl: string, relativePath: string) => {
+    try {
+      if (/^https?:\/\//i.test(relativePath)) return relativePath;
+      if (relativePath.startsWith('//')) {
+        const base = new URL(baseUrl, window.location.href);
+        return `${base.protocol}${relativePath}`;
+      }
+      return new URL(relativePath, new URL(baseUrl, window.location.href)).href;
+    } catch {
+      return relativePath;
+    }
+  };
+
+  const findFirstPlayableLine = (content: string) => {
+    return content
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line && !line.startsWith('#')) || '';
+  };
+
+  const getClientTestUrl = (rawUrl: string, source?: LiveSource | null) => {
+    const proxyMode = source?.proxyMode || 'full';
+    const lower = rawUrl.toLowerCase();
+    const path = lower.split('?')[0];
+    const isM3u = path.endsWith('.m3u8') || path.endsWith('.m3u') || lower.includes('.m3u8') || lower.includes('.m3u');
+    const isProgressive = path.endsWith('.flv') || path.endsWith('.mp4') || lower.includes('.flv?') || lower.includes('.mp4?');
+
+    if (isProgressive || proxyMode === 'direct') return rawUrl;
+
+    // 和实际播放链路保持一致：full 测代理后的分片，m3u8-only 测直连分片。
+    if (isM3u || !isProgressive) {
+      return `/api/proxy/m3u8?url=${encodeURIComponent(rawUrl)}&moontv-source=${encodeURIComponent(source?.key || '')}${proxyMode === 'm3u8-only' ? '&allowCORS=true' : ''}`;
+    }
+
+    return rawUrl;
+  };
+
+  const fetchTextByClient = async (url: string, signal: AbortSignal) => {
+    const startedAt = performance.now();
+    const response = await fetch(url, { cache: 'no-store', signal });
+    const firstByteMs = performance.now() - startedAt;
+    if (!response.ok) {
+      response.body?.cancel();
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const text = await response.text();
+    return { text, finalUrl: response.url || url, firstByteMs };
+  };
+
+  const sampleByClient = async (url: string, signal: AbortSignal) => {
+    const startedAt = performance.now();
+    const response = await fetch(url, { cache: 'no-store', signal });
+    if (!response.ok) {
+      response.body?.cancel();
+      throw new Error(`HTTP ${response.status}`);
+    }
+    if (!response.body) throw new Error('empty body');
+
+    const reader = response.body.getReader();
+    let firstByteAt = 0;
+    let bytesRead = 0;
+    const sampleBytes = 512 * 1024;
+
+    try {
+      while (bytesRead < sampleBytes) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value?.byteLength) {
+          if (!firstByteAt) firstByteAt = performance.now();
+          bytesRead += value.byteLength;
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+        // ignore
+      }
+      try {
+        response.body.cancel();
+      } catch {
+        // ignore
+      }
+    }
+
+    const endedAt = performance.now();
+    const firstByteMs = (firstByteAt || endedAt) - startedAt;
+    const transferMs = Math.max(1, endedAt - (firstByteAt || startedAt));
+    const speedKBps = bytesRead > 0 ? (bytesRead / 1024) / (transferMs / 1000) : 0;
+
+    return {
+      firstByteMs: Math.round(firstByteMs),
+      speedKBps: Math.round(speedKBps * 10) / 10,
+      bytesRead,
+    };
+  };
+
+  const testLiveLine = async (channel: LiveChannel, externalSignal?: AbortSignal): Promise<LiveLineTestResult> => {
+    const controller = new AbortController();
+    // 外部中断（如切换分组）时立即终止本条测速
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+      if (externalSignal.aborted) controller.abort();
+      else externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
+    const source = currentSourceRef.current || currentSource;
+    const testUrl = getClientTestUrl(channel.url, source);
+    const lowerTestUrl = testUrl.toLowerCase();
+
+    try {
+      const shouldTreatAsM3u8 =
+        lowerTestUrl.includes('.m3u') ||
+        lowerTestUrl.includes('/api/proxy/m3u8');
+
+      if (shouldTreatAsM3u8) {
+        const manifest = await fetchTextByClient(testUrl, controller.signal);
+        let mediaLine = findFirstPlayableLine(manifest.text);
+        if (!mediaLine) throw new Error('empty m3u8');
+
+        let mediaUrl = resolveClientUrl(manifest.finalUrl, mediaLine);
+
+        if (manifest.text.includes('#EXT-X-STREAM-INF') || mediaUrl.toLowerCase().includes('.m3u')) {
+          const child = await fetchTextByClient(mediaUrl, controller.signal);
+          mediaLine = findFirstPlayableLine(child.text);
+          if (!mediaLine) throw new Error('empty child m3u8');
+          mediaUrl = resolveClientUrl(child.finalUrl, mediaLine);
+        }
+
+        const sample = await sampleByClient(mediaUrl, controller.signal);
+        return {
+          status: 'ok',
+          type: 'm3u8',
+          firstByteMs: Math.round(manifest.firstByteMs + sample.firstByteMs),
+          speedKBps: sample.speedKBps,
+          bytesRead: sample.bytesRead,
+          testedAt: Date.now(),
+        };
+      }
+
+      const sample = await sampleByClient(testUrl, controller.signal);
+      return {
+        status: 'ok',
+        type: lowerTestUrl.includes('.flv') ? 'flv' : lowerTestUrl.includes('.mp4') ? 'mp4' : 'unknown',
+        firstByteMs: sample.firstByteMs,
+        speedKBps: sample.speedKBps,
+        bytesRead: sample.bytesRead,
+        testedAt: Date.now(),
+      };
+    } catch (error) {
+      return {
+        status: 'fail',
+        type: 'unknown',
+        firstByteMs: 0,
+        speedKBps: 0,
+        bytesRead: 0,
+        testedAt: Date.now(),
+        error: error instanceof Error ? error.message : '客户端测速失败',
+      };
+    } finally {
+      window.clearTimeout(timeout);
+      externalSignal?.removeEventListener('abort', onExternalAbort);
+    }
+  };
+
+  const handleTestLines = async (
+    channels: LiveChannel[],
+    signal?: AbortSignal,
+    skipCompleted = false
+  ): Promise<Record<string, LiveLineTestResult>> => {
+    if (!channels.length) return {};
+
+    const pendingChannels = channels;
+    const results: Record<string, LiveLineTestResult> = {};
+
+    // 中断时清理尚未出结果的「测速中」状态，避免 UI 卡在加载中
+    const clearPendingTesting = () => {
+      const next = { ...lineTestResultsRef.current };
+      pendingChannels.forEach((channel) => {
+        const key = getLineTestKey(channel);
+        if (next[key]?.status === 'testing') {
+          delete next[key];
+        }
+      });
+      commitTestResults(next);
+    };
+
+    if (signal?.aborted) return results;
+
+    // 每 5 个一组并发测速，一组测完再测下一组
+    const batchSize = 5;
+    const runBatch = async (batch: LiveChannel[]) => {
+      const startedAt = Date.now();
+      // 只把真正开始测的这一组标记为「测速中」，尚未轮到的线路保持可手动测
+      const next = { ...lineTestResultsRef.current };
+      batch.forEach((channel) => {
+        const key = getLineTestKey(channel);
+        next[key] = { status: 'testing', testedAt: startedAt };
+        inFlightKeysRef.current.add(key);
+      });
+      commitTestResults(next);
+
+      await Promise.all(
+        batch.map(async (channel) => {
+          const key = getLineTestKey(channel);
+          try {
+            const result = await testLiveLine(channel, signal);
+            // 已被中断则丢弃本条结果
+            if (signal?.aborted) return;
+            results[key] = result;
+            commitTestResults({ ...lineTestResultsRef.current, [key]: result });
+          } catch (error) {
+            if (signal?.aborted) return;
+            const failResult: LiveLineTestResult = {
+              status: 'fail',
+              testedAt: Date.now(),
+              error: error instanceof Error ? error.message : '测速失败',
+            };
+            results[key] = failResult;
+            commitTestResults({
+              ...lineTestResultsRef.current,
+              [key]: failResult,
+            });
+          } finally {
+            inFlightKeysRef.current.delete(key);
+          }
+        })
+      );
+    };
+
+    for (let i = 0; i < pendingChannels.length; i += batchSize) {
+      if (signal?.aborted) break;
+      const batch = pendingChannels.slice(i, i + batchSize).filter((channel) => {
+        const key = getLineTestKey(channel);
+        // 正被其它测速任务测的线路跳过，避免重复
+        if (inFlightKeysRef.current.has(key)) return false;
+        // 自动测速跳过已出结果的线路（手动可以刷新重测）
+        if (skipCompleted) {
+          const status = lineTestResultsRef.current[key]?.status;
+          if (status === 'ok' || status === 'fail') return false;
+        }
+        return true;
+      });
+      if (!batch.length) continue;
+      await runBatch(batch);
+    }
+
+    if (signal?.aborted) {
+      clearPendingTesting();
+    }
+
+    return results;
+  };
+
+  // 测速完成后自动播放评分最高的线路
+  const handleTestAndPlayLines = async (channels: LiveChannel[], mergedKey?: string) => {
+    if (!channels.length) return;
+    const results = await handleTestLines(channels, ensureTestSignal());
+    const best = getBestChannelFromResults(channels, results);
+    if (best) {
+      // 展开合并频道，让用户看到被选中的推荐线路
+      if (mergedKey) {
+        setExpandedMergedChannels((prev) => (
+          prev.includes(mergedKey) ? prev : [...prev, mergedKey]
+        ));
+      }
+      handleChannelChange(best);
+    }
+  };
+
+  const handlePlayLines = (channels: LiveChannel[]) => {
+    const preferred = getPreferredLine(channels);
+    if (preferred) handleChannelChange(preferred);
+  };
+
+  // 读取「电视直播自动测速」开关，并监听设置面板的变更广播
+  useEffect(() => {
+    setLiveAutoSpeedTest(isLiveAutoSpeedTestEnabled());
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ enabled?: boolean }>).detail;
+      setLiveAutoSpeedTest(
+        typeof detail?.enabled === 'boolean'
+          ? detail.enabled
+          : isLiveAutoSpeedTestEnabled()
+      );
+    };
+    window.addEventListener('liveAutoSpeedTestChanged', handler);
+    return () =>
+      window.removeEventListener('liveAutoSpeedTestChanged', handler);
+  }, []);
+
+  // 切换直播源时重置自动测速记录，避免把旧源的测速结果错记到新源
+  useEffect(() => {
+    autoTestedGroupRef.current = '';
+    // 切换直播源立即中断在跑的所有测速（自动 + 手动）
+    abortLiveTests();
+  }, [currentSource?.key]);
+
+  // 开启自动测速后，自动测速当前分组下的线路
+  useEffect(() => {
+    if (!liveAutoSpeedTest) {
+      autoTestedGroupRef.current = '';
+      abortLiveTests();
+      return;
+    }
+    if (!selectedGroup || isSwitchingSource) return;
+    const channels = groupedChannels[selectedGroup];
+    if (!channels || channels.length === 0) return;
+
+    const groupKey = `${currentSource?.key || ''}:${selectedGroup}`;
+    if (autoTestedGroupRef.current === groupKey) return;
+    autoTestedGroupRef.current = groupKey;
+
+    // 开始新分组的测速（跳过已出结果的线路），共用当前会话以便切换分组时统一中断
+    handleTestLines(channels, ensureTestSignal(), true);
+
+    return () => {
+      abortLiveTests();
+    };
+  }, [
+    liveAutoSpeedTest,
+    selectedGroup,
+    groupedChannels,
+    currentSource,
+    isSwitchingSource,
+  ]);
+
+  // 组件卸载时中断在跑的测速
+  useEffect(() => () => {
+    abortLiveTests();
+    inFlightKeysRef.current.clear();
+  }, []);
+
   // 切换分组
   const handleGroupChange = (group: string) => {
     // 如果正在切换直播源，则禁用分组切换
     if (isSwitchingSource) return;
+
+    // 切换分组立即中断上一分组正在进行的测速（自动 + 手动）
+    abortLiveTests();
+    autoTestedGroupRef.current = '';
 
     setSelectedGroup(group);
     const filtered = filterChannels(group, searchKeyword);
@@ -1646,9 +2200,9 @@ function LivePageClient() {
           autoSize: false,
           autoMini: false,
           screenshot: false,
-          setting: webGPUSupported, // 只有支持WebGPU时才显示设置按钮
+          setting: true,
           loop: false,
-          flip: false,
+          flip: true,
           playbackRate: false,
           aspectRatio: false,
           fullscreen: true,
@@ -1761,6 +2315,8 @@ function LivePageClient() {
             ] : []),
           ],
         });
+
+        artPlayerRef.current.on('flip', syncAnime4KCanvasFlip);
 
         // 监听播放器事件
         artPlayerRef.current.on('ready', () => {
@@ -1882,68 +2438,92 @@ function LivePageClient() {
     };
   }, []);
 
+  // 初始化加载样式的步骤模型
+  const activeLiveStepIdx = Math.max(
+    0,
+    LIVE_LOADING_STEPS.indexOf(loadingStage as LiveLoadingStepKey)
+  );
+  // 方格/符阵不出现 emoji：阶段语义由描边图标承担，文案只留纯中文
+  const plainLoadingMessage = loadingMessage
+    .replace(/^[^一-龥]+/, '')
+    .replace(/[\s.．。]+$/, '');
+  // 播放器蒙层只有个布尔量，没有子阶段可跟，固定停在「加载」这一格
+  const playerStepIdx = 0;
+
   if (loading) {
     return (
       <PageLayout activePath='/live'>
-        <div className='flex items-center justify-center min-h-screen bg-transparent'>
+        {/* fixed 铺满视口：main 在移动端有 3rem 顶距和底部安全区，
+            用 min-h-screen 会把内容整体压到视口中心偏下 */}
+        <div className='mtv-load-overlay fixed inset-0 flex items-center justify-center pointer-events-none'>
           <div className='text-center max-w-md mx-auto px-6'>
-            {/* 动画直播图标 */}
-            <div className='relative mb-8'>
-              <div className='relative mx-auto w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300'>
-                <div className='text-white text-4xl'>📺</div>
-                {/* 旋转光环 */}
-                <div className='absolute -inset-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl opacity-20 animate-spin'></div>
-              </div>
+            {/* 三种加载款式（旧版那一套各页自备） */}
+            <LoadingStyle
+              steps={LIVE_LOADING_STEPS.map((k) => LIVE_LOADING_STEP_META[k])}
+              activeStepIdx={activeLiveStepIdx}
+              message={plainLoadingMessage}
+              legacy={
+                <>
+                  {/* 动画直播图标 */}
+                  <div className='relative mb-8'>
+                    <div className='relative mx-auto w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300'>
+                      <div className='text-white text-4xl'>📺</div>
+                      {/* 旋转光环 */}
+                      <div className='absolute -inset-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl opacity-20 animate-spin'></div>
+                    </div>
 
-              {/* 浮动粒子效果 */}
-              <div className='absolute top-0 left-0 w-full h-full pointer-events-none'>
-                <div className='absolute top-2 left-2 w-2 h-2 bg-green-400 rounded-full animate-bounce'></div>
-                <div
-                  className='absolute top-4 right-4 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce'
-                  style={{ animationDelay: '0.5s' }}
-                ></div>
-                <div
-                  className='absolute bottom-3 left-6 w-1 h-1 bg-lime-400 rounded-full animate-bounce'
-                  style={{ animationDelay: '1s' }}
-                ></div>
-              </div>
-            </div>
+                    {/* 浮动粒子效果 */}
+                    <div className='absolute top-0 left-0 w-full h-full pointer-events-none'>
+                      <div className='absolute top-2 left-2 w-2 h-2 bg-green-400 rounded-full animate-bounce'></div>
+                      <div
+                        className='absolute top-4 right-4 w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce'
+                        style={{ animationDelay: '0.5s' }}
+                      ></div>
+                      <div
+                        className='absolute bottom-3 left-6 w-1 h-1 bg-lime-400 rounded-full animate-bounce'
+                        style={{ animationDelay: '1s' }}
+                      ></div>
+                    </div>
+                  </div>
 
-            {/* 进度指示器 */}
-            <div className='mb-6 w-80 mx-auto'>
-              <div className='flex justify-center space-x-2 mb-4'>
-                <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'loading' ? 'bg-green-500 scale-125' : 'bg-green-500'
-                    }`}
-                ></div>
-                <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'fetching' ? 'bg-green-500 scale-125' : 'bg-green-500'
-                    }`}
-                ></div>
-                <div
-                  className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'ready' ? 'bg-green-500 scale-125' : 'bg-gray-300'
-                    }`}
-                ></div>
-              </div>
+                  {/* 进度指示器 */}
+                  <div className='mb-6 w-80 mx-auto'>
+                    <div className='flex justify-center space-x-2 mb-4'>
+                      <div
+                        className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'loading' ? 'bg-green-500 scale-125' : 'bg-green-500'
+                          }`}
+                      ></div>
+                      <div
+                        className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'fetching' ? 'bg-green-500 scale-125' : 'bg-green-500'
+                          }`}
+                      ></div>
+                      <div
+                        className={`w-3 h-3 rounded-full transition-all duration-500 ${loadingStage === 'ready' ? 'bg-green-500 scale-125' : 'bg-gray-300'
+                          }`}
+                      ></div>
+                    </div>
 
-              {/* 进度条 */}
-              <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'>
-                <div
-                  className='h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full transition-all duration-1000 ease-out'
-                  style={{
-                    width:
-                      loadingStage === 'loading' ? '33%' : loadingStage === 'fetching' ? '66%' : '100%',
-                  }}
-                ></div>
-              </div>
-            </div>
+                    {/* 进度条 */}
+                    <div className='w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden'>
+                      <div
+                        className='h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full transition-all duration-1000 ease-out'
+                        style={{
+                          width:
+                            loadingStage === 'loading' ? '33%' : loadingStage === 'fetching' ? '66%' : '100%',
+                        }}
+                      ></div>
+                    </div>
+                  </div>
 
-            {/* 加载消息 */}
-            <div className='space-y-2'>
-              <p className='text-xl font-semibold text-gray-800 dark:text-gray-200 animate-pulse'>
-                {loadingMessage}
-              </p>
-            </div>
+                  {/* 加载消息 */}
+                  <div className='space-y-2'>
+                    <p className='text-xl font-semibold text-gray-800 dark:text-gray-200 animate-pulse'>
+                      {loadingMessage}
+                    </p>
+                  </div>
+                </>
+              }
+            />
           </div>
         </div>
       </PageLayout>
@@ -1957,11 +2537,21 @@ function LivePageClient() {
           <div className='text-center max-w-md mx-auto px-6'>
             {/* 错误图标 */}
             <div className='relative mb-8'>
-              <div className='relative mx-auto w-24 h-24 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300'>
-                <div className='text-white text-4xl'>😵</div>
-                {/* 脉冲效果 */}
-                <div className='absolute -inset-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl opacity-20 animate-pulse'></div>
-              </div>
+              {/* 三种失败款式（旧版那一套各页自备） */}
+              <LoadingErrorStyle
+                steps={LIVE_LOADING_STEPS.map((k) => LIVE_LOADING_STEP_META[k])}
+                activeStepIdx={activeLiveStepIdx}
+                message={error}
+                legacy={
+                  <>
+                    <div className='relative mx-auto w-24 h-24 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300'>
+                      <div className='text-white text-4xl'>😵</div>
+                      {/* 脉冲效果 */}
+                      <div className='absolute -inset-2 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl opacity-20 animate-pulse'></div>
+                    </div>
+                  </>
+                }
+              />
             </div>
 
             {/* 错误信息 */}
@@ -1969,7 +2559,7 @@ function LivePageClient() {
               <h2 className='text-2xl font-bold text-gray-800 dark:text-gray-200'>
                 哎呀，出现了一些问题
               </h2>
-              <div className='bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4'>
+              <div className='mtv-err-box bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4'>
                 <p className='text-red-600 dark:text-red-400 font-medium'>
                   {error}
                 </p>
@@ -1983,9 +2573,10 @@ function LivePageClient() {
             <div className='space-y-3'>
               <button
                 onClick={() => window.location.reload()}
-                className='w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl'
+                className='flex w-full items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-cyan-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl'
               >
-                🔄 重新尝试
+                <RefreshCw className='h-4 w-4 flex-shrink-0' />
+                重新尝试
               </button>
             </div>
           </div>
@@ -2106,17 +2697,28 @@ function LivePageClient() {
                 {isVideoLoading && (
                   <div className='absolute inset-0 bg-black/85 backdrop-blur-sm rounded-xl overflow-hidden shadow-lg border border-white/0 dark:border-white/30 flex items-center justify-center z-[500] transition-all duration-300'>
                     <div className='text-center max-w-md mx-auto px-6'>
-                      <div className='relative mb-8'>
-                        <div className='relative mx-auto w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300'>
-                          <div className='text-white text-4xl'>📺</div>
-                          <div className='absolute -inset-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl opacity-20 animate-spin'></div>
-                        </div>
-                      </div>
-                      <div className='space-y-2'>
-                        <p className='text-xl font-semibold text-white animate-pulse'>
-                          🔄 IPTV 加载中...
-                        </p>
-                      </div>
+                      {/* 三种加载款式（旧版那一套各页自备） */}
+                      <LoadingStyle
+                        steps={LIVE_PLAYER_STEPS}
+                        activeStepIdx={playerStepIdx}
+                        message='加载中'
+                        onDark
+                        legacy={
+                          <>
+                            <div className='relative mb-8'>
+                              <div className='relative mx-auto w-24 h-24 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform duration-300'>
+                                <div className='text-white text-4xl'>📺</div>
+                                <div className='absolute -inset-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl opacity-20 animate-spin'></div>
+                              </div>
+                            </div>
+                            <div className='space-y-2'>
+                              <p className='text-xl font-semibold text-white animate-pulse'>
+                                🔄 IPTV 加载中...
+                              </p>
+                            </div>
+                          </>
+                        }
+                      />
                     </div>
                   </div>
                 )}
@@ -2454,11 +3056,14 @@ function LivePageClient() {
                           if (item.type === 'single') {
                             const channel = item.channel;
                             const isActive = channel.id === currentChannel?.id;
+                            const testLabel = getLineTestLabel(channel);
+                            const testResult = lineTestResults[getLineTestKey(channel)];
+                            const isTesting = isTestingLineGroup(getItemChannels(item));
                             return (
                               <button
                                 key={channel.id}
                                 data-channel-id={channel.id}
-                                onClick={() => handleChannelChange(channel)}
+                                onClick={() => handlePlayLines(getItemChannels(item))}
                                 disabled={isSwitchingSource}
                                 className={`w-full p-3 rounded-lg text-left transition-all duration-200 ${isSwitchingSource
                                   ? 'opacity-50 cursor-not-allowed'
@@ -2481,12 +3086,39 @@ function LivePageClient() {
                                     )}
                                   </div>
                                   <div className='flex-1 min-w-0'>
-                                    <div className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={channel.name}>
-                                      {channel.name}
+                                    <div className='flex items-center gap-2 min-w-0 overflow-hidden'>
+                                      <div className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={channel.name}>
+                                        {channel.name}
+                                      </div>
+                                      {testLabel && (
+                                        <span
+                                          title={testLabel}
+                                          className={`flex-shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] leading-none ${
+                                            testResult?.status === 'ok'
+                                              ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                              : testResult?.status === 'fail'
+                                                ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                                                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                          }`}
+                                        >
+                                          {getLineTestBadge(channel)}
+                                        </span>
+                                      )}
                                     </div>
-                                    <div className='text-xs text-gray-500 dark:text-gray-400 mt-1' title={channel.group}>
+                                    <div className='text-xs text-gray-500 dark:text-gray-400 mt-1 truncate' title={channel.group}>
                                       {channel.group}
                                     </div>
+                                  </div>
+                                  <div className='flex items-center gap-1 flex-shrink-0'>
+                                    <span
+                                      role='button'
+                                      aria-disabled={isTesting}
+                                      title={isTesting ? '测速中' : '测速'}
+                                      onClick={(e) => testLineGroup(e, getItemChannels(item))}
+                                      className={iconButtonClassName(isTesting)}
+                                    >
+                                      {isTesting ? <Loader2 className='w-4 h-4 animate-spin' /> : <Gauge className='w-4 h-4' />}
+                                    </span>
                                   </div>
                                 </div>
                               </button>
@@ -2496,6 +3128,13 @@ function LivePageClient() {
                           const isExpanded = expandedMergedChannels.includes(item.key);
                           const activeLineIndex = item.channels.findIndex(channel => channel.id === currentChannel?.id);
                           const hasActiveChild = activeLineIndex !== -1;
+                          const bestLine = getBestTestedLine(item.channels);
+                          const bestLineIndex = bestLine ? item.channels.findIndex(channel => channel.id === bestLine.id) : -1;
+                          const isTestingLines = item.channels.some(channel => lineTestResults[getLineTestKey(channel)]?.status === 'testing');
+                          const bestLineLabel = bestLine ? getLineTestLabel(bestLine) : '';
+                          const bestLineSpeed = bestLine
+                            ? formatLineSpeedCompact(lineTestResults[getLineTestKey(bestLine)]?.speedKBps)
+                            : '';
 
                           return (
                             <div
@@ -2505,7 +3144,7 @@ function LivePageClient() {
                               <button
                                 type='button'
                                 onClick={() => {
-                                  handleChannelChange(item.channels[0]);
+                                  handlePlayLines(getItemChannels(item));
                                 }}
                                 disabled={isSwitchingSource}
                                 className={`w-full p-3 rounded-lg text-left transition-all duration-200 ${isSwitchingSource
@@ -2529,30 +3168,62 @@ function LivePageClient() {
                                     )}
                                   </div>
                                   <div className='flex-1 min-w-0'>
-                                    <div className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={item.name}>
-                                      {item.name}
+                                    <div className='flex items-center gap-2 min-w-0 overflow-hidden'>
+                                      <div className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={item.name}>
+                                        {item.name}
+                                      </div>
+                                      {isTestingLines ? (
+                                        <span className='flex-shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] leading-none bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'>
+                                          测速中
+                                        </span>
+                                      ) : bestLine ? (
+                                        <span
+                                          title={`推荐线路${bestLineIndex + 1}${bestLineLabel ? ` ${bestLineLabel}` : ''}`}
+                                          className='flex-shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] leading-none bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                        >
+                                          {`推荐${bestLineIndex + 1}${bestLineSpeed ? ` ${bestLineSpeed}` : ''}`}
+                                        </span>
+                                      ) : hasActiveChild ? (
+                                        <span className='flex-shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] leading-none bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'>
+                                          {`当前${activeLineIndex + 1}`}
+                                        </span>
+                                      ) : null}
                                     </div>
-                                    <div className='text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-2'>
-                                      <span title={item.group}>{item.group}</span>
-                                      <span>·</span>
-                                      <span>{item.channels.length} 条线路</span>
-                                      {hasActiveChild && (
-                                        <>
-                                          <span>·</span>
-                                          <span>{`当前线路${activeLineIndex + 1}`}</span>
-                                        </>
-                                      )}
+                                    <div className='text-xs text-gray-500 dark:text-gray-400 mt-1 truncate' title={item.group}>
+                                      {`${item.group} · ${item.channels.length} 条线路`}
                                     </div>
                                   </div>
-                                  <div className='flex flex-col items-end gap-2 flex-shrink-0'>
+                                  <div className='flex items-center gap-1 flex-shrink-0'>
+                                    <div className='flex flex-col gap-1'>
+                                      <span
+                                        role='button'
+                                        aria-disabled={isTestingLines}
+                                        title={isTestingLines ? '测速中' : '测速'}
+                                        onClick={(e) => testLineGroup(e, getItemChannels(item))}
+                                        className={iconButtonClassName(isTestingLines)}
+                                      >
+                                        {isTestingLines ? <Loader2 className='w-4 h-4 animate-spin' /> : <Gauge className='w-4 h-4' />}
+                                      </span>
+                                      <span
+                                        role='button'
+                                        aria-disabled={isTestingLines}
+                                        title='测速并选择推荐线路'
+                                        onClick={(e) => testAndPickLineGroup(e, getItemChannels(item), item.key)}
+                                        className={iconButtonClassName(isTestingLines)}
+                                      >
+                                        <Wand2 className='w-4 h-4' />
+                                      </span>
+                                    </div>
                                     <span
+                                      role='button'
+                                      title={isExpanded ? '收起' : '展开'}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         toggleMergedChannel(item.key);
                                       }}
-                                      className='text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                                      className={iconButtonClassName(false, isExpanded)}
                                     >
-                                      {isExpanded ? '收起' : '展开'}
+                                      {isExpanded ? <ChevronUp className='w-4 h-4' /> : <ChevronDown className='w-4 h-4' />}
                                     </span>
                                   </div>
                                 </div>
@@ -2562,6 +3233,9 @@ function LivePageClient() {
                                 <div className='pl-4 space-y-2'>
                                   {item.channels.map((channel, index) => {
                                     const isActive = channel.id === currentChannel?.id;
+                                    const testLabel = getLineTestLabel(channel);
+                                    const testResult = lineTestResults[getLineTestKey(channel)];
+                                    const isBestLine = bestLine?.id === channel.id;
                                     return (
                                       <button
                                         key={channel.id}
@@ -2577,16 +3251,37 @@ function LivePageClient() {
                                               : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                                         }`}
                                       >
-                                        <div className='flex items-center justify-between gap-3'>
-                                          <span className='font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2'>
+                                        <div className='flex items-center gap-3'>
+                                          <span className='flex-shrink-0 whitespace-nowrap font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2'>
                                             <GitBranch className='w-4 h-4 text-gray-500 dark:text-gray-400' />
                                             {`线路${index + 1}`}
                                           </span>
-                                          {isActive && (
-                                            <span className='text-xs text-green-600 dark:text-green-400'>
-                                              当前播放
-                                            </span>
-                                          )}
+                                          <div className='flex flex-1 min-w-0 items-center justify-end gap-2 overflow-hidden text-xs'>
+                                            {testLabel && (
+                                              <span
+                                                title={testLabel}
+                                                className={`min-w-0 truncate ${
+                                                  testResult?.status === 'ok'
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : testResult?.status === 'fail'
+                                                      ? 'text-red-500 dark:text-red-400'
+                                                      : 'text-amber-600 dark:text-amber-400'
+                                                }`}
+                                              >
+                                                {testLabel}
+                                              </span>
+                                            )}
+                                            {isBestLine && (
+                                              <span className='flex-shrink-0 whitespace-nowrap rounded bg-green-100 px-2 py-0.5 text-green-700 dark:bg-green-900/40 dark:text-green-300'>
+                                                推荐
+                                              </span>
+                                            )}
+                                            {isActive && (
+                                              <span className='flex-shrink-0 whitespace-nowrap text-green-600 dark:text-green-400'>
+                                                当前播放
+                                              </span>
+                                            )}
+                                          </div>
                                         </div>
                                       </button>
                                     );

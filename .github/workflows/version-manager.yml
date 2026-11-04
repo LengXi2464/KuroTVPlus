@@ -1,0 +1,75 @@
+name: Version Manager
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG'
+      - 'scripts/convert-changelog.js'
+      - 'src/lib/version.ts'
+      - 'VERSION.txt'
+  workflow_dispatch: # 手动触发
+
+permissions:
+  contents: write
+
+# 同一时间只允许一个同步任务运行，避免并发推送冲突
+concurrency:
+  group: version-manager
+  cancel-in-progress: true
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 始终基于 main 分支同步，避免 tag 触发的分离 HEAD 导致推送失败
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          # 优先使用 PAT（可绕过分支保护），未配置时回退到默认 token
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.14.0
+
+      # 同步脚本使用项目内的 Prettier 格式化生成文件，需要安装依赖
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync version files from CHANGELOG
+        run: node scripts/convert-changelog.js
+
+      - name: Verify version files
+        run: node scripts/convert-changelog.js --check
+
+      - name: Commit and push version updates
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add VERSION.txt src/lib/version.ts src/lib/changelog.ts
+
+          if git diff --cached --quiet; then
+            echo "✅ 版本文件已是最新，无需提交"
+            exit 0
+          fi
+
+          VERSION=$(cat VERSION.txt)
+          git commit -m "chore: sync version files to ${VERSION} [skip ci]"
+          git push origin HEAD:main
+
+      - name: Show version statistics
+        run: |
+          echo "📊 版本同步完成"
+          echo "VERSION.txt: $(cat VERSION.txt)"
+          grep "const CURRENT_VERSION" src/lib/version.ts

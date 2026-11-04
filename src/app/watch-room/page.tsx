@@ -2,10 +2,11 @@
 'use client';
 
 import { List as ListIcon, Lock, RefreshCw,UserPlus, Users } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect,useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect,useRef,useState } from 'react';
 
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
+import { getStoredRoomInfo } from '@/hooks/useWatchRoom';
 
 import PageLayout from '@/components/PageLayout';
 import Toast, { ToastProps } from '@/components/Toast';
@@ -44,10 +45,21 @@ function getScreenShareViewerSupportError() {
 }
 
 export default function WatchRoomPage() {
+  return (
+    <Suspense fallback={null}>
+      <WatchRoomPageContent />
+    </Suspense>
+  );
+}
+
+function WatchRoomPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const linkRoomId = searchParams.get('room');
   const watchRoom = useWatchRoomContext();
   const { getRoomList, isConnected, createRoom, joinRoom, currentRoom, isOwner, members, socket } = watchRoom;
   const [activeTab, setActiveTab] = useState<TabType>('create');
+  const [musicEnabled, setMusicEnabled] = useState(false);
 
   // 获取当前登录用户（在客户端挂载后读取，避免 hydration 错误）
   const [currentUsername, setCurrentUsername] = useState<string>('游客');
@@ -55,6 +67,10 @@ export default function WatchRoomPage() {
   useEffect(() => {
     const authInfo = getAuthInfoFromBrowserCookie();
     setCurrentUsername(authInfo?.username || '游客');
+  }, []);
+
+  useEffect(() => {
+    setMusicEnabled(Boolean((window as any).RUNTIME_CONFIG?.MUSIC_ENABLED));
   }, []);
 
   // 创建房间表单
@@ -202,6 +218,28 @@ export default function WatchRoomPage() {
     }
   };
 
+  // 通过邀请链接进入时自动加入房间（已加入则跳过）
+  const autoJoinAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!linkRoomId || autoJoinAttemptedRef.current) return;
+    if (!watchRoom.isConnected || currentRoom) return;
+
+    // 房主不接受邀请链接：直接拒绝加入
+    if (getStoredRoomInfo()?.isOwner) {
+      autoJoinAttemptedRef.current = true;
+      showToast('你是房间房主，无法通过邀请链接加入', 'error');
+      return;
+    }
+
+    autoJoinAttemptedRef.current = true;
+    joinRoom({
+      roomId: linkRoomId.trim().toUpperCase(),
+      userName: currentUsername,
+    }).catch((error: any) => {
+      showToast(error.message || '加入房间失败', 'error');
+    });
+  }, [linkRoomId, watchRoom.isConnected, currentRoom, currentUsername, joinRoom]);
+
   // 监听房间状态，房员加入后自动跟随房主播放
   useEffect(() => {
     if (!currentRoom || isOwner) return;
@@ -211,19 +249,32 @@ export default function WatchRoomPage() {
       return;
     }
 
-    // 房员加入房间后，不立即跳转
-    // 而是监听 play:change 或 live:change 事件（说明房主正在活跃使用）
-    // 这样可以避免房主已经离开play页面但状态未清除的情况
+    if (currentRoom.roomType === 'music') {
+      router.push('/watch-room/music');
+      return;
+    }
 
-    // 检查房主的播放状态 - 仅在首次加入且状态是最近更新时才跳转
-    // 这里不再自动跳转，而是等待房主的下一次操作
+    // 进度同步房：房主正在播放时自动跟随
+    const state = currentRoom.currentState;
+    if (state?.type === 'play') {
+      const params = new URLSearchParams({
+        id: state.videoId,
+        source: state.source,
+        episode: String(state.episode || 1),
+      });
+      if (state.videoName) params.set('title', state.videoName);
+      if (state.videoYear) params.set('year', state.videoYear);
+      if (state.searchTitle) params.set('stitle', state.searchTitle);
+      router.push(`/play?${params.toString()}`);
+    }
+    // 房主暂无播放状态时停留在本页等待，房主开始播放后会收到 play:change 自动跟随
   }, [currentRoom, isOwner]);
 
   // 监听房主的主动操作（切换视频/频道）
   useEffect(() => {
     if (!currentRoom || isOwner) return;
 
-    if (currentRoom.roomType === 'screen') return;
+    if (currentRoom.roomType === 'screen' || currentRoom.roomType === 'music') return;
 
     const handlePlayChange = (state: any) => {
       if (state.type === 'play') {
@@ -272,8 +323,10 @@ export default function WatchRoomPage() {
   useEffect(() => {
     if (currentRoom?.roomType === 'screen') {
       router.push('/watch-room/screen');
+    } else if (currentRoom?.roomType === 'music' && !isOwner) {
+      router.push('/watch-room/music');
     }
-  }, [currentRoom?.id, currentRoom?.roomType, router]);
+  }, [currentRoom?.id, currentRoom?.roomType, isOwner, router]);
 
   // 从房间列表加入房间
   const handleJoinFromList = (room: Room) => {
@@ -464,7 +517,7 @@ export default function WatchRoomPage() {
                         </div>
                         <div className="bg-white/10 backdrop-blur rounded-lg p-3">
                           <p className="text-blue-100 text-xs mb-1">房间类型</p>
-                          <p className="text-base font-bold">{currentRoom.roomType === 'screen' ? '屏幕共享' : '进度同步'}</p>
+                          <p className="text-base font-bold">{currentRoom.roomType === 'screen' ? '屏幕共享' : currentRoom.roomType === 'music' ? '一起听' : '进度同步'}</p>
                         </div>
                       </div>
                     </div>
@@ -501,9 +554,20 @@ export default function WatchRoomPage() {
                       <p className="text-sm text-blue-800 dark:text-blue-200">
                         💡 {currentRoom.roomType === 'screen'
                           ? '这是屏幕共享房间，创建后将进入共享页，由房主发起屏幕共享'
-                          : '前往播放页面或直播页面开始观影，房间成员将自动同步您的操作'}
+                          : currentRoom.roomType === 'music'
+                            ? '进入音乐页面后，房间成员将同步收听您的播放列表'
+                            : '前往播放页面或直播页面开始观影，房间成员将自动同步您的操作'}
                       </p>
                     </div>
+                    {currentRoom.roomType === 'music' && isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => router.push('/music?watchRoom=music')}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-lg transition-colors"
+                      >
+                        进入音乐页面
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <form onSubmit={handleCreateRoom} className="space-y-4">
@@ -574,7 +638,7 @@ export default function WatchRoomPage() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       房间类型
                     </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className={`grid grid-cols-1 ${musicEnabled ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
                       <button
                         type="button"
                         onClick={() => setCreateForm({ ...createForm, roomType: 'sync' })}
@@ -599,6 +663,20 @@ export default function WatchRoomPage() {
                         <div className="font-medium text-gray-900 dark:text-gray-100">屏幕共享</div>
                         <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">房员直接观看房主共享的浏览器画面（适合完全实时同步的情况）</div>
                       </button>
+                      {musicEnabled && (
+                        <button
+                          type="button"
+                          onClick={() => setCreateForm({ ...createForm, roomType: 'music' })}
+                          className={`rounded-lg border p-4 text-left transition-colors ${
+                            createForm.roomType === 'music'
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <div className="font-medium text-gray-900 dark:text-gray-100">一起听</div>
+                          <div className="mt-1 text-sm text-gray-600 dark:text-gray-400">房主控制音乐播放，房员同步收听播放列表</div>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -843,7 +921,7 @@ export default function WatchRoomPage() {
                         </div>
                         <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
                           <span>类型</span>
-                          <span>{room.roomType === 'screen' ? '屏幕共享' : '进度同步'}</span>
+                          <span>{room.roomType === 'screen' ? '屏幕共享' : room.roomType === 'music' ? '一起听' : '进度同步'}</span>
                         </div>
                         <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
                           <span>创建时间</span>
@@ -856,7 +934,9 @@ export default function WatchRoomPage() {
                                 ? `正在播放: ${room.currentState.videoName}`
                                 : room.currentState.type === 'live'
                                   ? `正在观看: ${room.currentState.channelName}`
-                                  : '正在共享屏幕'}
+                                  : room.currentState.type === 'music'
+                                    ? `正在听: ${room.currentState.song.name} - ${room.currentState.song.artist}`
+                                    : '正在共享屏幕'}
                             </p>
                           </div>
                         )}

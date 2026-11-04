@@ -1,43 +1,109 @@
 'use client';
 
-import Link from 'next/link';
+import { BookmarkCheck, CircleMinus, Info } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 
-import { buildBookDetailPath, cacheBookShelfItem } from '@/lib/book-route-cache.client';
 import { deleteBookShelf, getAllBookShelf } from '@/lib/book.db.client';
 import { BookShelfItem } from '@/lib/book.types';
+import {
+  buildBookDetailPath,
+  cacheBookShelfItem,
+} from '@/lib/book-route-cache.client';
+import { cn } from '@/lib/cn';
+import { processImageUrl } from '@/lib/utils';
+
+import { bookCardItem } from '@/components/media/adapters';
+import EmptyState from '@/components/media/EmptyState';
+import { LIBRARY_ACCENT_ICON, LIBRARY_MUTED } from '@/components/media/library';
+import MediaGrid from '@/components/media/MediaGrid';
+import MediaGridSkeleton from '@/components/media/MediaGridSkeleton';
+import MediaPressCard from '@/components/media/MediaPressCard';
 
 export default function BookShelfPage() {
+  const router = useRouter();
   const [shelf, setShelf] = useState<Record<string, BookShelfItem>>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAllBookShelf().then(setShelf).catch(() => undefined);
+    getAllBookShelf()
+      .then(setShelf)
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
   }, []);
 
-  const items = useMemo(() => Object.values(shelf).sort((a, b) => (b.lastReadTime || b.saveTime) - (a.lastReadTime || a.saveTime)), [shelf]);
+  const items = useMemo(
+    () =>
+      Object.values(shelf).sort(
+        (a, b) =>
+          (b.lastReadTime || b.saveTime) - (a.lastReadTime || a.saveTime)
+      ),
+    [shelf]
+  );
+
+  const removeFromShelf = async (item: BookShelfItem) => {
+    await deleteBookShelf(item.sourceId, item.bookId);
+    setShelf((prev) => {
+      const next = { ...prev };
+      delete next[`${item.sourceId}+${item.bookId}`];
+      return next;
+    });
+  };
 
   return (
-    <div className='space-y-4'>
-      <div className='text-sm text-gray-500'>共 {items.length} 本电子书</div>
-      <div className='grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-        {items.map((item) => (
-          <div key={`${item.sourceId}-${item.bookId}`} className='rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950'>
-            <div className='flex gap-4'>
-              <div className='h-28 w-20 overflow-hidden rounded-2xl bg-gray-100 dark:bg-gray-900'>{item.cover ? <img src={item.cover} alt={item.title} className='h-full w-full object-cover' /> : null}</div>
-              <div className='min-w-0 flex-1'>
-                <div className='truncate font-medium'>{item.title}</div>
-                <div className='mt-1 text-sm text-gray-500'>{item.author || item.sourceName}</div>
-                <div className='mt-2 text-xs text-gray-500'>进度 {Math.round(item.progressPercent || 0)}%</div>
-                <div className='mt-3 flex flex-wrap gap-2'>
-                  <Link href={buildBookDetailPath(item.sourceId, item.bookId)} onClick={() => cacheBookShelfItem(item)} className='rounded-2xl bg-sky-600 px-3 py-2 text-xs text-white'>详情</Link>
-                  <button onClick={async () => { await deleteBookShelf(item.sourceId, item.bookId); setShelf((prev) => { const next = { ...prev }; delete next[`${item.sourceId}+${item.bookId}`]; return next; }); }} className='rounded-2xl border border-gray-200 px-3 py-2 text-xs dark:border-gray-700'>移除</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+    <section className='space-y-4'>
+      <div className={cn('flex items-center gap-2 text-sm', LIBRARY_MUTED)}>
+        <BookmarkCheck className={cn('h-4 w-4', LIBRARY_ACCENT_ICON)} />共{' '}
+        {items.length} 本电子书
+        <span className='text-xs'>· 长按封面可移出书架</span>
       </div>
-      {items.length === 0 ? <div className='text-sm text-gray-500'>书架还是空的</div> : null}
-    </div>
+
+      {loading ? (
+        <MediaGridSkeleton count={12} />
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon={<BookmarkCheck className='h-7 w-7' />}
+          title='书架还是空的'
+          description='在详情页点「加入书架」，收藏的电子书会排到这里。'
+        />
+      ) : (
+        <MediaGrid>
+          {items.map((item) => {
+            const detailHref = buildBookDetailPath(item.sourceId, item.bookId);
+            const openDetail = () => {
+              void cacheBookShelfItem(item);
+              router.push(detailHref);
+            };
+            return (
+              <MediaPressCard
+                key={`${item.sourceId}-${item.bookId}`}
+                item={bookCardItem(item)}
+                href={detailHref}
+                onNavigate={() => void cacheBookShelfItem(item)}
+                onPress={openDetail}
+                title={item.title}
+                poster={item.cover ? processImageUrl(item.cover) : undefined}
+                sourceName={item.sourceName}
+                actions={[
+                  {
+                    id: 'detail',
+                    label: '详情',
+                    icon: <Info size={20} />,
+                    onClick: openDetail,
+                  },
+                  {
+                    id: 'remove-from-shelf',
+                    label: '移出书架',
+                    icon: <CircleMinus size={20} />,
+                    onClick: () => void removeFromShelf(item),
+                    color: 'danger' as const,
+                  },
+                ]}
+              />
+            );
+          })}
+        </MediaGrid>
+      )}
+    </section>
   );
 }

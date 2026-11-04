@@ -8,6 +8,17 @@ import { PansouLink, searchPansou } from '@/lib/pansou.client';
 
 export const runtime = 'nodejs';
 
+// NetDiskConfig 平台键 -> pansou 网盘类型键
+const NETDISK_CONFIG_TO_CLOUD_TYPE: Record<string, string> = {
+  Quark: 'quark',
+  Mobile: 'mobile',
+  Baidu: 'baidu',
+  Tianyi: 'tianyi',
+  Pan123: '123',
+  UC: 'uc',
+  Pan115: '115',
+};
+
 export async function POST(request: NextRequest) {
   try {
     const authResult = await requireFeaturePermission(
@@ -19,12 +30,15 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { keyword } = body;
+    const cloudTypes = Array.isArray(body.cloud_types)
+      ? body.cloud_types.filter(
+          (item: unknown): item is string =>
+            typeof item === 'string' && item.trim().length > 0
+        )
+      : undefined;
 
     if (!keyword) {
-      return NextResponse.json(
-        { error: '关键词不能为空' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '关键词不能为空' }, { status: 400 });
     }
 
     // 从系统配置中获取 Pansou 配置
@@ -37,6 +51,7 @@ export async function POST(request: NextRequest) {
       keyword,
       apiUrl: apiUrl ? '已配置' : '未配置',
       hasAuth: !!(username && password),
+      cloudTypes: cloudTypes?.length ? cloudTypes : 'all',
     });
 
     if (!apiUrl) {
@@ -50,6 +65,7 @@ export async function POST(request: NextRequest) {
     const results = await searchPansou(apiUrl, keyword, {
       username,
       password,
+      cloudTypes,
     });
 
     const rawBlocklist = config.SiteConfig.PansouKeywordBlocklist || '';
@@ -66,7 +82,9 @@ export async function POST(request: NextRequest) {
       let total = 0;
 
       const shouldBlock = (link: PansouLink) => {
-        const content = `${link.note || ''} ${link.url || ''} ${link.source || ''}`.toLowerCase();
+        const content = `${link.note || ''} ${link.url || ''} ${
+          link.source || ''
+        }`.toLowerCase();
         return blockedKeywords.some((item) =>
           content.includes(item.toLowerCase())
         );
@@ -84,6 +102,40 @@ export async function POST(request: NextRequest) {
         ...results,
         merged_by_type: mergedByType,
         total,
+      };
+    }
+
+    // 已配置账号的网盘类型排在前面
+    const netDiskConfig = (config.NetDiskConfig || {}) as Record<
+      string,
+      { Enabled?: boolean } | undefined
+    >;
+    const configuredCloudTypes = new Set<string>();
+    Object.entries(NETDISK_CONFIG_TO_CLOUD_TYPE).forEach(
+      ([configKey, cloudType]) => {
+        if (netDiskConfig[configKey]?.Enabled) {
+          configuredCloudTypes.add(cloudType);
+        }
+      }
+    );
+
+    if (configuredCloudTypes.size > 0 && filteredResults.merged_by_type) {
+      const reordered: Record<string, PansouLink[]> = {};
+      Object.entries(filteredResults.merged_by_type)
+        .map(([type, links], index) => ({ type, links, index }))
+        .sort((a, b) => {
+          const aPriority = configuredCloudTypes.has(a.type) ? 0 : 1;
+          const bPriority = configuredCloudTypes.has(b.type) ? 0 : 1;
+          if (aPriority !== bPriority) return aPriority - bPriority;
+          return a.index - b.index; // 同优先级保持原有顺序
+        })
+        .forEach(({ type, links }) => {
+          reordered[type] = links;
+        });
+
+      filteredResults = {
+        ...filteredResults,
+        merged_by_type: reordered,
       };
     }
 

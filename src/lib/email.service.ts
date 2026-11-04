@@ -105,7 +105,7 @@ export class EmailService {
     toEmail: string,
     siteName?: string
   ): Promise<void> {
-    const displayName = siteName || 'KuroTVPlus';
+    const displayName = siteName || 'MoonTVPlus';
     await this.send(emailConfig, {
       to: toEmail,
       subject: `测试邮件 - ${displayName}`,

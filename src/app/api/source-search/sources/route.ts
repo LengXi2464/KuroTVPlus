@@ -12,7 +12,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const apiSites = await getAvailableApiSites(authInfo.username);
+    const specialOnly = request.nextUrl.searchParams.get('special') === '1';
+    const apiSites = await getAvailableApiSites(authInfo.username, specialOnly);
 
     return NextResponse.json({
       sources: apiSites.map((site) => ({

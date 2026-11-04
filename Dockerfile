@@ -37,8 +37,15 @@ FROM node:24-alpine AS runner
 # 启用 corepack 并激活 pnpm（用于安装额外依赖）
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# 安装 su-exec，用于在 entrypoint 中降权运行
+RUN apk add --no-cache su-exec
+
 # 创建非 root 用户
 RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S nextjs -G nodejs
+
+# 复制 entrypoint（支持通过 PUID/PGID 环境变量指定运行 UID/GID）
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -46,6 +53,7 @@ ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 ENV DOCKER_ENV=true
 ENV SQLITE_DB_PATH=/app/.data/moontv.db
+ENV OFFLINE_DOWNLOAD_DIR=/data
 
 # 从构建器中复制 standalone 输出
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -57,6 +65,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
 COPY --from=builder --chown=nextjs:nodejs /app/start.js ./start.js
 # 从构建器中复制自定义 server.js（包含 Socket.IO 支持）
 COPY --from=builder --chown=nextjs:nodejs /app/server.js ./server.js
+# 自定义 server.js 在运行时会 require('./src/lib/tv-remote-hub.js')。
+# Next standalone 只会追踪 Next 应用入口，不会自动包含自定义服务器额外 require 的源文件，
+# 因此需要显式复制该运行时模块，避免生产镜像启动时报 Cannot find module。
+COPY --from=builder --chown=nextjs:nodejs /app/src/lib/tv-remote-hub.js ./src/lib/tv-remote-hub.js
 # 从构建器中复制 public 和 .next/static 目录
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -64,13 +76,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # 从构建器中复制生产依赖（包含 Socket.IO / better-sqlite3）
 COPY --from=builder --chown=nextjs:nodejs /tmp/prod-deps/node_modules ./node_modules
 
-# 准备 SQLite 数据目录
-RUN mkdir -p /app/.data && chown -R nextjs:nodejs /app/.data
+# 准备 SQLite 数据目录和默认离线下载目录
+RUN mkdir -p /app/.data "$OFFLINE_DOWNLOAD_DIR" \
+  && chown -R nextjs:nodejs /app/.data "$OFFLINE_DOWNLOAD_DIR"
 
-# 切换到非特权用户
-USER nextjs
-
+# 默认以 root 启动，由 entrypoint 按 PUID/PGID 环境变量调整后降权运行
 EXPOSE 3000
 
 # 使用自定义启动脚本，先预加载配置再启动服务器
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "start.js"]

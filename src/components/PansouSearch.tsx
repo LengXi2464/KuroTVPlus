@@ -2,8 +2,10 @@
 'use client';
 
 import {
+  Activity,
   AlertCircle,
   Copy,
+  Download,
   ExternalLink,
   Loader2,
   RefreshCw,
@@ -13,16 +15,39 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { PansouLink, PansouSearchResult } from '@/lib/pansou.client';
 
+import OpenListSourceSelect from '@/components/OpenListSourceSelect';
 import Toast, { ToastProps } from '@/components/Toast';
 
 interface PansouSearchProps {
   keyword: string;
   triggerSearch?: boolean; // 触发搜索的标志
   onError?: (error: string) => void;
+  cloudTypes?: string[];
 }
 
+type DownloadTool = 'aria2' | 'Transmission' | 'qBittorrent';
+
+type MagnetHealthLevel = 'good' | 'ok' | 'risk' | 'unknown';
+
+interface MagnetHealthView {
+  health: MagnetHealthLevel;
+  seeders: number;
+  leechers: number;
+  peers: number;
+  message: string;
+  infoHash?: string;
+  source?: 'scrape' | 'cache';
+  durationMs?: number;
+}
+
+const downloadToolOptions: Array<{ value: DownloadTool; label: string }> = [
+  { value: 'aria2', label: 'aria2' },
+  { value: 'qBittorrent', label: 'qBittorrent' },
+  { value: 'Transmission', label: 'Transmission' },
+];
+
 // 网盘类型映射
-const CLOUD_TYPE_NAMES: Record<string, string> = {
+export const CLOUD_TYPE_NAMES: Record<string, string> = {
   baidu: '百度网盘',
   aliyun: '阿里云盘',
   quark: '夸克网盘',
@@ -33,6 +58,7 @@ const CLOUD_TYPE_NAMES: Record<string, string> = {
   pikpak: 'PikPak',
   xunlei: '迅雷网盘',
   '123': '123网盘',
+  guangya: '光鸭云盘',
   magnet: '磁力链接',
   ed2k: '电驴链接',
   others: '其他',
@@ -54,6 +80,8 @@ const CLOUD_TYPE_COLORS: Record<string, string> = {
     'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200',
   xunlei: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200',
   '123': 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-200',
+  guangya:
+    'bg-lime-100 text-lime-800 dark:bg-lime-900/40 dark:text-lime-200',
   magnet: 'bg-gray-100 text-gray-800 dark:bg-gray-700/40 dark:text-gray-200',
   ed2k: 'bg-gray-100 text-gray-800 dark:bg-gray-700/40 dark:text-gray-200',
   others: 'bg-gray-100 text-gray-800 dark:bg-gray-700/40 dark:text-gray-200',
@@ -141,6 +169,7 @@ export default function PansouSearch({
   keyword,
   triggerSearch,
   onError,
+  cloudTypes = [],
 }: PansouSearchProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -154,15 +183,31 @@ export default function PansouSearch({
   const typeDragScrollLeftRef = useRef(0);
   const [transferingUrl, setTransferingUrl] = useState<string | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const [downloadingUrl, setDownloadingUrl] = useState<string | null>(null);
+  const [showNameDialog, setShowNameDialog] = useState(false);
+  const [selectedDownloadLink, setSelectedDownloadLink] =
+    useState<PansouLink | null>(null);
+  const [customName, setCustomName] = useState('');
+  const [downloadTool, setDownloadTool] = useState<DownloadTool>('aria2');
+  const [downloadSource, setDownloadSource] = useState('');
+  const [downloadPath, setDownloadPath] = useState('');
   const [toast, setToast] = useState<ToastProps | null>(null);
   const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
   const [checkStatesByType, setCheckStatesByType] = useState<
     Record<string, StoredCloudCheckState>
   >({});
+  const [magnetHealthMap, setMagnetHealthMap] = useState<
+    Record<string, MagnetHealthView>
+  >({});
+  const [magnetHealthCheckingIds, setMagnetHealthCheckingIds] = useState<
+    Record<string, true>
+  >({});
 
   useEffect(() => {
     setCooldownRemainingMs(0);
     setCheckStatesByType({});
+    setMagnetHealthMap({});
+    setMagnetHealthCheckingIds({});
   }, [keyword, triggerSearch]);
 
   useEffect(() => {
@@ -249,6 +294,7 @@ export default function PansouSearch({
     setLoading(true);
     setError(null);
     setResults(null);
+    setSelectedType('all');
 
     try {
       const response = await fetch('/api/pansou/search', {
@@ -258,6 +304,7 @@ export default function PansouSearch({
         },
         body: JSON.stringify({
           keyword: currentKeyword,
+          cloud_types: cloudTypes,
         }),
       });
 
@@ -275,7 +322,7 @@ export default function PansouSearch({
     } finally {
       setLoading(false);
     }
-  }, [keyword, onError]);
+  }, [keyword, onError, cloudTypes]);
 
   useEffect(() => {
     // triggerSearch 变化时触发搜索（无论是 true 还是 false）
@@ -332,6 +379,148 @@ export default function PansouSearch({
       });
     } finally {
       setTransferingUrl(null);
+    }
+  };
+
+  const magnetHealthBadgeClass = (level: MagnetHealthLevel) => {
+    switch (level) {
+      case 'good':
+        return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
+      case 'ok':
+        return 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200';
+      case 'risk':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300';
+      default:
+        return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+
+  const magnetHealthLabel = (level: MagnetHealthLevel) => {
+    switch (level) {
+      case 'good':
+        return '健康';
+      case 'ok':
+        return '一般';
+      case 'risk':
+        return '风险';
+      default:
+        return '未知';
+    }
+  };
+
+  // 磁力单条测活（与动漫磁链搜索共用 /api/acg/health，全站并发可配）
+  const handleMagnetHealthCheck = async (link: PansouLink) => {
+    const url = link.url?.trim();
+    if (!url || magnetHealthCheckingIds[url]) return;
+
+    setMagnetHealthCheckingIds((prev) => ({ ...prev, [url]: true }));
+    try {
+      const response = await fetch('/api/acg/health', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url,
+          skipCache: Boolean(magnetHealthMap[url]),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || '测活失败');
+      }
+
+      setMagnetHealthMap((prev) => ({
+        ...prev,
+        [url]: {
+          health: data.health as MagnetHealthLevel,
+          seeders: data.seeders ?? 0,
+          leechers: data.leechers ?? 0,
+          peers: data.peers ?? 0,
+          message: data.message || '',
+          infoHash: data.infoHash,
+          source: data.source,
+          durationMs: data.durationMs,
+        },
+      }));
+    } catch (err: any) {
+      setToast({
+        message: err?.message || '测活失败',
+        type: 'error',
+        onClose: () => setToast(null),
+      });
+    } finally {
+      setMagnetHealthCheckingIds((prev) => {
+        const next = { ...prev };
+        delete next[url];
+        return next;
+      });
+    }
+  };
+
+  const handleOpenDownloadDialog = (link: PansouLink) => {
+    setSelectedDownloadLink(link);
+    setCustomName(keyword.trim() || link.note || '');
+    setShowNameDialog(true);
+  };
+
+  const handleCloseDownloadDialog = () => {
+    setShowNameDialog(false);
+    setSelectedDownloadLink(null);
+    setCustomName('');
+    setDownloadTool('aria2');
+    setDownloadSource('');
+    setDownloadPath('');
+  };
+
+  const handleConfirmDownload = async () => {
+    if (!selectedDownloadLink || !customName.trim()) {
+      return;
+    }
+
+    setDownloadingUrl(selectedDownloadLink.url);
+    setShowNameDialog(false);
+
+    try {
+      const response = await fetch('/api/acg/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: selectedDownloadLink.url,
+          name: customName.trim(),
+          tool: downloadTool,
+          source: downloadSource || undefined,
+          path: downloadPath.trim() || undefined,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || '添加下载任务失败');
+      }
+
+      setToast({
+        message: data.path
+          ? `${data.message || '已添加到离线下载队列'}：${data.path}`
+          : data.message || '已添加到离线下载队列',
+        type: 'success',
+        onClose: () => setToast(null),
+      });
+    } catch (err: any) {
+      setToast({
+        message: err?.message || '添加下载任务失败',
+        type: 'error',
+        onClose: () => setToast(null),
+      });
+    } finally {
+      setDownloadingUrl(null);
+      setSelectedDownloadLink(null);
+      setCustomName('');
+      setDownloadTool('aria2');
+      setDownloadSource('');
+      setDownloadPath('');
     }
   };
 
@@ -798,6 +987,59 @@ export default function PansouSearch({
                             )}
                           </>
                         )}
+                        {cloudType === 'magnet' && (
+                          <>
+                            <button
+                              onClick={() => handleOpenDownloadDialog(link)}
+                              disabled={downloadingUrl === link.url}
+                              className='flex items-center gap-1.5 px-2 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-xs transition-colors disabled:opacity-60'
+                              title='存到私人影库'
+                            >
+                              {downloadingUrl === link.url ? (
+                                <>
+                                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                                  <span className='hidden sm:inline'>
+                                    下载中...
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <Download className='h-3.5 w-3.5' />
+                                  <span className='hidden sm:inline'>
+                                    存到私人影库
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleMagnetHealthCheck(link)}
+                              disabled={
+                                !link.url ||
+                                Boolean(magnetHealthCheckingIds[link.url])
+                              }
+                              className='flex items-center gap-1.5 px-2 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white text-xs transition-colors disabled:opacity-60'
+                              title='Tracker 测活（全站并发上限可由 MAGNET_HEALTH_MAX_CONCURRENT 配置）'
+                            >
+                              {magnetHealthCheckingIds[link.url] ? (
+                                <>
+                                  <Loader2 className='h-3.5 w-3.5 animate-spin' />
+                                  <span className='hidden sm:inline'>
+                                    测活中...
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <Activity className='h-3.5 w-3.5' />
+                                  <span className='hidden sm:inline'>
+                                    {magnetHealthMap[link.url]
+                                      ? '重新测活'
+                                      : '测活'}
+                                  </span>
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
                         <button
                           onClick={() =>
                             handleCopy(
@@ -829,12 +1071,38 @@ export default function PansouSearch({
                     </div>
 
                     {/* 来源和时间 */}
-                    <div className='flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400'>
+                    <div className='flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap'>
                       {link.source && <span>来源: {link.source}</span>}
                       {link.datetime && (
                         <span>
                           {new Date(link.datetime).toLocaleDateString()}
                         </span>
+                      )}
+                      {cloudType === 'magnet' && magnetHealthMap[link.url] && (
+                        <>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${magnetHealthBadgeClass(
+                              magnetHealthMap[link.url].health
+                            )}`}
+                          >
+                            {magnetHealthLabel(magnetHealthMap[link.url].health)}
+                          </span>
+                          <span className='text-gray-600 dark:text-gray-300'>
+                            Seeder {magnetHealthMap[link.url].seeders}
+                            {' · '}
+                            Leecher {magnetHealthMap[link.url].leechers}
+                            {' · '}
+                            Peer {magnetHealthMap[link.url].peers}
+                          </span>
+                          {typeof magnetHealthMap[link.url].durationMs ===
+                            'number' && (
+                            <span className='text-gray-400 dark:text-gray-500'>
+                              {magnetHealthMap[link.url].source === 'cache'
+                                ? '缓存'
+                                : `${magnetHealthMap[link.url].durationMs}ms`}
+                            </span>
+                          )}
+                        </>
                       )}
                       {(() => {
                         const checkResult = getCheckResultForUrl(
@@ -877,6 +1145,69 @@ export default function PansouSearch({
   return (
     <>
       <div className='space-y-6'>{renderBody()}</div>
+      {showNameDialog && (
+        <div className='fixed inset-0 z-[1000] flex items-center justify-center bg-black/50'>
+          <div className='bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 shadow-xl'>
+            <h3 className='text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4'>
+              设置资源名称
+            </h3>
+            <input
+              type='text'
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              placeholder='请输入资源名称'
+              className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500'
+              autoFocus
+            />
+            <label className='mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+              下载方式
+            </label>
+            <select
+              value={downloadTool}
+              onChange={(e) => setDownloadTool(e.target.value as DownloadTool)}
+              className='mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500'
+            >
+              {downloadToolOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <OpenListSourceSelect
+              value={downloadSource}
+              onChange={setDownloadSource}
+            />
+            <label className='mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300'>
+              覆盖路径
+            </label>
+            <input
+              type='text'
+              value={downloadPath}
+              onChange={(e) => setDownloadPath(e.target.value)}
+              placeholder='留空使用离线下载目录'
+              className='mt-1 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500'
+            />
+            <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+              可选；最终保存到「该目录/资源名称」
+            </p>
+            <div className='mt-4 flex gap-2 justify-end'>
+              <button
+                onClick={handleCloseDownloadDialog}
+                className='px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors'
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmDownload}
+                disabled={!customName.trim()}
+                className='px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+              >
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {toast && <Toast {...toast} />}
     </>
   );

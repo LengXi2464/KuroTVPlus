@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '安全警告 - KuroTVPlus',
+  title: '安全警告 - MoonTVPlus',
   description: '站点安全配置警告',
 };
 

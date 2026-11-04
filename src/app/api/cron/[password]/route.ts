@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { checkAnimeSubscriptions } from '@/lib/anime-subscription';
 import { getConfig, refineConfig } from '@/lib/config';
+import { fetchConfigSubscription } from '@/lib/config-subscription';
 import { db, getStorage } from '@/lib/db';
 import { EmailService } from '@/lib/email.service';
 import {
@@ -279,7 +280,10 @@ async function refreshConfig() {
   let config = await getConfig();
   if (config && config.ConfigSubscribtion && config.ConfigSubscribtion.URL && config.ConfigSubscribtion.AutoUpdate) {
     try {
-      const response = await fetch(config.ConfigSubscribtion.URL);
+      const response = await fetchConfigSubscription(
+        config.ConfigSubscribtion.URL,
+        config.ConfigSubscribtion.Proxy
+      );
 
       if (!response.ok) {
         throw new Error(`请求失败: ${response.status} ${response.statusText}`);
@@ -483,6 +487,8 @@ async function refreshRecordAndFavorites() {
                 save_time: record.save_time,
                 search_title: record.search_title,
                 new_episodes: updatedNewEpisodes > 0 ? updatedNewEpisodes : undefined,
+                is_anime: record.is_anime,
+                is_duanju: record.is_duanju,
               });
               console.log(
                 `更新播放记录: ${record.title} (${record.total_episodes} -> ${episodeCount}, 新增 ${newEpisodesCount} 集)`
@@ -604,7 +610,7 @@ async function refreshRecordAndFavorites() {
 
                 if (emailConfig?.enabled) {
                   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-                  const siteName = config?.SiteConfig?.SiteName || 'KuroTVPlus';
+                  const siteName = config?.SiteConfig?.SiteName || 'MoonTVPlus';
 
                   await EmailService.send(emailConfig, {
                     to: userEmail,
@@ -751,7 +757,7 @@ async function refreshRecordAndFavorites() {
 
                 if (emailConfig?.enabled) {
                   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-                  const siteName = config?.SiteConfig?.SiteName || 'KuroTVPlus';
+                  const siteName = config?.SiteConfig?.SiteName || 'MoonTVPlus';
 
                   await EmailService.send(emailConfig, {
                     to: userEmail,

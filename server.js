@@ -3,10 +3,22 @@ const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
 const { Server } = require('socket.io');
+const {
+  attachTVRemoteIO,
+  cleanupTVRemoteDevices,
+  clearTVRemoteHub,
+  registerTVRemoteDevice,
+  removeTVRemoteSocket,
+  updateTVRemoteDevice,
+} = require('./src/lib/tv-remote-hub.js');
 
 function shouldInitSQLite() {
   const isCloudflare = process.env.CF_PAGES === '1' || process.env.BUILD_TARGET === 'cloudflare';
   return process.env.NEXT_PUBLIC_STORAGE_TYPE === 'd1' && !isCloudflare && process.env.MOONTV_LITE !== 'true';
+}
+
+function isTVModeEnabled() {
+  return process.env.ENABLE_TV_MODE !== 'false';
 }
 
 function ensureSQLiteReady() {
@@ -139,6 +151,11 @@ class WatchRoomServer {
             console.log(`[WatchRoom] Owner ${data.userName} reconnected to room ${data.roomId}`);
           }
 
+          // 房主本人（未携带房主令牌）：直接拒绝加入自己的房间，避免以房员身份加入
+          if (!isOwner && data.userName && data.userName === room.ownerName) {
+            return callback({ success: false, error: '你是该房间房主，无法通过邀请链接加入' });
+          }
+
           // 取消房间的删除定时器（如果有人重连）
           if (this.roomDeletionTimers.has(data.roomId)) {
             console.log(`[WatchRoom] Cancelling deletion timer for room ${data.roomId}`);
@@ -190,7 +207,7 @@ class WatchRoomServer {
 
       // 离开房间
       socket.on('room:leave', () => {
-        this.handleLeaveRoom(socket);
+        this.handleLeaveRoom(socket, true);
       });
 
       // 获取房间列表
@@ -203,7 +220,7 @@ class WatchRoomServer {
       socket.on('play:update', (state) => {
         console.log(`[WatchRoom] Received play:update from ${socket.id}:`, state);
         const roomInfo = this.socketToRoom.get(socket.id);
-        if (!roomInfo) {
+        if (!roomInfo || !roomInfo.isOwner) {
           console.log('[WatchRoom] No room info for socket, ignoring play:update');
           return;
         }
@@ -223,7 +240,7 @@ class WatchRoomServer {
       socket.on('play:seek', (currentTime) => {
         console.log(`[WatchRoom] Received play:seek from ${socket.id}:`, currentTime);
         const roomInfo = this.socketToRoom.get(socket.id);
-        if (!roomInfo) {
+        if (!roomInfo || !roomInfo.isOwner) {
           console.log('[WatchRoom] No room info for socket, ignoring play:seek');
           return;
         }
@@ -235,7 +252,7 @@ class WatchRoomServer {
       socket.on('play:play', () => {
         console.log(`[WatchRoom] Received play:play from ${socket.id}`);
         const roomInfo = this.socketToRoom.get(socket.id);
-        if (!roomInfo) {
+        if (!roomInfo || !roomInfo.isOwner) {
           console.log('[WatchRoom] No room info for socket, ignoring play:play');
           return;
         }
@@ -247,7 +264,7 @@ class WatchRoomServer {
       socket.on('play:pause', () => {
         console.log(`[WatchRoom] Received play:pause from ${socket.id}`);
         const roomInfo = this.socketToRoom.get(socket.id);
-        if (!roomInfo) {
+        if (!roomInfo || !roomInfo.isOwner) {
           console.log('[WatchRoom] No room info for socket, ignoring play:pause');
           return;
         }
@@ -279,6 +296,16 @@ class WatchRoomServer {
         }
       });
 
+      // 房主离开播放页面（SPA 导航，连接仍保持）：通知房员暂停并提示，
+      // 房主回到播放页后周期广播会自动恢复同步（不清除 currentState，房员重进播放页仍可跳转回房主视频）
+      socket.on('play:owner-leave', () => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        console.log(`[WatchRoom] Owner left play page, notifying room ${roomInfo.roomId}`);
+        socket.to(roomInfo.roomId).emit('play:owner-left');
+      });
+
       // 切换直播频道
       socket.on('live:change', (state) => {
         const roomInfo = this.socketToRoom.get(socket.id);
@@ -289,6 +316,78 @@ class WatchRoomServer {
           room.currentState = state;
           this.rooms.set(roomInfo.roomId, room);
           socket.to(roomInfo.roomId).emit('live:change', state);
+        }
+      });
+
+      socket.on('music:change', (state) => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        const room = this.rooms.get(roomInfo.roomId);
+        if (room?.roomType === 'music') {
+          room.currentState = state;
+          this.rooms.set(roomInfo.roomId, room);
+          socket.to(roomInfo.roomId).emit('music:change', state);
+        }
+      });
+
+      socket.on('music:update', (state) => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        const room = this.rooms.get(roomInfo.roomId);
+        if (room?.roomType === 'music') {
+          room.currentState = state;
+          this.rooms.set(roomInfo.roomId, room);
+          socket.to(roomInfo.roomId).emit('music:update', state);
+        }
+      });
+
+      socket.on('music:queue', (state) => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        const room = this.rooms.get(roomInfo.roomId);
+        if (room?.roomType === 'music') {
+          room.currentState = state;
+          this.rooms.set(roomInfo.roomId, room);
+          socket.to(roomInfo.roomId).emit('music:queue', state);
+        }
+      });
+
+      socket.on('music:play', (state) => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        const room = this.rooms.get(roomInfo.roomId);
+        if (room?.roomType === 'music') {
+          room.currentState = { ...state, isPlaying: true };
+          this.rooms.set(roomInfo.roomId, room);
+          socket.to(roomInfo.roomId).emit('music:play', state);
+        }
+      });
+
+      socket.on('music:pause', (state) => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        const room = this.rooms.get(roomInfo.roomId);
+        if (room?.roomType === 'music') {
+          room.currentState = { ...state, isPlaying: false };
+          this.rooms.set(roomInfo.roomId, room);
+          socket.to(roomInfo.roomId).emit('music:pause', state);
+        }
+      });
+
+      socket.on('music:seek', (state) => {
+        const roomInfo = this.socketToRoom.get(socket.id);
+        if (!roomInfo || !roomInfo.isOwner) return;
+
+        const room = this.rooms.get(roomInfo.roomId);
+        if (room?.roomType === 'music') {
+          room.currentState = { ...state };
+          this.rooms.set(roomInfo.roomId, room);
+          socket.to(roomInfo.roomId).emit('music:seek', state);
         }
       });
 
@@ -500,12 +599,12 @@ class WatchRoomServer {
             }
           }
         }
-        this.handleLeaveRoom(socket);
+        this.handleLeaveRoom(socket, false);
       });
     });
   }
 
-  handleLeaveRoom(socket) {
+  handleLeaveRoom(socket, isExplicitLeave = false) {
     const roomInfo = this.socketToRoom.get(socket.id);
     if (!roomInfo) return;
 
@@ -523,8 +622,9 @@ class WatchRoomServer {
 
       socket.to(roomId).emit('room:member-left', userId);
 
-      // 如果是房主主动离开，解散房间并踢出所有成员
-      if (isOwner) {
+      // 房主主动离开（room:leave）：立即解散房间并踢出所有成员
+      // 房主断线（disconnect/刷新/网络闪断）：保留房间等待重连，由清理定时器兜底删除
+      if (isOwner && isExplicitLeave) {
         console.log(`[WatchRoom] Owner actively left room ${roomId}, disbanding room`);
 
         // 通知所有成员房间被解散
@@ -545,7 +645,11 @@ class WatchRoomServer {
           this.roomDeletionTimers.delete(roomId);
         }
       } else {
-        // 普通成员离开，房间为空时延迟删除
+        if (isOwner) {
+          console.log(`[WatchRoom] Owner disconnected from room ${roomId}, waiting for reconnect`);
+        }
+
+        // 普通成员离开，或房主断线：房间为空时延迟删除
         if (roomMembers.size === 0) {
           console.log(`[WatchRoom] Room ${roomId} is now empty, will delete in 30 seconds if no one rejoins`);
 
@@ -633,6 +737,95 @@ class WatchRoomServer {
   }
 }
 
+function parseCookieHeader(cookieHeader) {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').reduce((acc, part) => {
+    const index = part.indexOf('=');
+    if (index <= 0) return acc;
+    const key = part.slice(0, index).trim();
+    const value = part.slice(index + 1).trim();
+    if (key) acc[key] = value;
+    return acc;
+  }, {});
+}
+
+function parseSocketAuth(socket) {
+  const cookies = parseCookieHeader(socket.handshake.headers.cookie || '');
+  const raw = cookies.auth || socket.handshake.auth?.token || '';
+  if (!raw) return null;
+
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch {}
+
+  if (decoded.includes('%')) {
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {}
+  }
+
+  try {
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
+class TVRemoteServer {
+  constructor(io) {
+    this.io = io;
+    this.cleanupInterval = null;
+    attachTVRemoteIO(io);
+    this.setupEventHandlers();
+    this.startCleanupTimer();
+  }
+
+  setupEventHandlers() {
+    this.io.on('connection', (socket) => {
+      socket.on('tv-remote:register-tv', (data, callback) => {
+        const auth = parseSocketAuth(socket);
+        if (!auth?.username) {
+          callback?.({ success: false, error: '未登录' });
+          return;
+        }
+
+        const deviceId = String(data?.deviceId || '').slice(0, 128);
+        if (!deviceId) {
+          callback?.({ success: false, error: '缺少设备 ID' });
+          return;
+        }
+
+        callback?.(registerTVRemoteDevice(socket.id, auth.username, data));
+      });
+
+      socket.on('tv-remote:tv-state', (data) => {
+        const auth = parseSocketAuth(socket);
+        if (!auth?.username) return;
+        updateTVRemoteDevice(socket.id, auth.username, data);
+      });
+
+      socket.on('disconnect', () => {
+        removeTVRemoteSocket(socket.id);
+      });
+    });
+  }
+
+  startCleanupTimer() {
+    this.cleanupInterval = setInterval(() => {
+      cleanupTVRemoteDevices();
+    }, 30_000);
+  }
+
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    clearTVRemoteHub();
+  }
+}
+
 app.prepare().then(async () => {
   const httpServer = createServer(async (req, res) => {
     try {
@@ -650,20 +843,31 @@ app.prepare().then(async () => {
   console.log('[WatchRoom] Config:', watchRoomConfig);
 
   let watchRoomServer = null;
+  let tvRemoteServer = null;
+  let io = null;
 
-  // 只在启用观影室且使用内部服务器时初始化 Socket.IO
-  if (watchRoomConfig.enabled && watchRoomConfig.serverType === 'internal') {
-    console.log('[WatchRoom] Initializing Socket.IO server...');
+  const tvModeEnabled = isTVModeEnabled();
+  const shouldStartInternalWatchRoom =
+    watchRoomConfig.enabled && watchRoomConfig.serverType === 'internal';
 
-    // 初始化 Socket.IO
-    const io = new Server(httpServer, {
+  if (tvModeEnabled || shouldStartInternalWatchRoom) {
+    io = new Server(httpServer, {
       path: '/socket.io',
       cors: {
         origin: '*',
         methods: ['GET', 'POST'],
       },
     });
+  }
 
+  if (tvModeEnabled && io) {
+    tvRemoteServer = new TVRemoteServer(io);
+    console.log('[TVRemote] Socket.IO remote server initialized');
+  } else {
+    console.log('[TVRemote] TV mode disabled, remote server not initialized');
+  }
+
+  if (shouldStartInternalWatchRoom && io) {
     // 初始化观影室服务器
     watchRoomServer = new WatchRoomServer(io);
     console.log('[WatchRoom] Socket.IO server initialized');
@@ -682,31 +886,18 @@ app.prepare().then(async () => {
     })
     .listen(port, () => {
       console.log(`> Ready on http://${hostname}:${port}`);
-      if (watchRoomConfig.enabled && watchRoomConfig.serverType === 'internal') {
+      if (io) {
         console.log(`> Socket.IO ready on ws://${hostname}:${port}`);
+      } else {
+        console.log('> Socket.IO disabled');
       }
     });
 
-  // 优雅关闭
-  process.on('SIGINT', () => {
-    console.log('\n[Server] Shutting down...');
-    if (watchRoomServer) {
-      watchRoomServer.destroy();
-    }
-    httpServer.close(() => {
-      console.log('[Server] Server closed');
-      process.exit(0);
-    });
-  });
+  const forceExit = (signal) => {
+    console.log(`\n[Server] Received ${signal}, force exiting...`);
+    process.exit(0);
+  };
 
-  process.on('SIGTERM', () => {
-    console.log('\n[Server] Shutting down...');
-    if (watchRoomServer) {
-      watchRoomServer.destroy();
-    }
-    httpServer.close(() => {
-      console.log('[Server] Server closed');
-      process.exit(0);
-    });
-  });
+  process.on('SIGINT', () => forceExit('SIGINT'));
+  process.on('SIGTERM', () => forceExit('SIGTERM'));
 });
