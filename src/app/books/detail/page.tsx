@@ -141,6 +141,10 @@ export default function BookDetailPage() {
   const searchParams = useSearchParams();
   const sourceId = searchParams.get('sourceId') || '';
   const bookId = searchParams.get('bookId') || '';
+  const urlDetailHref = searchParams.get('detailHref') || '';
+  const urlTitle = searchParams.get('title') || '';
+  const urlAuthor = searchParams.get('author') || '';
+  const urlCover = searchParams.get('cover') || '';
   const [detail, setDetail] = useState<BookDetail | null>(null);
   const [shelf, setShelf] = useState<Record<string, BookShelfItem>>({});
   const [chapters, setChapters] = useState<BookChapter[]>([]);
@@ -171,10 +175,10 @@ export default function BookDetailPage() {
       body: JSON.stringify({
         sourceId,
         bookId,
-        href: cached?.detailHref,
-        title: cached?.title,
-        author: cached?.author,
-        cover: cached?.cover,
+        href: cached?.detailHref || urlDetailHref || undefined,
+        title: cached?.title || urlTitle || undefined,
+        author: cached?.author || urlAuthor || undefined,
+        cover: cached?.cover || urlCover || undefined,
         summary: cached?.summary,
         acquisitionLinks: cached?.acquisitionLinks || [],
       }),
@@ -186,7 +190,7 @@ export default function BookDetailPage() {
         cacheBookDetail(json);
       })
       .catch((err) => setError(err.message || '获取详情失败'));
-  }, [sourceId, bookId, cached]);
+  }, [sourceId, bookId, cached, urlDetailHref, urlTitle, urlAuthor, urlCover]);
 
   const readable = detail?.acquisitionLinks.find((item) => {
     const type = item.type.toLowerCase();

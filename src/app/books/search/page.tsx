@@ -47,7 +47,12 @@ const CHIP_CLASS = cn(
 );
 
 function detailHref(item: BookListItem) {
-  return buildBookDetailPath(item.sourceId, item.id);
+  return buildBookDetailPath(item.sourceId, item.id, {
+    detailHref: item.detailHref,
+    title: item.title,
+    author: item.author,
+    cover: item.cover,
+  });
 }
 
 const BOOK_SEARCH_STATE_KEY = 'book_search_state';

@@ -69,7 +69,16 @@ export default function BookShelfPage() {
       ) : (
         <MediaGrid>
           {items.map((item) => {
-            const detailHref = buildBookDetailPath(item.sourceId, item.bookId);
+            const detailHref = buildBookDetailPath(
+              item.sourceId,
+              item.bookId,
+              {
+                detailHref: item.detailHref,
+                title: item.title,
+                author: item.author,
+                cover: item.cover,
+              }
+            );
             const openDetail = () => {
               void cacheBookShelfItem(item);
               router.push(detailHref);

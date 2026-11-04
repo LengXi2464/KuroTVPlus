@@ -35,7 +35,12 @@ import MediaGrid from '@/components/media/MediaGrid';
 import MediaGridSkeleton from '@/components/media/MediaGridSkeleton';
 
 function makeHref(sourceId: string, item: BookListItem) {
-  return buildBookDetailPath(sourceId, item.id);
+  return buildBookDetailPath(sourceId, item.id, {
+    detailHref: item.detailHref,
+    title: item.title,
+    author: item.author,
+    cover: item.cover,
+  });
 }
 
 /** 书源 / 分类两排都是书脊标签，横向拖拽滚动，隐藏滚动条。 */

@@ -123,8 +123,22 @@ export function cacheBookReadRecord(item: BookReadRecord) {
   });
 }
 
-export function buildBookDetailPath(sourceId: string, bookId: string) {
-  return `/books/detail?sourceId=${encodeURIComponent(sourceId)}&bookId=${encodeURIComponent(bookId)}`;
+export function buildBookDetailPath(
+  sourceId: string,
+  bookId: string,
+  extra?: {
+    detailHref?: string;
+    title?: string;
+    author?: string;
+    cover?: string;
+  }
+) {
+  const params = new URLSearchParams({ sourceId, bookId });
+  if (extra?.detailHref) params.set('detailHref', extra.detailHref);
+  if (extra?.title) params.set('title', extra.title);
+  if (extra?.author) params.set('author', extra.author);
+  if (extra?.cover) params.set('cover', extra.cover);
+  return `/books/detail?${params.toString()}`;
 }
 
 export function buildBookReadPath(sourceId: string, bookId: string, chapterHref?: string) {
