@@ -10,7 +10,12 @@ import {
   getAllBookShelf,
   saveBookShelf,
 } from '@/lib/book.db.client';
-import { BookChapter, BookDetail, BookShelfItem } from '@/lib/book.types';
+import {
+  BookAcquisitionLink,
+  BookChapter,
+  BookDetail,
+  BookShelfItem,
+} from '@/lib/book.types';
 import {
   buildBookReadPath,
   cacheBookDetail,
@@ -145,6 +150,16 @@ export default function BookDetailPage() {
   const urlTitle = searchParams.get('title') || '';
   const urlAuthor = searchParams.get('author') || '';
   const urlCover = searchParams.get('cover') || '';
+  const urlAcquisitionLinks = useMemo(() => {
+    const raw = searchParams.get('acquisitionLinks');
+    if (!raw) return [] as BookAcquisitionLink[];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as BookAcquisitionLink[]) : [];
+    } catch {
+      return [] as BookAcquisitionLink[];
+    }
+  }, [searchParams]);
   const [detail, setDetail] = useState<BookDetail | null>(null);
   const [shelf, setShelf] = useState<Record<string, BookShelfItem>>({});
   const [chapters, setChapters] = useState<BookChapter[]>([]);
@@ -180,7 +195,9 @@ export default function BookDetailPage() {
         author: cached?.author || urlAuthor || undefined,
         cover: cached?.cover || urlCover || undefined,
         summary: cached?.summary,
-        acquisitionLinks: cached?.acquisitionLinks || [],
+        acquisitionLinks: cached?.acquisitionLinks?.length
+          ? cached.acquisitionLinks
+          : urlAcquisitionLinks,
       }),
     })
       .then(async (res) => {
@@ -190,7 +207,16 @@ export default function BookDetailPage() {
         cacheBookDetail(json);
       })
       .catch((err) => setError(err.message || '获取详情失败'));
-  }, [sourceId, bookId, cached, urlDetailHref, urlTitle, urlAuthor, urlCover]);
+  }, [
+    sourceId,
+    bookId,
+    cached,
+    urlDetailHref,
+    urlTitle,
+    urlAuthor,
+    urlCover,
+    urlAcquisitionLinks,
+  ]);
 
   const readable = detail?.acquisitionLinks.find((item) => {
     const type = item.type.toLowerCase();

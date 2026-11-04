@@ -52,6 +52,7 @@ function detailHref(item: BookListItem) {
     title: item.title,
     author: item.author,
     cover: item.cover,
+    acquisitionLinks: item.acquisitionLinks,
   });
 }
 

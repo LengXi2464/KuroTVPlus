@@ -69,6 +69,24 @@ export default function BookShelfPage() {
       ) : (
         <MediaGrid>
           {items.map((item) => {
+            const acquisitionLinks = item.acquisitionHref
+              ? [
+                  item.format === 'chapters'
+                    ? {
+                        rel: 'legado:chapters',
+                        type: 'application/x-legado-chapters+json',
+                        href: item.acquisitionHref,
+                      }
+                    : {
+                        rel: 'http://opds-spec.org/acquisition',
+                        type:
+                          item.format === 'pdf'
+                            ? 'application/pdf'
+                            : 'application/epub+zip',
+                        href: item.acquisitionHref,
+                      },
+                ]
+              : undefined;
             const detailHref = buildBookDetailPath(
               item.sourceId,
               item.bookId,
@@ -77,6 +95,7 @@ export default function BookShelfPage() {
                 title: item.title,
                 author: item.author,
                 cover: item.cover,
+                acquisitionLinks,
               }
             );
             const openDetail = () => {

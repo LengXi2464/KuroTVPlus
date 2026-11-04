@@ -131,6 +131,7 @@ export function buildBookDetailPath(
     title?: string;
     author?: string;
     cover?: string;
+    acquisitionLinks?: BookAcquisitionLink[];
   }
 ) {
   const params = new URLSearchParams({ sourceId, bookId });
@@ -138,6 +139,9 @@ export function buildBookDetailPath(
   if (extra?.title) params.set('title', extra.title);
   if (extra?.author) params.set('author', extra.author);
   if (extra?.cover) params.set('cover', extra.cover);
+  if (extra?.acquisitionLinks && extra.acquisitionLinks.length > 0) {
+    params.set('acquisitionLinks', JSON.stringify(extra.acquisitionLinks));
+  }
   return `/books/detail?${params.toString()}`;
 }
 
