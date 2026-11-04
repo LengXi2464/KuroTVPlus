@@ -2,6 +2,7 @@
 
 import {
   BookOpen,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   Gauge,
@@ -3366,6 +3367,86 @@ export default function BookReadPage() {
     bindScrolledIframeListenerRef.current = bindScrolledIframeListener;
   }, [bindScrolledIframeListener]);
 
+  // 分页模式下补齐翻页手势：滚动模式的滚轮/滑动监听不覆盖分页模式，
+  // 而分页模式此前只有看不见的左右热区，用户很容易以为正文没出来。
+  useEffect(() => {
+    if (!ready || settings.mode !== 'paginated') return;
+
+    let attachedWin: Window | null = null;
+    let lastTurnAt = 0;
+    let touchStartX: number | null = null;
+    let touchStartY: number | null = null;
+
+    const turn = (zone: 'left' | 'right') => {
+      const now = Date.now();
+      // 一次滑动/滚动往往连续触发多次，节流成一次翻页。
+      if (now - lastTurnAt < 400) return;
+      lastTurnAt = now;
+      handleReaderTap(zone);
+    };
+
+    const handleWheel = (event: Event) => {
+      const wheel = event as WheelEvent;
+      if (wheel.ctrlKey) return;
+      const delta =
+        Math.abs(wheel.deltaY) >= Math.abs(wheel.deltaX)
+          ? wheel.deltaY
+          : wheel.deltaX;
+      if (Math.abs(delta) < 4) return;
+      turn(delta > 0 ? 'right' : 'left');
+    };
+
+    const handleTouchStart = (event: Event) => {
+      const touch = (event as TouchEvent).touches[0];
+      touchStartX = touch?.clientX ?? null;
+      touchStartY = touch?.clientY ?? null;
+    };
+
+    const handleTouchEnd = (event: Event) => {
+      const startX = touchStartX;
+      const startY = touchStartY;
+      touchStartX = null;
+      touchStartY = null;
+      const touch = (event as TouchEvent).changedTouches[0];
+      if (startX === null || startY === null || !touch) return;
+      const dx = startX - touch.clientX;
+      const dy = startY - touch.clientY;
+      if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+      turn(dx > 0 ? 'right' : 'left');
+    };
+
+    const detach = () => {
+      if (!attachedWin) return;
+      attachedWin.removeEventListener('wheel', handleWheel);
+      attachedWin.removeEventListener('touchstart', handleTouchStart);
+      attachedWin.removeEventListener('touchend', handleTouchEnd);
+      attachedWin = null;
+    };
+
+    // epub.js 翻章会重建 iframe，所以轮询比对，换了 iframe 就重新挂载。
+    const attach = () => {
+      const iframe = viewerRef.current?.querySelector(
+        'iframe'
+      ) as HTMLIFrameElement | null;
+      const win = iframe?.contentWindow ?? null;
+      if (win === attachedWin) return;
+      detach();
+      if (!win) return;
+      win.addEventListener('wheel', handleWheel, { passive: true });
+      win.addEventListener('touchstart', handleTouchStart, { passive: true });
+      win.addEventListener('touchend', handleTouchEnd, { passive: true });
+      attachedWin = win;
+    };
+
+    attach();
+    const attachTimer = window.setInterval(attach, 500);
+
+    return () => {
+      window.clearInterval(attachTimer);
+      detach();
+    };
+  }, [ready, settings.mode, handleReaderTap]);
+
   // 翻到别的章节后，重新按「当前卷摊开」来折叠，上一次的手动开合不再沿用。
   useEffect(() => {
     setTocExpandOverrides((prev) =>
@@ -4086,14 +4167,18 @@ export default function BookReadPage() {
         <>
           <button
             aria-label='上一页'
-            className='absolute inset-y-0 left-0 z-10 w-[28%] cursor-pointer bg-transparent'
+            className='group absolute inset-y-0 left-0 z-10 flex w-[28%] cursor-pointer items-center justify-start bg-transparent pl-3'
             onClick={() => handleReaderTap('left')}
-          />
+          >
+            <ChevronLeft className='h-7 w-7 text-library-ink/20 transition-colors group-hover:text-library-ink/60 dark:text-library-night-ink/20 dark:group-hover:text-library-night-ink/60' />
+          </button>
           <button
             aria-label='下一页'
-            className='absolute inset-y-0 right-0 z-10 w-[28%] cursor-pointer bg-transparent'
+            className='group absolute inset-y-0 right-0 z-10 flex w-[28%] cursor-pointer items-center justify-end bg-transparent pr-3'
             onClick={() => handleReaderTap('right')}
-          />
+          >
+            <ChevronRight className='h-7 w-7 text-library-ink/20 transition-colors group-hover:text-library-ink/60 dark:text-library-night-ink/20 dark:group-hover:text-library-night-ink/60' />
+          </button>
         </>
       ) : null}
 
