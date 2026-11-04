@@ -40,3 +40,5 @@ NODE_ENV = "production"
 BUILD_TARGET = "cloudflare"
 # cron 路由等任务真正结束再返回（CF 上不需要 Vercel 那套"先返回 202 再后台跑"）
 CRON_WAIT_FOR_COMPLETION = "true"
+# 存储模式：D1（USERNAME/PASSWORD 用面板上的"机密"设置，不进 git）
+NEXT_PUBLIC_STORAGE_TYPE = "d1"
