@@ -27,11 +27,10 @@ const crypto = require('crypto');
 const Crypto = require('../util/crypto');
 const Log = require('../util/log');
 
-// SM3 由 Node 内置 crypto 提供（依赖 OpenSSL >= 1.1.1，Node >= 18 均满足）；
-// 不可用时直接抛错，不做降级——x-medusa 签名链路离开 SM3 无法工作。
-if (!crypto.getHashes().includes('sm3')) {
-  throw new Error('当前 Node 运行时缺少 SM3 算法支持（需 OpenSSL >= 1.1.1），x-medusa 签名链路无法工作');
-}
+// SM3 优先走 Node 内置 crypto（OpenSSL >= 1.1.1）；精简构建的运行时
+// （部分 serverless 镜像）没有该算法，自动降级到纯 JS 实现，行为一致。
+const HAS_NATIVE_SM3 = crypto.getHashes().includes('sm3');
+const sm3Js = HAS_NATIVE_SM3 ? null : require('./sm3');
 
 // ==================== 基础位运算（对齐 JS 的 u32 语义） ====================
 
@@ -124,7 +123,8 @@ function md5(data) {
 }
 
 function sm3(data) {
-  return crypto.createHash('sm3').update(data).digest();
+  if (HAS_NATIVE_SM3) return crypto.createHash('sm3').update(data).digest();
+  return sm3Js(data);
 }
 
 const EMPTY = Buffer.alloc(0);
