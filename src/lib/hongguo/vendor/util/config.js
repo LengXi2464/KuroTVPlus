@@ -64,6 +64,17 @@ function candidateList() {
 }
 
 function load() {
+  // 内嵌配置：部署环境没有项目文件系统时由 HONGGUO_CONFIG_JSON 注入
+  // （内容与 hongguo.config.json 一致），优先于磁盘查找，避免打包丢失文件。
+  const inline = Log.env('HONGGUO_CONFIG_JSON', null);
+  if (inline !== null) {
+    try {
+      const m = Json.parseObject(inline);
+      if (m !== null && Object.keys(m).length > 0) return m;
+    } catch (e) {
+      // 解析失败则继续按文件查找
+    }
+  }
   const custom = Log.env('HONGGUO_CONFIG', null);
   for (const c of candidateList()) {
     try {

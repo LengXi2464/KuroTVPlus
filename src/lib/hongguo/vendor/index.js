@@ -12,14 +12,13 @@
  *   const pg = await direct.search('关键词', 40, 0);
  */
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
 /**
  * 与项目根 hongguo.config.json 内容一致的内嵌配置。
- * 部署到 serverless/edge（无项目文件系统或 cwd 不含配置文件）时，
- * 落到临时目录后通过 HONGGUO_CONFIG 指过去，保证直连链路在任何环境可用。
+ * 部署到 serverless（Next 打包不会带上根目录的 JSON）时通过
+ * HONGGUO_CONFIG_JSON 注入，全链路不依赖磁盘文件。
  */
 const EMBEDDED_CONFIG = {
   upstream: {
@@ -45,20 +44,21 @@ const EMBEDDED_CONFIG = {
   },
 };
 
+function hasFile(p) {
+  try {
+    return !!p && fs.existsSync(p);
+  } catch (e) {
+    return false;
+  }
+}
+
 function ensureEnv() {
-  if (!process.env.HONGGUO_CONFIG) {
-    const p = path.join(process.cwd(), 'hongguo.config.json');
-    if (fs.existsSync(p)) {
-      process.env.HONGGUO_CONFIG = p;
-    } else {
-      try {
-        const tmp = path.join(os.tmpdir(), 'kurotvplus-hongguo.config.json');
-        fs.writeFileSync(tmp, JSON.stringify(EMBEDDED_CONFIG));
-        process.env.HONGGUO_CONFIG = tmp;
-      } catch (e) {
-        // 临时目录不可写时保持原状，由 vendor 的 Config 降级处理
-      }
-    }
+  const cwdConfig = path.join(process.cwd(), 'hongguo.config.json');
+  if (hasFile(cwdConfig)) {
+    if (!process.env.HONGGUO_CONFIG) process.env.HONGGUO_CONFIG = cwdConfig;
+  } else if (!hasFile(process.env.HONGGUO_CONFIG)
+    && !process.env.HONGGUO_CONFIG_JSON) {
+    process.env.HONGGUO_CONFIG_JSON = JSON.stringify(EMBEDDED_CONFIG);
   }
   if (!process.env.HONGGUO_DEVICE_ID || !/^\d{10,20}$/.test(process.env.HONGGUO_DEVICE_ID)) {
     const n = crypto.randomBytes(8).readBigUInt64BE() % 9000000000000000n;
