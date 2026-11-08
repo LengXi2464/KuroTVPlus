@@ -18,14 +18,37 @@ function HongguoListClient() {
   const [items, setItems] = useState<HongguoSearchItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [searched, setSearched] = useState(false);
+  // 首页默认展示推荐流；有关键词时才切到搜索结果
+  const [mode, setMode] = useState<'recommend' | 'search'>(
+    initialQuery ? 'search' : 'recommend'
+  );
+  const [shownQuery, setShownQuery] = useState(initialQuery);
+
+  const loadRecommend = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    setMode('recommend');
+    setShownQuery('');
+    try {
+      const res = await fetch('/api/duanju/hongguo/recommend?limit=60');
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.message || '推荐加载失败');
+      setItems(json.items || []);
+    } catch (err) {
+      setError((err as Error).message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const doSearch = useCallback(async (q: string) => {
     const query = q.trim();
     if (!query) return;
     setLoading(true);
     setError('');
-    setSearched(true);
+    setMode('search');
+    setShownQuery(query);
     try {
       const res = await fetch(`/api/duanju/hongguo/search?q=${encodeURIComponent(query)}`);
       const json = await res.json();
@@ -43,11 +66,7 @@ function HongguoListClient() {
     if (initialQuery) {
       void doSearch(initialQuery);
     } else {
-      // 默认给一个热门词，保证首屏有内容
-      const fallback = '甜宠';
-      setKeyword(fallback);
-      router.replace(`/duanju/hongguo?q=${encodeURIComponent(fallback)}`);
-      void doSearch(fallback);
+      void loadRecommend();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -58,6 +77,12 @@ function HongguoListClient() {
     if (!q) return;
     router.replace(`/duanju/hongguo?q=${encodeURIComponent(q)}`);
     void doSearch(q);
+  };
+
+  const clearSearch = () => {
+    setKeyword('');
+    router.replace('/duanju/hongguo');
+    void loadRecommend();
   };
 
   return (
@@ -99,19 +124,36 @@ function HongguoListClient() {
         {error && (
           <div className='mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300'>
             {error}
-            <button onClick={() => void doSearch(keyword)} className='ml-3 underline'>
+            <button
+              onClick={() => (mode === 'search' ? void doSearch(shownQuery) : void loadRecommend())}
+              className='ml-3 underline'
+            >
               重试
             </button>
           </div>
         )}
 
+        <div className='mb-3 flex items-center justify-between'>
+          <h2 className='text-sm font-semibold text-gray-700 dark:text-gray-300'>
+            {mode === 'search' ? `「${shownQuery}」的搜索结果` : '热门推荐'}
+          </h2>
+          {mode === 'search' && (
+            <button
+              onClick={clearSearch}
+              className='text-xs text-gray-500 underline hover:text-green-600 dark:text-gray-400'
+            >
+              返回推荐
+            </button>
+          )}
+        </div>
+
         {loading ? (
           <div className='flex items-center justify-center py-24 text-gray-400'>
             <Loader2 className='h-6 w-6 animate-spin' />
           </div>
-        ) : searched && items.length === 0 && !error ? (
+        ) : items.length === 0 && !error ? (
           <div className='py-24 text-center text-sm text-gray-400'>
-            没有找到相关短剧，换个关键词试试
+            {mode === 'search' ? '没有找到相关短剧，换个关键词试试' : '暂时没有推荐内容'}
           </div>
         ) : (
           <div className='grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7'>

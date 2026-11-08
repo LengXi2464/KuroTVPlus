@@ -32,6 +32,11 @@ function vendor(): {
     hasMore: boolean;
     nextSkip: number;
   }>;
+  recommend: (limit: number, skip: number) => Promise<{
+    items: Array<Record<string, unknown>>;
+    hasMore: boolean;
+    nextSkip: number;
+  }>;
   detail: (seriesId: string) => Promise<{
     meta: Record<string, unknown>;
     episodes: Array<Record<string, unknown>>;
@@ -59,19 +64,31 @@ function num(v: unknown, def = 0): number {
   return Number.isFinite(n) ? n : def;
 }
 
+function mapDirectItem(it: Record<string, unknown>): HongguoSearchItem {
+  return {
+    id: str(it.series_id),
+    title: str(it.title),
+    cover: str(it.cover),
+    desc: str(it.abstract),
+    episodeCount: num(it.episode_cnt),
+    score: it.score as string | number | undefined,
+    playCount: num(it.play_cnt),
+    tags: Array.isArray(it.tags) ? (it.tags as string[]) : [],
+  };
+}
+
 async function directSearch(q: string, limit: number): Promise<HongguoSearchItem[]> {
   const pg = await vendor().search(q, limit, 0);
   return (pg.items || [])
-    .map((it) => ({
-      id: str(it.series_id),
-      title: str(it.title),
-      cover: str(it.cover),
-      desc: str(it.abstract),
-      episodeCount: num(it.episode_cnt),
-      score: it.score as string | number | undefined,
-      playCount: num(it.play_cnt),
-      tags: Array.isArray(it.tags) ? (it.tags as string[]) : [],
-    }))
+    .map(mapDirectItem)
+    .filter((it) => it.id !== '' && it.title !== '');
+}
+
+/** 首页推荐流：按热度取短剧，无需关键词。 */
+async function directRecommend(limit = 40, skip = 0): Promise<HongguoSearchItem[]> {
+  const pg = await vendor().recommend(limit, skip);
+  return (pg.items || [])
+    .map(mapDirectItem)
     .filter((it) => it.id !== '' && it.title !== '');
 }
 
@@ -148,24 +165,37 @@ async function remoteGet(pathname: string, params: Record<string, string>) {
   return res.json();
 }
 
+function mapRemoteItem(it: Record<string, unknown>): HongguoSearchItem {
+  return {
+    id: str(it.id) || str(it.series_id),
+    title: str(it.title) || str(it.series_title) || str(it.name),
+    cover: str(it.cover),
+    desc:
+      str(it.desc) ||
+      str(it.description) ||
+      str(it.abstract) ||
+      str(it.series_intro),
+    episodeCount: num(it.episodeCount ?? it.episode_cnt ?? it.episode_count),
+    score: it.score as string | number | undefined,
+    playCount: num(it.playCount ?? it.play_cnt),
+    tags: Array.isArray(it.tags) ? (it.tags as string[]) : [],
+  };
+}
+
 async function remoteSearch(q: string, limit: number): Promise<HongguoSearchItem[]> {
   const j = await remoteGet('/search', { q, limit: String(limit) });
   const raw = (j?.items || j?.results || j?.list || j?.data || []) as Array<Record<string, unknown>>;
   return raw
-    .map((it) => ({
-      id: str(it.id) || str(it.series_id),
-      title: str(it.title) || str(it.series_title) || str(it.name),
-      cover: str(it.cover),
-      desc:
-        str(it.desc) ||
-        str(it.description) ||
-        str(it.abstract) ||
-        str(it.series_intro),
-      episodeCount: num(it.episodeCount ?? it.episode_cnt ?? it.episode_count),
-      score: it.score as string | number | undefined,
-      playCount: num(it.playCount ?? it.play_cnt),
-      tags: Array.isArray(it.tags) ? (it.tags as string[]) : [],
-    }))
+    .map(mapRemoteItem)
+    .filter((it) => it.id !== '' && it.title !== '');
+}
+
+/** 兜底后端的推荐流（接口不存在时抛错，由 withFallback 汇总）。 */
+async function remoteRecommend(limit: number): Promise<HongguoSearchItem[]> {
+  const j = await remoteGet('/recommend', { limit: String(limit) });
+  const raw = (j?.items || j?.results || j?.list || j?.data || []) as Array<Record<string, unknown>>;
+  return raw
+    .map(mapRemoteItem)
     .filter((it) => it.id !== '' && it.title !== '');
 }
 
@@ -247,6 +277,13 @@ export function hongguoSearch(q: string, limit = 40): Promise<HongguoSearchItem[
   return withFallback(
     () => directSearch(q, limit),
     () => remoteSearch(q, limit)
+  );
+}
+
+export function hongguoRecommend(limit = 40): Promise<HongguoSearchItem[]> {
+  return withFallback(
+    () => directRecommend(limit, 0),
+    () => remoteRecommend(limit)
   );
 }
 

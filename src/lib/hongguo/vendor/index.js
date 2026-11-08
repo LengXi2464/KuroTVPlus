@@ -64,6 +64,8 @@ function ensureEnv() {
     const n = crypto.randomBytes(8).readBigUInt64BE() % 9000000000000000n;
     process.env.HONGGUO_DEVICE_ID = String(n + 1000000000000000n);
   }
+  // landpage（推荐/筛选）走签名后上游才返回数据；不签名会拿到空列表。
+  if (!process.env.HG_SIGN_LIST) process.env.HG_SIGN_LIST = '1';
 }
 
 ensureEnv();
@@ -80,6 +82,17 @@ async function search(query, limit, offset) {
 /** 剧集详情 + 分集：返回 { meta, episodes }。 */
 async function detail(seriesId) {
   return Client.getEpisodes(String(seriesId));
+}
+
+/**
+ * 推荐流（首页用）：按热度浏览短剧体裁，返回 { items, hasMore, nextSkip }。
+ * items 结构与搜索一致（series_id/title/cover/episode_cnt/abstract…）。
+ */
+async function recommend(limit, skip) {
+  return Client.browsePage('short_play', {
+    sort: 'hot_score',
+    limit: limit || 40,
+  }, null, skip || 0);
 }
 
 /**
@@ -103,4 +116,4 @@ async function play(vid, quality) {
   };
 }
 
-module.exports = { search, detail, play };
+module.exports = { search, detail, play, recommend };
