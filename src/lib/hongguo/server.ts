@@ -390,11 +390,48 @@ export function hongguoSearch(q: string, limit = 40): Promise<HongguoSearchItem[
   );
 }
 
-export function hongguoRecommend(limit = 60, skip = 0): Promise<HongguoPage> {
-  return withFallback(
-    () => directRecommend(limit, skip),
-    () => remoteRecommend(limit, skip)
+/** 确定性随机数（mulberry32）：同一 seed 得到同一序列。 */
+function mulberry32(a: number): () => number {
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 确定性洗牌：同一 seed 顺序稳定，保证分页可续、换一批可复现。 */
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const out = arr.slice();
+  const rnd = mulberry32(seed || 1);
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** 推荐池大小：一次取够，客户端在池内换一批/翻页。 */
+const RECOMMEND_POOL = 120;
+
+/**
+ * 推荐流：取热门池后按 seed 洗牌，再按 skip/limit 切片。
+ * seed 变化即「换一批」，顺序与首页（按热度原序）不同，避免两页重复。
+ */
+export async function hongguoRecommend(
+  limit = 60,
+  skip = 0,
+  seed = 0
+): Promise<HongguoPage> {
+  const pool = await withFallback(
+    () => directRecommend(RECOMMEND_POOL, 0),
+    () => remoteRecommend(RECOMMEND_POOL, 0)
   );
+  const list = seededShuffle(pool.items, seed + 1);
+  const from = Math.min(Math.max(skip, 0), list.length);
+  const to = Math.min(from + Math.max(limit, 1), list.length);
+  return { items: list.slice(from, to), hasMore: to < list.length, nextSkip: to };
 }
 
 export function hongguoBrowse(

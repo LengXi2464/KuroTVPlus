@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import type { HongguoFilterRow, HongguoSearchItem } from '@/lib/hongguo/config';
 
@@ -246,31 +246,40 @@ function SearchResults({
   );
 }
 
-/** 懒加载列表通用逻辑：首屏 + 加载更多。 */
+/**
+ * 懒加载列表通用逻辑：首屏 + 无限滚动续页。
+ * deps（体裁/筛选/榜单/换一批）变化时清空重载；请求带序号，
+ * 丢弃过期响应，避免快速切换时旧结果覆盖新结果。
+ */
 function usePagedList(buildUrl: (skip: number) => string, deps: unknown[]) {
   const [items, setItems] = useState<CardItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [nextSkip, setNextSkip] = useState(0);
+  const reqId = useRef(0);
 
   const load = useCallback(
     async (skip: number, append: boolean) => {
+      const my = reqId.current + 1;
+      reqId.current = my;
       setLoading(true);
       setError('');
       try {
         const res = await fetch(buildUrl(skip));
         const json = await res.json();
+        if (my !== reqId.current) return;
         if (!json.ok) throw new Error(json.message || '加载失败');
         const list = (json.items || []) as CardItem[];
         setItems((prev) => (append ? [...prev, ...list] : list));
         setHasMore(!!json.hasMore);
         setNextSkip(json.nextSkip ?? skip + list.length);
       } catch (err) {
+        if (my !== reqId.current) return;
         setError((err as Error).message);
         if (!append) setItems([]);
       } finally {
-        setLoading(false);
+        if (my === reqId.current) setLoading(false);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -278,55 +287,100 @@ function usePagedList(buildUrl: (skip: number) => string, deps: unknown[]) {
   );
 
   useEffect(() => {
+    setItems([]);
+    setHasMore(false);
+    setNextSkip(0);
     void load(0, false);
   }, [load]);
 
   return { items, loading, error, hasMore, nextSkip, load };
 }
 
-function ListFooter({
+/**
+ * 无限滚动列表体：滚到底自动续页，无需「加载更多」按钮。
+ * ranked 为真时给卡片加排名角标。
+ */
+function PagedGrid({
+  items,
   loading,
   error,
   hasMore,
-  onMore,
-  onRetry,
+  nextSkip,
+  load,
+  ranked = false,
+  emptyText = '暂无内容',
 }: {
+  items: CardItem[];
   loading: boolean;
   error: string;
   hasMore: boolean;
-  onMore: () => void;
-  onRetry: () => void;
+  nextSkip: number;
+  load: (skip: number, append: boolean) => Promise<void>;
+  ranked?: boolean;
+  emptyText?: string;
 }) {
-  if (loading) {
-    return (
-      <div className='flex justify-center py-8 text-gray-400'>
-        <Loader2 className='h-5 w-5 animate-spin' />
-      </div>
+  const sentinel = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !loading) void load(nextSkip, true);
+      },
+      { rootMargin: '600px 0px' }
     );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loading, nextSkip, load]);
+
+  if (items.length === 0) {
+    if (loading) {
+      return (
+        <div className='flex justify-center py-24 text-gray-400'>
+          <Loader2 className='h-6 w-6 animate-spin' />
+        </div>
+      );
+    }
+    if (error) {
+      return (
+        <div className='py-24 text-center text-sm text-red-600 dark:text-red-400'>
+          {error}
+          <button onClick={() => void load(0, false)} className='ml-3 underline'>
+            重试
+          </button>
+        </div>
+      );
+    }
+    return <div className='py-24 text-center text-sm text-gray-400'>{emptyText}</div>;
   }
-  if (error) {
-    return (
-      <div className='py-6 text-center text-sm text-red-600 dark:text-red-400'>
-        {error}
-        <button onClick={onRetry} className='ml-3 underline'>
-          重试
-        </button>
-      </div>
-    );
-  }
-  if (hasMore) {
-    return (
-      <div className='flex justify-center py-8'>
-        <button
-          onClick={onMore}
-          className='rounded-full border border-gray-300 px-6 py-2 text-sm text-gray-600 transition-colors hover:border-green-500 hover:text-green-600 dark:border-gray-700 dark:text-gray-300'
-        >
-          加载更多
-        </button>
-      </div>
-    );
-  }
-  return null;
+
+  const shown: CardItem[] = ranked ? items.map((it, i) => ({ ...it, rank: i + 1 })) : items;
+
+  return (
+    <div>
+      <CardGrid items={shown} />
+      {error && (
+        <div className='py-6 text-center text-sm text-red-600 dark:text-red-400'>
+          {error}
+          <button onClick={() => void load(nextSkip, true)} className='ml-3 underline'>
+            重试
+          </button>
+        </div>
+      )}
+      {hasMore && <div ref={sentinel} className='h-10' />}
+      {loading && (
+        <div className='flex justify-center py-6 text-gray-400'>
+          <Loader2 className='h-5 w-5 animate-spin' />
+        </div>
+      )}
+      {!hasMore && !loading && (
+        <div className='py-6 text-center text-xs text-gray-400 dark:text-gray-500'>
+          已经到底啦
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** 首页：大量短剧，按热度排列。 */
@@ -340,33 +394,24 @@ function HomeTab() {
   return (
     <div>
       <h2 className='mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300'>全部短剧</h2>
-      {items.length === 0 && loading ? (
-        <div className='flex justify-center py-24 text-gray-400'>
-          <Loader2 className='h-6 w-6 animate-spin' />
-        </div>
-      ) : items.length === 0 && !error ? (
-        <div className='py-24 text-center text-sm text-gray-400'>暂无内容</div>
-      ) : (
-        <>
-          <CardGrid items={items} />
-          <ListFooter
-            loading={loading}
-            error={error}
-            hasMore={hasMore}
-            onMore={() => void load(nextSkip, true)}
-            onRetry={() => void load(0, false)}
-          />
-        </>
-      )}
+      <PagedGrid
+        items={items}
+        loading={loading}
+        error={error}
+        hasMore={hasMore}
+        nextSkip={nextSkip}
+        load={load}
+        emptyText='暂无内容'
+      />
     </div>
   );
 }
 
-/** 推荐：热门推荐流。 */
+/** 推荐：热门池按 seed 重排的随机流。 */
 function RecommendTab() {
   const [seed, setSeed] = useState(0);
-  const { items, loading, error, load } = usePagedList(
-    (skip) => `/api/duanju/hongguo/recommend?limit=36&skip=${skip}`,
+  const { items, loading, error, hasMore, nextSkip, load } = usePagedList(
+    (skip) => `/api/duanju/hongguo/recommend?limit=36&seed=${seed}&skip=${skip}`,
     [seed]
   );
 
@@ -381,25 +426,15 @@ function RecommendTab() {
           换一批
         </button>
       </div>
-      {items.length === 0 && loading ? (
-        <div className='flex justify-center py-24 text-gray-400'>
-          <Loader2 className='h-6 w-6 animate-spin' />
-        </div>
-      ) : items.length === 0 && !error ? (
-        <div className='py-24 text-center text-sm text-gray-400'>暂时没有推荐内容</div>
-      ) : (
-        <>
-          <CardGrid items={items} />
-          {error && (
-            <div className='py-6 text-center text-sm text-red-600 dark:text-red-400'>
-              {error}
-              <button onClick={() => void load(0, false)} className='ml-3 underline'>
-                重试
-              </button>
-            </div>
-          )}
-        </>
-      )}
+      <PagedGrid
+        items={items}
+        loading={loading}
+        error={error}
+        hasMore={hasMore}
+        nextSkip={nextSkip}
+        load={load}
+        emptyText='暂时没有推荐内容'
+      />
     </div>
   );
 }
@@ -494,24 +529,15 @@ function CategoryTab() {
         </div>
       )}
 
-      {items.length === 0 && loading ? (
-        <div className='flex justify-center py-24 text-gray-400'>
-          <Loader2 className='h-6 w-6 animate-spin' />
-        </div>
-      ) : items.length === 0 && !error ? (
-        <div className='py-24 text-center text-sm text-gray-400'>没有符合条件的短剧</div>
-      ) : (
-        <>
-          <CardGrid items={items} />
-          <ListFooter
-            loading={loading}
-            error={error}
-            hasMore={hasMore}
-            onMore={() => void load(nextSkip, true)}
-            onRetry={() => void load(0, false)}
-          />
-        </>
-      )}
+      <PagedGrid
+        items={items}
+        loading={loading}
+        error={error}
+        hasMore={hasMore}
+        nextSkip={nextSkip}
+        load={load}
+        emptyText='没有符合条件的短剧'
+      />
     </div>
   );
 }
@@ -519,11 +545,10 @@ function CategoryTab() {
 /** 榜单：热播 / 收藏 / 最新。 */
 function RankTab() {
   const [board, setBoard] = useState('hot_score');
-  const { items, loading, error, load } = usePagedList(
+  const { items, loading, error, hasMore, nextSkip, load } = usePagedList(
     (skip) => `/api/duanju/hongguo/browse?genre=short_play&sort=${board}&limit=60&skip=${skip}`,
     [board]
   );
-  const ranked: CardItem[] = items.map((it, i) => ({ ...it, rank: i + 1 }));
 
   return (
     <div>
@@ -543,25 +568,16 @@ function RankTab() {
         ))}
       </div>
 
-      {items.length === 0 && loading ? (
-        <div className='flex justify-center py-24 text-gray-400'>
-          <Loader2 className='h-6 w-6 animate-spin' />
-        </div>
-      ) : items.length === 0 && !error ? (
-        <div className='py-24 text-center text-sm text-gray-400'>暂无榜单数据</div>
-      ) : (
-        <>
-          <CardGrid items={ranked} />
-          {error && (
-            <div className='py-6 text-center text-sm text-red-600 dark:text-red-400'>
-              {error}
-              <button onClick={() => void load(0, false)} className='ml-3 underline'>
-                重试
-              </button>
-            </div>
-          )}
-        </>
-      )}
+      <PagedGrid
+        items={items}
+        loading={loading}
+        error={error}
+        hasMore={hasMore}
+        nextSkip={nextSkip}
+        load={load}
+        ranked
+        emptyText='暂无榜单数据'
+      />
     </div>
   );
 }
