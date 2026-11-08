@@ -156,8 +156,12 @@ async function remoteSearch(q: string, limit: number): Promise<HongguoSearchItem
       id: str(it.id) || str(it.series_id),
       title: str(it.title) || str(it.series_title) || str(it.name),
       cover: str(it.cover),
-      desc: str(it.desc) || str(it.abstract) || str(it.series_intro),
-      episodeCount: num(it.episodeCount ?? it.episode_cnt),
+      desc:
+        str(it.desc) ||
+        str(it.description) ||
+        str(it.abstract) ||
+        str(it.series_intro),
+      episodeCount: num(it.episodeCount ?? it.episode_cnt ?? it.episode_count),
       score: it.score as string | number | undefined,
       playCount: num(it.playCount ?? it.play_cnt),
       tags: Array.isArray(it.tags) ? (it.tags as string[]) : [],
@@ -227,15 +231,16 @@ async function withFallback<T>(
   directFn: () => Promise<T>,
   remoteFn: () => Promise<T>
 ): Promise<T> {
-  let lastErr: Error | null = null;
+  const errs: string[] = [];
   for (const source of sourceOrder()) {
     try {
       return source === 'direct' ? await directFn() : await remoteFn();
     } catch (err) {
-      lastErr = err as Error;
+      const label = source === 'direct' ? '直连' : '兜底';
+      errs.push(`${label}: ${(err as Error).message}`);
     }
   }
-  throw lastErr || new Error('红果数据源不可用');
+  throw new Error(errs.join('；') || '红果数据源不可用');
 }
 
 export function hongguoSearch(q: string, limit = 40): Promise<HongguoSearchItem[]> {

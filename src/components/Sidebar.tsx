@@ -156,7 +156,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
     },
     {
       icon: Clapperboard,
-      label: '短剧',
+      label: '红果',
       href: '/duanju',
     },
     {
@@ -193,7 +193,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
       },
       {
         icon: Clapperboard,
-        label: '短剧',
+        label: '红果',
         href: '/duanju',
       },
       ...(runtimeConfig?.LIVE_ENABLED

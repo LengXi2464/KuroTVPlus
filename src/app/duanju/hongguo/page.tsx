@@ -72,7 +72,7 @@ function HongguoListClient() {
               红果短剧
             </h1>
             <p className='text-xs sm:text-sm text-gray-500 dark:text-gray-400'>
-              全集直连 · 第 6 集起也能播
+              全集直连 · 即点即播
             </p>
           </div>
         </div>

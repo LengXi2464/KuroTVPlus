@@ -56,7 +56,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     },
     {
       icon: Clapperboard,
-      label: '短剧',
+      label: '红果',
       href: '/duanju',
     },
       {
@@ -94,7 +94,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
       },
       {
         icon: Clapperboard,
-        label: '短剧',
+        label: '红果',
         href: '/duanju',
       },
       ...(runtimeConfig?.LIVE_ENABLED

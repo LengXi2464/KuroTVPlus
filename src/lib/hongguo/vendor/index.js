@@ -12,13 +12,53 @@
  *   const pg = await direct.search('关键词', 40, 0);
  */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+
+/**
+ * 与项目根 hongguo.config.json 内容一致的内嵌配置。
+ * 部署到 serverless/edge（无项目文件系统或 cwd 不含配置文件）时，
+ * 落到临时目录后通过 HONGGUO_CONFIG 指过去，保证直连链路在任何环境可用。
+ */
+const EMBEDDED_CONFIG = {
+  upstream: {
+    api_host: 'api5-normal-sinfonlinea.fqnovel.com',
+    base_query: {
+      aid: '8662',
+      app_name: 'novelread',
+      version_code: '72232',
+      version_name: '7.2.2.32',
+      channel: 'audit',
+      device_platform: 'android',
+      device_type: 'audit-windows',
+      os_version: '12',
+      update_version_code: '72232',
+    },
+    session_headers: {
+      'user-agent': 'hongguo-web/1.0',
+      'x-tt-store-region': 'cn-sh',
+      'x-tt-store-region-src': 'uid',
+      'passport-sdk-version': '5051452',
+      'sdk-version': '2',
+    },
+  },
+};
 
 function ensureEnv() {
   if (!process.env.HONGGUO_CONFIG) {
     const p = path.join(process.cwd(), 'hongguo.config.json');
-    if (fs.existsSync(p)) process.env.HONGGUO_CONFIG = p;
+    if (fs.existsSync(p)) {
+      process.env.HONGGUO_CONFIG = p;
+    } else {
+      try {
+        const tmp = path.join(os.tmpdir(), 'kurotvplus-hongguo.config.json');
+        fs.writeFileSync(tmp, JSON.stringify(EMBEDDED_CONFIG));
+        process.env.HONGGUO_CONFIG = tmp;
+      } catch (e) {
+        // 临时目录不可写时保持原状，由 vendor 的 Config 降级处理
+      }
+    }
   }
   if (!process.env.HONGGUO_DEVICE_ID || !/^\d{10,20}$/.test(process.env.HONGGUO_DEVICE_ID)) {
     const n = crypto.randomBytes(8).readBigUInt64BE() % 9000000000000000n;
