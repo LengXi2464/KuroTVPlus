@@ -21,8 +21,25 @@
  * 未就绪这类瞬时故障会让整个进程永久不可播放，只能重启。
  */
 const crypto = require('crypto');
-const zlib = require('zlib');
 const Http = require('../util/http');
+
+/**
+ * gzip 兼容层：Node 用内置 zlib；Workers 等 runtime 没有 zlib 实现时
+ * 退回 CompressionStream（两种环境都可用，避免注册请求整体失败）。
+ */
+async function gzip(buf) {
+  try {
+    const zlib = require('zlib');
+    if (typeof zlib.gzipSync === 'function') return zlib.gzipSync(buf);
+  } catch (e) {
+    // 继续走 CompressionStream
+  }
+  if (typeof CompressionStream !== 'function' || typeof Response !== 'function') {
+    throw new Error('当前运行时缺少 gzip 支持');
+  }
+  const stream = new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'));
+  return Buffer.from(await new Response(stream).arrayBuffer());
+}
 
 const REGISTER_URL = 'https://log5-applog-lf.fqnovel.com/service/2/device_register/'
   + '?tt_data=a&cronet_version=8d40f833_2026-03-03&ttnet_version=4.2.243.31-douyin'
@@ -58,8 +75,8 @@ function responseId(response, name) {
     ? value : '';
 }
 
-/** 构造 ttEncrypt 加密后的注册请求体。 */
-function buildBody(now, cdid) {
+/** 构造 ttEncrypt 加密后的注册请求体（gzip 为异步兼容实现，故本函数为 async）。 */
+async function buildBody(now, cdid) {
   const header = {
     display_name: '红果免费短剧', update_version_code: 73932, manifest_version_code: 73932,
     app_version_minor: '7.3.9.32', aid: 8662, channel: 'update_64', package: 'com.phoenix.read',
@@ -79,7 +96,7 @@ function buildBody(now, cdid) {
     pre_installed_channel: '',
     apk_first_install_time: now, is_system_app: 0, sdk_flavor: 'china', guest_mode: 0,
   };
-  const compressed = zlib.gzipSync(
+  const compressed = await gzip(
     Buffer.from(JSON.stringify({ magic_tag: 'ss_app_log', header, _gen_time: now })));
   const random = crypto.randomBytes(32);
   const derived = crypto.createHash('sha512').update(Buffer.concat([
@@ -108,7 +125,7 @@ function getPlaybackDevice() {
     try {
       const now = Date.now();
       const cdid = crypto.randomUUID();
-      const body = buildBody(now, cdid);
+      const body = await buildBody(now, cdid);
       const res = await Http.send({
         url: REGISTER_URL,
         method: 'POST',
