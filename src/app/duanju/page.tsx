@@ -441,6 +441,24 @@ function DuanjuPageClient() {
           </Link>
         </div>
 
+        {/* 红果短剧直达入口：独立数据链路，全集可播 */}
+        <div className='max-w-4xl mx-auto mb-6 px-4'>
+          <Link
+            href='/duanju/hongguo'
+            className='flex items-center justify-between rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-4 text-white shadow-lg shadow-green-500/20 transition-transform hover:scale-[1.01]'
+          >
+            <div>
+              <div className='text-base font-bold'>红果短剧 · 全集直连</div>
+              <div className='mt-0.5 text-xs text-green-50/90'>
+                海量短剧即点即播，第 6 集起也能看
+              </div>
+            </div>
+            <span className='rounded-full bg-white/20 px-4 py-1.5 text-sm font-medium'>
+              进入
+            </span>
+          </Link>
+        </div>
+
         <div className='max-w-4xl mx-auto mb-8'>
           <div className='relative'>
             <div className='text-xs text-gray-500 dark:text-gray-400 mb-2 px-4'>

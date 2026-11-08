@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Blend, Cat, Clover, Container, Film, Globe, Home, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
+import { Blend, Cat, Clapperboard, Clover, Container, Film, Globe, Home, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -54,6 +54,11 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
       label: '综艺',
       href: '/douban?type=show',
     },
+    {
+      icon: Clapperboard,
+      label: '短剧',
+      href: '/duanju',
+    },
       {
         icon: TvMinimalPlay,
         label: '电视直播',
@@ -86,6 +91,11 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
         icon: Clover,
         label: '综艺',
         href: '/douban?type=show',
+      },
+      {
+        icon: Clapperboard,
+        label: '短剧',
+        href: '/duanju',
       },
       ...(runtimeConfig?.LIVE_ENABLED
         ? [
