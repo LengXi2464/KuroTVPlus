@@ -16,6 +16,24 @@ export interface HongguoSearchItem {
   tags?: string[];
 }
 
+export interface HongguoFilterItem {
+  id: string;
+  name: string;
+}
+
+/** 分类页筛选项：type 为 genre / category_dim_theme / sort / gender… */
+export interface HongguoFilterRow {
+  type: string;
+  rowName: string;
+  items: HongguoFilterItem[];
+}
+
+export interface HongguoPage {
+  items: HongguoSearchItem[];
+  hasMore: boolean;
+  nextSkip: number;
+}
+
 export interface HongguoSeries {
   id: string;
   title: string;

@@ -96,6 +96,19 @@ async function recommend(limit, skip) {
 }
 
 /**
+ * 分类/榜单通用浏览：genre = short_play | comic_series | ai_series，
+ * opts 支持 theme/setting/background/sort/gender/status/days/limit。
+ */
+async function browse(genre, opts, skip) {
+  return Client.browsePage(genre || 'short_play', opts || {}, null, skip || 0);
+}
+
+/** 某体裁的筛选面板（体裁/主题/设定/背景/排序/受众/上新时间）。 */
+async function filters(genre) {
+  return Client.filters(genre || 'short_play');
+}
+
+/**
  * 取某集的一个清晰度直链。
  * quality: '' / '360' / '720' 等；返回 { url, codec, definition, size, contentKey, encrypt }。
  */
@@ -116,4 +129,4 @@ async function play(vid, quality) {
   };
 }
 
-module.exports = { search, detail, play, recommend };
+module.exports = { search, detail, play, recommend, browse, filters };

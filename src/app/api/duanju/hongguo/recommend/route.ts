@@ -6,11 +6,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get('limit')) || 60, 1), 120);
+  const sp = req.nextUrl.searchParams;
+  const limit = Math.min(Math.max(Number(sp.get('limit')) || 60, 1), 120);
+  const skip = Math.max(Number(sp.get('skip')) || 0, 0);
   try {
-    const items = await hongguoRecommend(limit);
+    const page = await hongguoRecommend(limit, skip);
     return NextResponse.json(
-      { ok: true, items },
+      { ok: true, items: page.items, hasMore: page.hasMore, nextSkip: page.nextSkip },
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' } }
     );
   } catch (err) {

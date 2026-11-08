@@ -8,6 +8,8 @@
 import {
   HONGGUO_API_BASE,
   type HongguoEpisode,
+  type HongguoFilterRow,
+  type HongguoPage,
   type HongguoPlayInfo,
   type HongguoSearchItem,
   type HongguoSeries,
@@ -37,6 +39,12 @@ function vendor(): {
     hasMore: boolean;
     nextSkip: number;
   }>;
+  browse: (genre: string, opts: Record<string, unknown>, skip: number) => Promise<{
+    items: Array<Record<string, unknown>>;
+    hasMore: boolean;
+    nextSkip: number;
+  }>;
+  filters: (genre: string) => Promise<Array<Record<string, unknown>>>;
   detail: (seriesId: string) => Promise<{
     meta: Record<string, unknown>;
     episodes: Array<Record<string, unknown>>;
@@ -84,12 +92,59 @@ async function directSearch(q: string, limit: number): Promise<HongguoSearchItem
     .filter((it) => it.id !== '' && it.title !== '');
 }
 
+function toPage(pg: {
+  items?: Array<Record<string, unknown>>;
+  hasMore?: boolean;
+  nextSkip?: number;
+}): HongguoPage {
+  return {
+    items: (pg.items || [])
+      .map(mapDirectItem)
+      .filter((it) => it.id !== '' && it.title !== ''),
+    hasMore: !!pg.hasMore,
+    nextSkip: num(pg.nextSkip),
+  };
+}
+
 /** 首页推荐流：按热度取短剧，无需关键词。 */
-async function directRecommend(limit = 40, skip = 0): Promise<HongguoSearchItem[]> {
-  const pg = await vendor().recommend(limit, skip);
-  return (pg.items || [])
-    .map(mapDirectItem)
-    .filter((it) => it.id !== '' && it.title !== '');
+async function directRecommend(limit = 40, skip = 0): Promise<HongguoPage> {
+  return toPage(await vendor().recommend(limit, skip));
+}
+
+/** 分类/榜单浏览：按体裁 + 筛选项取列表。 */
+async function directBrowse(
+  genre: string,
+  opts: {
+    theme?: string;
+    setting?: string;
+    background?: string;
+    sort?: string;
+    gender?: string;
+    status?: string;
+    days?: string;
+    limit?: number;
+    skip?: number;
+  } = {}
+): Promise<HongguoPage> {
+  const { limit = 60, skip = 0, ...filter } = opts;
+  return toPage(await vendor().browse(genre, { ...filter, limit }, skip));
+}
+
+/** 分类页筛选面板。 */
+async function directFilters(genre: string): Promise<HongguoFilterRow[]> {
+  const rows = await vendor().filters(genre);
+  return (rows || [])
+    .map((r) => {
+      const items = Array.isArray(r.items) ? (r.items as Array<Record<string, unknown>>) : [];
+      return {
+        type: str(r.type),
+        rowName: str(r.row_name),
+        items: items
+          .map((it) => ({ id: str(it.id), name: str(it.name) }))
+          .filter((it) => it.id !== '' && it.name !== ''),
+      };
+    })
+    .filter((r) => r.type !== '' && r.items.length > 0);
 }
 
 async function directDetail(seriesId: string): Promise<{
@@ -191,12 +246,67 @@ async function remoteSearch(q: string, limit: number): Promise<HongguoSearchItem
 }
 
 /** 兜底后端的推荐流（接口不存在时抛错，由 withFallback 汇总）。 */
-async function remoteRecommend(limit: number): Promise<HongguoSearchItem[]> {
-  const j = await remoteGet('/recommend', { limit: String(limit) });
+async function remoteRecommend(limit: number, skip = 0): Promise<HongguoPage> {
+  const j = await remoteGet('/recommend', { limit: String(limit), skip: String(skip) });
   const raw = (j?.items || j?.results || j?.list || j?.data || []) as Array<Record<string, unknown>>;
+  return {
+    items: raw.map(mapRemoteItem).filter((it) => it.id !== '' && it.title !== ''),
+    hasMore: !!j?.hasMore,
+    nextSkip: skip + raw.length,
+  };
+}
+
+/** 兜底后端的分类浏览（接口不存在时抛错，由 withFallback 汇总）。 */
+async function remoteBrowse(
+  genre: string,
+  opts: {
+    theme?: string;
+    setting?: string;
+    background?: string;
+    sort?: string;
+    gender?: string;
+    status?: string;
+    days?: string;
+    limit?: number;
+    skip?: number;
+  } = {}
+): Promise<HongguoPage> {
+  const params: Record<string, string> = { genre };
+  for (const k of ['theme', 'setting', 'background', 'sort', 'gender', 'status', 'days'] as const) {
+    const v = opts[k];
+    if (v) params[k] = String(v);
+  }
+  const limit = opts.limit ?? 60;
+  const skip = opts.skip ?? 0;
+  params.limit = String(limit);
+  params.skip = String(skip);
+  const j = await remoteGet('/browse', params);
+  const raw = (j?.items || j?.results || j?.list || j?.data || []) as Array<Record<string, unknown>>;
+  return {
+    items: raw.map(mapRemoteItem).filter((it) => it.id !== '' && it.title !== ''),
+    hasMore: !!j?.hasMore,
+    nextSkip: skip + raw.length,
+  };
+}
+
+/** 兜底后端的筛选面板（接口不存在时抛错，由 withFallback 汇总）。 */
+async function remoteFilters(genre: string): Promise<HongguoFilterRow[]> {
+  const j = await remoteGet('/filters', { genre });
+  const raw = (j?.rows || j?.items || j?.data || []) as Array<Record<string, unknown>>;
   return raw
-    .map(mapRemoteItem)
-    .filter((it) => it.id !== '' && it.title !== '');
+    .map((r) => {
+      const items = Array.isArray(r.items)
+        ? (r.items as Array<Record<string, unknown>>)
+        : [];
+      return {
+        type: str(r.type),
+        rowName: str(r.row_name) || str(r.rowName) || str(r.name),
+        items: items
+          .map((it) => ({ id: str(it.id), name: str(it.name) }))
+          .filter((it) => it.id !== '' && it.name !== ''),
+      };
+    })
+    .filter((r) => r.type !== '' && r.items.length > 0);
 }
 
 async function remoteDetail(seriesId: string): Promise<{
@@ -280,10 +390,37 @@ export function hongguoSearch(q: string, limit = 40): Promise<HongguoSearchItem[
   );
 }
 
-export function hongguoRecommend(limit = 40): Promise<HongguoSearchItem[]> {
+export function hongguoRecommend(limit = 60, skip = 0): Promise<HongguoPage> {
   return withFallback(
-    () => directRecommend(limit, 0),
-    () => remoteRecommend(limit)
+    () => directRecommend(limit, skip),
+    () => remoteRecommend(limit, skip)
+  );
+}
+
+export function hongguoBrowse(
+  genre: string,
+  opts: {
+    theme?: string;
+    setting?: string;
+    background?: string;
+    sort?: string;
+    gender?: string;
+    status?: string;
+    days?: string;
+    limit?: number;
+    skip?: number;
+  } = {}
+): Promise<HongguoPage> {
+  return withFallback(
+    () => directBrowse(genre, opts),
+    () => remoteBrowse(genre, opts)
+  );
+}
+
+export function hongguoFilters(genre: string): Promise<HongguoFilterRow[]> {
+  return withFallback(
+    () => directFilters(genre),
+    () => remoteFilters(genre)
   );
 }
 
