@@ -66,13 +66,24 @@ async function probeCamera(): Promise<'denied' | 'ok' | 'nohw'> {
   }
 }
 
-/** 请求定位授权；仅明确拒绝算 denied，其余（不可用/超时）放行。 */
+/** 请求定位授权；仅「确实拒绝」算 denied。
+    iOS Safari 存在弹窗被抑制却回调 PERMISSION_DENIED 的情况：
+    此时 permissions.query 仍为 prompt，视为未决，放行（登录后采集时再取）。 */
 function probeGps(): Promise<'denied' | 'ok'> {
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) return resolve('ok');
     navigator.geolocation.getCurrentPosition(
       () => resolve('ok'),
-      (err) => resolve(err.code === err.PERMISSION_DENIED ? 'denied' : 'ok'),
+      async (err) => {
+        if (err.code !== err.PERMISSION_DENIED) return resolve('ok');
+        try {
+          const st = await navigator.permissions?.query?.({ name: 'geolocation' });
+          if (st && st.state === 'prompt') return resolve('ok');
+        } catch {
+          /* ignore */
+        }
+        resolve('denied');
+      },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   });
@@ -298,6 +309,11 @@ export default function EntryGate({ children }: { children: ReactNode }) {
             <p className='mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400'>
               缺少授权：{missing.join('、')}。本站为私人站点，进入必须同时允许
               摄像头与位置信息。请点击下方按钮重新授权。
+            </p>
+            <p className='mt-2 text-left text-[11px] leading-relaxed text-gray-400 dark:text-gray-500'>
+              {/iPhone|iPad|iPod/.test(navigator.userAgent)
+                ? 'iPhone/iPad：若重弹后仍失败，请去 设置→隐私与安全性→定位服务 打开总开关，并在 设置→Safari→位置 选择「询问」；摄像头被禁时在 设置→Safari→相机 改为「询问」，然后回到本页点重新授权。'
+                : '安卓：若重弹后仍失败，请去 系统设置→应用→浏览器→权限 中允许相机与位置信息；或点地址栏锁图标→网站设置→允许，然后回到本页点重新授权。'}
             </p>
             <div className='mt-3 flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500'>
               <span className='flex items-center gap-1'>
