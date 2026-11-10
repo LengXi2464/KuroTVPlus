@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { absUrl, fetchCover } from '@/lib/huangguo/server';
+import { absUrl, fetchCover, gateUnlocked, GATE_COOKIE } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
+  if (!(await gateUnlocked(req.cookies.get(GATE_COOKIE)?.value))) {
+    return new NextResponse('need password', { status: 401 });
+  }
   const u = absUrl(req.nextUrl.searchParams.get('u') || '');
   if (!/^https:\/\//i.test(u)) return new NextResponse('bad url', { status: 400 });
   try {

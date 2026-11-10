@@ -179,32 +179,28 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
         minHeight: 'calc(3.5rem + env(safe-area-inset-bottom))',
       }}
     >
-      <ul className='flex items-center overflow-x-auto scrollbar-hide'>
+      <ul className='flex items-center'>
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
-            <li
-              key={item.href}
-              className='flex-shrink-0'
-              style={{ width: '20vw', minWidth: '20vw' }}
-            >
+            <li key={item.href} className='min-w-0 flex-1'>
               <Link
                 href={item.href}
                 prefetch={false}
-                className='flex flex-col items-center justify-center w-full h-14 gap-1 text-xs'
+                className='flex h-14 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-[10.5px]'
               >
                 <item.icon
-                  className={`h-6 w-6 ${active
+                  className={`h-[22px] w-[22px] ${active
                     ? 'text-green-600 dark:text-green-400'
                     : 'text-gray-500 dark:text-gray-400'
                     }`}
                 />
                 <span
-                  className={
+                  className={`w-full truncate text-center ${
                     active
                       ? 'text-green-600 dark:text-green-400'
                       : 'text-gray-600 dark:text-gray-300'
-                  }
+                  }`}
                 >
                   {item.label}
                 </span>

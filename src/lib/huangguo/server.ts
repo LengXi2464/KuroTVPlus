@@ -164,3 +164,32 @@ export async function fetchUpstream(url: string, auth?: string): Promise<Respons
   if (auth) headers['x-cdn-auth'] = auth;
   return fetch(url, { headers, cache: 'no-store' });
 }
+
+/* ---- 访问密码（HUANGGUO_ACCESS_PASSWORD） ---- */
+
+export const GATE_COOKIE = 'hg_gate';
+
+const digestHex = async (text: string): Promise<string> => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`huangguo-gate-v1:${text}`));
+  return Array.from(new Uint8Array(buf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+export function gateRequired(): boolean {
+  return !!process.env.HUANGGUO_ACCESS_PASSWORD;
+}
+
+/** 校验通过时返回应写入 cookie 的令牌。 */
+export async function gateTokenFor(password: string): Promise<string> {
+  const expected = process.env.HUANGGUO_ACCESS_PASSWORD || '';
+  if (!expected || password !== expected) return '';
+  return digestHex(expected);
+}
+
+export async function gateUnlocked(cookie?: string): Promise<boolean> {
+  const expected = process.env.HUANGGUO_ACCESS_PASSWORD || '';
+  if (!expected) return true;
+  if (!cookie) return false;
+  return cookie === (await digestHex(expected));
+}

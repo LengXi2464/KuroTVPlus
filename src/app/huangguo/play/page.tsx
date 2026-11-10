@@ -69,7 +69,7 @@ function Player({ src, auth, cover, onEnded }: { src: string; auth?: string; cov
   }, [src, auth]);
 
   return (
-    <div className='relative w-full overflow-hidden rounded-xl bg-black'>
+    <div className='relative w-full overflow-hidden rounded-xl bg-black shadow-sm'>
       <video
         ref={videoRef}
         controls
@@ -158,28 +158,28 @@ function PlayContent() {
 
   return (
     <PageLayout activePath='/huangguo'>
-      <div className='mx-auto w-full max-w-5xl px-3 pb-24 pt-3 sm:px-5'>
+      <div className='mx-auto w-full max-w-5xl px-3 pb-24 pt-3 sm:px-6 sm:pt-6'>
         <div className='mb-3 flex items-center gap-2'>
           <Link
             href='/huangguo'
-            className='flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/80 hover:bg-white/20'
+            className='flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700 dark:hover:bg-gray-700'
           >
             <ArrowLeft className='h-3.5 w-3.5' /> 返回
           </Link>
-          <h1 className='line-clamp-1 text-sm font-medium text-white'>{detail?.title || '加载中…'}</h1>
+          <h1 className='line-clamp-1 text-sm font-medium text-gray-900 dark:text-gray-100'>
+            {detail?.title || '加载中…'}
+          </h1>
         </div>
 
         {src ? (
-          <Player
-            key={`${id}-${ep}`}
-            src={src}
-            auth={play?.auth}
-            cover={detail?.cover}
-            onEnded={() => switchEpisode(ep + 1)}
-          />
+          <Player key={`${id}-${ep}`} src={src} auth={play?.auth} cover={detail?.cover} onEnded={() => switchEpisode(ep + 1)} />
         ) : (
-          <div className='flex aspect-video w-full items-center justify-center rounded-xl bg-black/60'>
-            {error ? <span className='text-xs text-red-300'>{error}</span> : <Loader2 className='h-6 w-6 animate-spin text-white/60' />}
+          <div className='flex aspect-video w-full items-center justify-center rounded-xl bg-gray-900/90'>
+            {error ? (
+              <span className='px-4 text-center text-xs text-red-300'>{error}</span>
+            ) : (
+              <Loader2 className='h-6 w-6 animate-spin text-white/60' />
+            )}
           </div>
         )}
 
@@ -188,39 +188,43 @@ function PlayContent() {
             type='button'
             onClick={() => switchEpisode(ep - 1)}
             disabled={ep <= 1}
-            className='flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/85 disabled:opacity-40'
+            className='flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-700'
           >
             <ChevronLeft className='h-3.5 w-3.5' /> 上一集
           </button>
-          <span className='text-xs text-white/60'>
+          <span className='text-xs text-gray-500 dark:text-gray-400'>
             第 {ep} / {maxEp} 集
           </span>
           <button
             type='button'
             onClick={() => switchEpisode(ep + 1)}
             disabled={ep >= maxEp}
-            className='flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/85 disabled:opacity-40'
+            className='flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-50 disabled:opacity-40 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-700'
           >
             下一集 <ChevronRight className='h-3.5 w-3.5' />
           </button>
         </div>
 
         {detail && (
-          <div className='mt-4 rounded-xl bg-white/5 p-3'>
-            <p className='mb-1 line-clamp-1 text-xs text-white/70'>
+          <div className='mt-4 rounded-xl bg-white p-3 ring-1 ring-gray-200/70 dark:bg-gray-800 dark:ring-gray-700/70'>
+            <p className='mb-1 line-clamp-1 text-xs text-gray-600 dark:text-gray-300'>
               {detail.tags?.slice(0, 4).join(' · ') || ''}
               {detail.score ? ` · 评分 ${detail.score}` : ''}
               {detail.is_finished ? ' · 已完结' : ''}
             </p>
-            {detail.description && <p className='line-clamp-3 text-[11.5px] leading-relaxed text-white/45'>{detail.description}</p>}
+            {detail.description && (
+              <p className='line-clamp-3 text-[11.5px] leading-relaxed text-gray-500 dark:text-gray-400'>
+                {detail.description}
+              </p>
+            )}
           </div>
         )}
 
-        {loading && <p className='mt-4 text-center text-xs text-white/40'>加载剧集中…</p>}
+        {loading && <p className='mt-4 text-center text-xs text-gray-400 dark:text-gray-500'>加载剧集中…</p>}
 
         {episodes.length > 0 && (
           <div className='mt-4'>
-            <p className='mb-2 text-xs text-white/60'>选集</p>
+            <p className='mb-2 text-xs text-gray-600 dark:text-gray-300'>选集</p>
             <div className='grid grid-cols-6 gap-2 sm:grid-cols-10 md:grid-cols-12'>
               {episodes.map((e) => (
                 <button
@@ -228,7 +232,9 @@ function PlayContent() {
                   type='button'
                   onClick={() => switchEpisode(e.ep_num)}
                   className={`rounded-lg py-1.5 text-xs transition ${
-                    e.ep_num === ep ? 'bg-[color:var(--accent,#f97316)] text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                    e.ep_num === ep
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-700'
                   }`}
                 >
                   {e.ep_num}
@@ -247,7 +253,7 @@ export default function HuangguoPlayPage() {
     <Suspense
       fallback={
         <div className='flex h-screen items-center justify-center'>
-          <Loader2 className='h-6 w-6 animate-spin text-white/60' />
+          <Loader2 className='h-6 w-6 animate-spin text-gray-400' />
         </div>
       }
     >
