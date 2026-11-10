@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Blend, Cat, Clapperboard, Clover, Container, Film, Globe, Home, Menu, Search, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
+import { Blend, Cat, Clapperboard, Clover, Container, Film, Globe, Home, Menu, Search, Sparkles, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import {
@@ -160,6 +160,11 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
       href: '/duanju',
     },
     {
+      icon: Sparkles,
+      label: '黄果',
+      href: '/huangguo',
+    },
+    {
       icon: TvMinimalPlay,
       label: '电视直播',
       href: '/live',
@@ -195,6 +200,11 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
         icon: Clapperboard,
         label: '红果',
         href: '/duanju',
+      },
+      {
+        icon: Sparkles,
+        label: '黄果',
+        href: '/huangguo',
       },
       ...(runtimeConfig?.LIVE_ENABLED
         ? [

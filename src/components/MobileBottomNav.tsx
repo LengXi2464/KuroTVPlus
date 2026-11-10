@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Blend, Cat, Clapperboard, Clover, Container, Film, Globe, Home, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
+import { Blend, Cat, Clapperboard, Clover, Container, Film, Globe, Home, Sparkles, Star, Tv, TvMinimalPlay, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -35,6 +35,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
   const [navItems, setNavItems] = useState([
     { icon: Home, label: '首页', href: '/' },
     { icon: Clapperboard, label: '红果', href: '/duanju' },
+    { icon: Sparkles, label: '黄果', href: '/huangguo' },
     {
       icon: Film,
       label: '电影',
@@ -69,6 +70,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     const items = [
       { icon: Home, label: '首页', href: '/' },
       { icon: Clapperboard, label: '红果', href: '/duanju' },
+      { icon: Sparkles, label: '黄果', href: '/huangguo' },
       {
         icon: Film,
         label: '电影',
@@ -159,6 +161,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     return (
       decodedActive === decodedItemHref ||
       (decodedItemHref === '/duanju' && decodedActive.startsWith('/duanju')) ||
+      (decodedItemHref === '/huangguo' && decodedActive.startsWith('/huangguo')) ||
       (decodedActive.startsWith('/douban') &&
         decodedActive.includes(`type=${typeMatch}`))
     );
