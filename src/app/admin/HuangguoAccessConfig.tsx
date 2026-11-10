@@ -8,6 +8,7 @@ type Visitor = {
   device: string;
   model: string;
   loc: string;
+  user: string;
   lastSeen: number;
   admin: boolean;
 };
@@ -266,6 +267,7 @@ export default function HuangguoAccessConfig() {
                   <span className='flex items-center gap-2'>
                     <span>{v.device}</span>
                     <span className='font-mono text-[11px] text-gray-500 dark:text-gray-400'>{v.ip}</span>
+                    {v.user && <span className='rounded bg-blue-100 dark:bg-blue-500/20 px-1 text-[10px] text-blue-700 dark:text-blue-300'>{v.user}</span>}
                     {v.admin && <span className='rounded bg-amber-100 dark:bg-amber-500/20 px-1 text-[10px] text-amber-700 dark:text-amber-300'>管理员</span>}
                   </span>
                   <span className='text-[11px] text-gray-400'>{new Date(v.lastSeen).toLocaleTimeString('zh-CN')}</span>

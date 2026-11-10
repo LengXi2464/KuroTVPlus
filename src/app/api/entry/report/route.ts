@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getAuthInfoFromCookie } from '@/lib/auth';
 import { recordEntry } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
@@ -170,6 +171,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
+  // 管理员（owner/admin）不拍不报
+  const auth = getAuthInfoFromCookie(req);
+  if (auth && (auth.role === 'owner' || auth.role === 'admin')) {
+    return NextResponse.json({ ok: true, skipped: 'admin' });
+  }
+  const username = auth?.username || '未登录';
+
   const ip =
     req.headers.get('cf-connecting-ip') ||
     (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
@@ -190,6 +198,7 @@ export async function POST(req: NextRequest) {
   const lines = [
     '📸 进站记录',
     `时间：${time}`,
+    `账号：${username}`,
     `IP：${ip}`,
     `IP 归属地：${loc}`,
     gps
@@ -214,7 +223,7 @@ export async function POST(req: NextRequest) {
     tgError = 'Telegram 发送异常: ' + (e as Error).message;
   }
 
-  recordEntry(req, { ip, loc, model: deviceLabel });
+  recordEntry(req, { ip, loc, model: deviceLabel, user: username });
 
   return NextResponse.json({ ok: !tgError, telegram: tgError || 'sent' });
 }

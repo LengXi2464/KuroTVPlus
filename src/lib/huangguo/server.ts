@@ -210,6 +210,7 @@ export type HuangguoVisit = {
   device: string;
   model: string;
   loc: string;
+  user: string;
   lastSeen: number;
   admin: boolean;
 };
@@ -238,6 +239,7 @@ export function recordVisit(req: NextRequest, admin: boolean): void {
     device: deviceOf(ua),
     model: prev?.model || '',
     loc: prev?.loc || '',
+    user: prev?.user || '',
     lastSeen: now,
     admin,
   });
@@ -251,7 +253,7 @@ export function recordVisit(req: NextRequest, admin: boolean): void {
 /** 进站上报时补充完整位置与设备型号。 */
 export function recordEntry(
   req: NextRequest,
-  info: { ip: string; loc: string; model: string }
+  info: { ip: string; loc: string; model: string; user?: string }
 ): void {
   const ua = req.headers.get('user-agent') || '';
   const key = `${info.ip}|${deviceOf(ua)}`;
@@ -261,6 +263,7 @@ export function recordEntry(
     device: deviceOf(ua),
     model: info.model,
     loc: info.loc,
+    user: info.user || prev?.user || '',
     lastSeen: Date.now(),
     admin: prev?.admin ?? false,
   });
