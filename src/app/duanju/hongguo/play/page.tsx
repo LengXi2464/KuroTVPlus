@@ -257,7 +257,9 @@ function HongguoPlayClient() {
             className='aspect-video w-full'
             controls
             playsInline
+            autoPlay
             crossOrigin='anonymous'
+            onEnded={() => switchEpisode(currentSeq + 1)}
           />
           {(busy || playError) && (
             <div className='absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 px-6 text-center'>

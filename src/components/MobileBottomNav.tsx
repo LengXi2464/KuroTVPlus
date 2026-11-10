@@ -34,6 +34,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
 
   const [navItems, setNavItems] = useState([
     { icon: Home, label: '首页', href: '/' },
+    { icon: Clapperboard, label: '红果', href: '/duanju' },
     {
       icon: Film,
       label: '电影',
@@ -54,11 +55,6 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
       label: '综艺',
       href: '/douban?type=show',
     },
-    {
-      icon: Clapperboard,
-      label: '红果',
-      href: '/duanju',
-    },
       {
         icon: TvMinimalPlay,
         label: '电视直播',
@@ -72,6 +68,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     // 基础导航项（不包括观影室）
     const items = [
       { icon: Home, label: '首页', href: '/' },
+      { icon: Clapperboard, label: '红果', href: '/duanju' },
       {
         icon: Film,
         label: '电影',
@@ -91,11 +88,6 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
         icon: Clover,
         label: '综艺',
         href: '/douban?type=show',
-      },
-      {
-        icon: Clapperboard,
-        label: '红果',
-        href: '/duanju',
       },
       ...(runtimeConfig?.LIVE_ENABLED
         ? [
@@ -166,6 +158,7 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
 
     return (
       decodedActive === decodedItemHref ||
+      (decodedItemHref === '/duanju' && decodedActive.startsWith('/duanju')) ||
       (decodedActive.startsWith('/douban') &&
         decodedActive.includes(`type=${typeMatch}`))
     );
