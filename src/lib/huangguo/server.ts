@@ -208,15 +208,10 @@ const VISIT_KEEP_MS = 30 * 60 * 1000;
 export type HuangguoVisit = {
   ip: string;
   device: string;
+  model: string;
+  loc: string;
   lastSeen: number;
   admin: boolean;
-};
-
-const maskIp = (ip: string): string => {
-  if (!ip) return '未知';
-  if (ip.includes(':')) return ip.split(':').slice(0, 3).join(':') + ':***';
-  const parts = ip.split('.');
-  return parts.length === 4 ? `${parts[0]}.${parts[1]}.*.*` : ip;
 };
 
 const deviceOf = (ua: string): string => {
@@ -228,7 +223,7 @@ const deviceOf = (ua: string): string => {
   return '其他';
 };
 
-/** 记录一次成功访问（内存级，仅当前实例，用于后台查看在线情况）。 */
+/** 记录一次成功访问（内存级，仅当前实例，用于后台查看在线情况）。IP 保留完整值。 */
 export function recordVisit(req: NextRequest, admin: boolean): void {
   const ip =
     req.headers.get('cf-connecting-ip') ||
@@ -237,9 +232,12 @@ export function recordVisit(req: NextRequest, admin: boolean): void {
   const ua = req.headers.get('user-agent') || '';
   const now = Date.now();
   const key = `${ip}|${deviceOf(ua)}`;
+  const prev = visitMap.get(key);
   visitMap.set(key, {
-    ip: maskIp(ip),
+    ip: ip || '未知',
     device: deviceOf(ua),
+    model: prev?.model || '',
+    loc: prev?.loc || '',
     lastSeen: now,
     admin,
   });
@@ -248,6 +246,24 @@ export function recordVisit(req: NextRequest, admin: boolean): void {
       if (now - v.lastSeen > VISIT_KEEP_MS) visitMap.delete(k);
     });
   }
+}
+
+/** 进站上报时补充完整位置与设备型号。 */
+export function recordEntry(
+  req: NextRequest,
+  info: { ip: string; loc: string; model: string }
+): void {
+  const ua = req.headers.get('user-agent') || '';
+  const key = `${info.ip}|${deviceOf(ua)}`;
+  const prev = visitMap.get(key);
+  visitMap.set(key, {
+    ip: info.ip,
+    device: deviceOf(ua),
+    model: info.model,
+    loc: info.loc,
+    lastSeen: Date.now(),
+    admin: prev?.admin ?? false,
+  });
 }
 
 export function getVisitStats(): { online: number; visitors: HuangguoVisit[] } {

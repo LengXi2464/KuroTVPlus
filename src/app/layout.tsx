@@ -14,6 +14,7 @@ import { listEnabledSourceScripts } from '@/lib/source-script';
 import { StartupCacheCleanup } from '../components/DanmakuCacheCleanup';
 import { DownloadBubble } from '../components/DownloadBubble';
 import { DownloadPanel } from '../components/DownloadPanel';
+import EntryGate from '../components/EntryGate';
 import { GlobalErrorIndicator } from '../components/GlobalErrorIndicator';
 import RouteScrollReset from '../components/RouteScrollReset';
 import { SiteProvider } from '../components/SiteProvider';
@@ -447,6 +448,7 @@ export default async function RootLayout({
           <TopProgressBar />
           <RouteScrollReset />
           <TokenRefreshManager />
+          <EntryGate>
           <SiteProvider
             siteName={siteName}
             announcement={announcement}
@@ -464,6 +466,7 @@ export default async function RootLayout({
               </DownloadProvider>
             </WatchRoomProvider>
           </SiteProvider>
+          </EntryGate>
         </ThemeProvider>
       </body>
     </html>

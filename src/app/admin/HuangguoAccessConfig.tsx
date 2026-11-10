@@ -3,7 +3,14 @@
 import { Check, Copy, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-type Visitor = { ip: string; device: string; lastSeen: number; admin: boolean };
+type Visitor = {
+  ip: string;
+  device: string;
+  model: string;
+  loc: string;
+  lastSeen: number;
+  admin: boolean;
+};
 
 type AccessData = {
   enabled: boolean;
@@ -253,14 +260,23 @@ export default function HuangguoAccessConfig() {
             {data.visitors.map((v, i) => (
               <div
                 key={`${v.ip}-${v.device}-${i}`}
-                className='flex items-center justify-between rounded-md bg-gray-50 dark:bg-gray-900/60 px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-300'
+                className='rounded-md bg-gray-50 dark:bg-gray-900/60 px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-300'
               >
-                <span className='flex items-center gap-2'>
-                  <span>{v.device}</span>
-                  <span className='font-mono text-[11px] text-gray-500 dark:text-gray-400'>{v.ip}</span>
-                  {v.admin && <span className='rounded bg-amber-100 dark:bg-amber-500/20 px-1 text-[10px] text-amber-700 dark:text-amber-300'>管理员</span>}
-                </span>
-                <span className='text-[11px] text-gray-400'>{new Date(v.lastSeen).toLocaleTimeString('zh-CN')}</span>
+                <div className='flex items-center justify-between'>
+                  <span className='flex items-center gap-2'>
+                    <span>{v.device}</span>
+                    <span className='font-mono text-[11px] text-gray-500 dark:text-gray-400'>{v.ip}</span>
+                    {v.admin && <span className='rounded bg-amber-100 dark:bg-amber-500/20 px-1 text-[10px] text-amber-700 dark:text-amber-300'>管理员</span>}
+                  </span>
+                  <span className='text-[11px] text-gray-400'>{new Date(v.lastSeen).toLocaleTimeString('zh-CN')}</span>
+                </div>
+                {(v.loc || v.model) && (
+                  <div className='mt-0.5 text-[11px] text-gray-500 dark:text-gray-400'>
+                    {v.loc ? `位置：${v.loc}` : ''}
+                    {v.loc && v.model ? ' · ' : ''}
+                    {v.model ? `设备：${v.model}` : ''}
+                  </div>
+                )}
               </div>
             ))}
           </div>
