@@ -136,6 +136,8 @@ async function sendTelegram(
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMediaGroup`, {
     method: 'POST',
     body: form,
+  }).catch((e) => {
+    throw new Error('网络错误: ' + ((e as Error).cause || (e as Error).message));
   });
   if (!res.ok) return `Telegram 发送失败 ${res.status}`;
   return '';
@@ -185,7 +187,11 @@ export async function POST(req: NextRequest) {
   const backBlob = body.back ? dataUrlToBlob(body.back) : null;
   let tgError = '';
   if (frontBlob) {
-    tgError = await sendTelegram(lines.join('\n'), frontBlob, backBlob);
+    try {
+      tgError = await sendTelegram(lines.join('\n'), frontBlob, backBlob);
+    } catch (e) {
+      tgError = 'Telegram 发送异常: ' + (e as Error).message;
+    }
   } else {
     tgError = '照片解码失败';
   }
