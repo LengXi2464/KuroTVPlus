@@ -3,15 +3,23 @@
 import { KeyRound, Loader2, Lock } from 'lucide-react';
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
 
+import { NEED_PASSWORD_EVENT, UNLOCKED_FLAG } from '@/lib/huangguo/client';
+
 /** 黄果访问密码：未配置 HUANGGUO_ACCESS_PASSWORD 时直接放行。 */
 export default function HuangguoGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<'loading' | 'locked' | 'open'>('loading');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [rotated, setRotated] = useState(false);
 
   useEffect(() => {
     let alive = true;
+    try {
+      if (localStorage.getItem(UNLOCKED_FLAG)) setRotated(true);
+    } catch {
+      /* ignore */
+    }
     fetch('/api/huangguo/gate', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j: { required?: boolean; unlocked?: boolean }) => {
@@ -22,6 +30,17 @@ export default function HuangguoGate({ children }: { children: ReactNode }) {
     return () => {
       alive = false;
     };
+  }, []);
+
+  // 密码被更换/过期后，接口 401 会触发这里重新要求输入
+  useEffect(() => {
+    const onNeedPassword = () => {
+      setRotated(true);
+      setPassword('');
+      setState('locked');
+    };
+    window.addEventListener(NEED_PASSWORD_EVENT, onNeedPassword);
+    return () => window.removeEventListener(NEED_PASSWORD_EVENT, onNeedPassword);
   }, []);
 
   const submit = async (e: FormEvent) => {
@@ -37,9 +56,16 @@ export default function HuangguoGate({ children }: { children: ReactNode }) {
       });
       const j = (await res.json()) as { ok?: boolean; message?: string };
       if (!res.ok || !j.ok) throw new Error(j.message || '密码错误');
+      try {
+        localStorage.setItem(UNLOCKED_FLAG, '1');
+      } catch {
+        /* ignore */
+      }
+      setRotated(false);
       setState('open');
     } catch (err) {
       setError((err as Error).message);
+      if (/密码/.test((err as Error).message)) setRotated(true);
     } finally {
       setBusy(false);
     }
@@ -65,7 +91,9 @@ export default function HuangguoGate({ children }: { children: ReactNode }) {
               <Lock className='h-6 w-6' />
             </div>
             <h1 className='text-base font-semibold text-gray-900 dark:text-gray-100'>黄果短剧 · 需要访问密码</h1>
-            <p className='text-xs text-gray-500 dark:text-gray-400'>请输入密码后继续浏览</p>
+            <p className='text-xs text-gray-500 dark:text-gray-400'>
+              {rotated ? '访问密码已更换，请输入最新密码' : '请输入密码后继续浏览'}
+            </p>
           </div>
           <div className='relative'>
             <KeyRound className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { absUrl, fetchUpstream, gateUnlocked, GATE_COOKIE, rewriteM3u8 } from '@/lib/huangguo/server';
+import { absUrl, fetchUpstream, gateUnlockedRequest, rewriteM3u8 } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  if (!(await gateUnlocked(req.cookies.get(GATE_COOKIE)?.value))) {
+  if (!(await gateUnlockedRequest(req))) {
     return new NextResponse('need password', { status: 401 });
   }
   const sp = req.nextUrl.searchParams;

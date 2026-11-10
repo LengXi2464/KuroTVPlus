@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthInfoFromCookie } from '@/lib/auth';
 import { getConfig, setCachedConfig } from '@/lib/config';
 import { getHuangguoAccess } from '@/lib/huangguo/access';
+import { getVisitStats } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
   const config = await getConfig();
   const cfg = config.HuangguoAccessConfig;
   const access = await getHuangguoAccess();
+  const visits = getVisitStats();
   return NextResponse.json(
     {
       enabled: !!cfg?.Enabled,
@@ -41,6 +43,8 @@ export async function GET(request: NextRequest) {
       mode: access.mode,
       currentPassword: access.password,
       nextRotateAt: access.nextRotateAt || null,
+      online: visits.online,
+      visitors: visits.visitors,
     },
     { headers: noStore }
   );

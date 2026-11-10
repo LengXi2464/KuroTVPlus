@@ -3,6 +3,8 @@
 import { Check, Copy, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+type Visitor = { ip: string; device: string; lastSeen: number; admin: boolean };
+
 type AccessData = {
   enabled: boolean;
   autoRotate: boolean;
@@ -12,6 +14,8 @@ type AccessData = {
   mode: 'off' | 'custom' | 'auto' | 'env';
   currentPassword: string;
   nextRotateAt: number | null;
+  online?: number;
+  visitors?: Visitor[];
 };
 
 const HOUR_OPTIONS = [1, 2, 4, 6, 8, 12, 24, 48, 72, 168];
@@ -36,8 +40,8 @@ export default function HuangguoAccessConfig() {
     setCustomPassword(d.customPassword || '');
   };
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError('');
     try {
       const res = await fetch('/api/admin/huangguo-access', { cache: 'no-store' });
@@ -53,6 +57,11 @@ export default function HuangguoAccessConfig() {
 
   useEffect(() => {
     void load();
+    // 轮询在线人数（内存级统计，仅当前实例）
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') void load(false);
+    }, 20000);
+    return () => clearInterval(timer);
   }, []);
 
   const save = async (rotateNow = false) => {
@@ -228,6 +237,37 @@ export default function HuangguoAccessConfig() {
             </div>
           </>
         )}
+      </div>
+
+      <div className='bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5'>
+        <div className='flex items-center justify-between mb-3'>
+          <h2 className='text-base font-semibold text-gray-900 dark:text-gray-100'>访问情况</h2>
+          <span className='text-xs text-gray-500 dark:text-gray-400'>
+            在线 <span className='font-semibold text-green-600 dark:text-green-400'>{data?.online ?? 0}</span> 人
+          </span>
+        </div>
+        {!data?.visitors?.length ? (
+          <p className='text-xs text-gray-500 dark:text-gray-400'>最近 30 分钟暂无访问记录</p>
+        ) : (
+          <div className='space-y-1.5'>
+            {data.visitors.map((v, i) => (
+              <div
+                key={`${v.ip}-${v.device}-${i}`}
+                className='flex items-center justify-between rounded-md bg-gray-50 dark:bg-gray-900/60 px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-300'
+              >
+                <span className='flex items-center gap-2'>
+                  <span>{v.device}</span>
+                  <span className='font-mono text-[11px] text-gray-500 dark:text-gray-400'>{v.ip}</span>
+                  {v.admin && <span className='rounded bg-amber-100 dark:bg-amber-500/20 px-1 text-[10px] text-amber-700 dark:text-amber-300'>管理员</span>}
+                </span>
+                <span className='text-[11px] text-gray-400'>{new Date(v.lastSeen).toLocaleTimeString('zh-CN')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <p className='mt-3 text-[11px] text-gray-400 dark:text-gray-500'>
+          在线=最近 5 分钟有访问；仅统计当前实例（多实例/重启后重新计数）。站点所有者账号访问黄果免密。
+        </p>
       </div>
 
       <div className='text-xs text-gray-500 dark:text-gray-400 px-1'>

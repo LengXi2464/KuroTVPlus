@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
+import { huangguoFetch, NEED_PASSWORD_EVENT } from '@/lib/huangguo/client';
 
 type Episode = { ep_num: number; title?: string; duration?: number; status?: number };
 
@@ -50,6 +51,10 @@ function Player({ src, auth, cover, onEnded }: { src: string; auth?: string; cov
           hls.loadSource(hlsUrl(src, auth));
           hls.attachMedia(video);
           hls.on(Hls.Events.ERROR, (_e, data) => {
+            if (data.response?.code === 401) {
+              window.dispatchEvent(new Event(NEED_PASSWORD_EVENT));
+              return;
+            }
             if (data.fatal) setError('视频加载失败，请切换线路或重试');
           });
           destroy = () => hls.destroy();
@@ -105,7 +110,7 @@ function PlayContent() {
     if (!id) return;
     let alive = true;
     setLoading(true);
-    fetch(`/api/huangguo/api?action=detail&id=${id}`)
+    huangguoFetch(`/api/huangguo/api?action=detail&id=${id}`)
       .then((r) => r.json())
       .then((j: { ok: boolean; data?: Detail; message?: string }) => {
         if (!alive) return;
@@ -124,7 +129,7 @@ function PlayContent() {
       if (!id) return;
       setError('');
       try {
-        const res = await fetch(`/api/huangguo/api?action=play&id=${id}&ep=${target}`);
+        const res = await huangguoFetch(`/api/huangguo/api?action=play&id=${id}&ep=${target}`);
         const j = (await res.json()) as { ok: boolean; data?: PlayInfo; message?: string };
         if (!j.ok || !j.data) throw new Error(j.message || '播放地址获取失败');
         setPlay(j.data);

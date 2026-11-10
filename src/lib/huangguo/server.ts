@@ -1,5 +1,9 @@
 /* 黄果 (huangguoai) 上游代理：所有请求走 {base}/api/edge/request 信封。 */
 
+import type { NextRequest } from 'next/server';
+
+import { getAuthInfoFromCookie } from '@/lib/auth';
+
 import { accessToken, getHuangguoAccess } from './access';
 
 const UA =
@@ -187,4 +191,85 @@ export async function gateUnlocked(cookie?: string): Promise<boolean> {
   if (!access.required) return true;
   if (!cookie) return false;
   return cookie === (await accessToken(access.password));
+}
+
+/** 站点所有者（管理员）免密。 */
+export function isOwnerRequest(req: NextRequest): boolean {
+  const owner = process.env.USERNAME;
+  if (!owner) return false;
+  const auth = getAuthInfoFromCookie(req);
+  return !!auth?.username && auth.username === owner;
+}
+
+const visitMap = new Map<string, HuangguoVisit>();
+const VISIT_ONLINE_MS = 5 * 60 * 1000;
+const VISIT_KEEP_MS = 30 * 60 * 1000;
+
+export type HuangguoVisit = {
+  ip: string;
+  device: string;
+  lastSeen: number;
+  admin: boolean;
+};
+
+const maskIp = (ip: string): string => {
+  if (!ip) return '未知';
+  if (ip.includes(':')) return ip.split(':').slice(0, 3).join(':') + ':***';
+  const parts = ip.split('.');
+  return parts.length === 4 ? `${parts[0]}.${parts[1]}.*.*` : ip;
+};
+
+const deviceOf = (ua: string): string => {
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'iOS';
+  if (/Android/i.test(ua)) return 'Android';
+  if (/Windows/i.test(ua)) return 'Windows';
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'macOS';
+  if (/Linux/i.test(ua)) return 'Linux';
+  return '其他';
+};
+
+/** 记录一次成功访问（内存级，仅当前实例，用于后台查看在线情况）。 */
+export function recordVisit(req: NextRequest, admin: boolean): void {
+  const ip =
+    req.headers.get('cf-connecting-ip') ||
+    (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() ||
+    '';
+  const ua = req.headers.get('user-agent') || '';
+  const now = Date.now();
+  const key = `${ip}|${deviceOf(ua)}`;
+  visitMap.set(key, {
+    ip: maskIp(ip),
+    device: deviceOf(ua),
+    lastSeen: now,
+    admin,
+  });
+  if (visitMap.size > 200) {
+    visitMap.forEach((v, k) => {
+      if (now - v.lastSeen > VISIT_KEEP_MS) visitMap.delete(k);
+    });
+  }
+}
+
+export function getVisitStats(): { online: number; visitors: HuangguoVisit[] } {
+  const now = Date.now();
+  const list: HuangguoVisit[] = [];
+  visitMap.forEach((v) => {
+    if (now - v.lastSeen <= VISIT_KEEP_MS) list.push(v);
+  });
+  list.sort((a, b) => b.lastSeen - a.lastSeen);
+  return {
+    online: list.filter((v) => now - v.lastSeen <= VISIT_ONLINE_MS).length,
+    visitors: list.slice(0, 10),
+  };
+}
+
+/** 路由入口统一校验：管理员免密，其余校验 hg_gate。 */
+export async function gateUnlockedRequest(req: NextRequest): Promise<boolean> {
+  if (isOwnerRequest(req)) {
+    recordVisit(req, true);
+    return true;
+  }
+  const ok = await gateUnlocked(req.cookies.get(GATE_COOKIE)?.value);
+  if (ok) recordVisit(req, false);
+  return ok;
 }

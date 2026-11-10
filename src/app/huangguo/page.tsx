@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import PageLayout from '@/components/PageLayout';
+import { huangguoFetch } from '@/lib/huangguo/client';
 
 type Tab = 'home' | 'category' | 'rank' | 'search';
 
@@ -48,7 +49,7 @@ const coverUrl = (u: string) => (u ? `/api/huangguo/cover?u=${encodeURIComponent
 
 async function callApi(params: Record<string, string>): Promise<Paged> {
   const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/huangguo/api?${qs}`);
+  const res = await huangguoFetch(`/api/huangguo/api?${qs}`);
   const json = (await res.json()) as { ok: boolean; data?: Paged | Card[]; message?: string };
   if (!json.ok) throw new Error(json.message || '请求失败');
   if (Array.isArray(json.data)) return { items: json.data, pagination: { page: 1, pages: 1 } };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { huangguoApi, huangguoPlayback, gateUnlocked, GATE_COOKIE } from '@/lib/huangguo/server';
+import { huangguoApi, huangguoPlayback, gateUnlockedRequest } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ const int = (v: string | null, d: number, max = 1e9) => {
 };
 
 export async function GET(req: NextRequest) {
-  if (!(await gateUnlocked(req.cookies.get(GATE_COOKIE)?.value))) {
+  if (!(await gateUnlockedRequest(req))) {
     return NextResponse.json({ ok: false, message: '需要访问密码' }, { status: 401 });
   }
   const sp = req.nextUrl.searchParams;
