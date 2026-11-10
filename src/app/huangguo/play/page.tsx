@@ -21,12 +21,13 @@ type Detail = {
   is_finished?: boolean;
 };
 
-type PlayInfo = { id: number; ep_num: number; title?: string; video_url: string; video_url_hevc?: string };
+type PlayInfo = { url: string; hevc?: string; auth?: string };
 
-const hlsUrl = (u: string) => `/api/huangguo/hls?u=${encodeURIComponent(u)}`;
+const hlsUrl = (u: string, auth?: string) =>
+  `/api/huangguo/hls?u=${encodeURIComponent(u)}${auth ? `&h=${encodeURIComponent(auth)}` : ''}`;
 const progressKey = (id: string) => `huangguo:progress:${id}`;
 
-function Player({ src, cover, onEnded }: { src: string; cover?: string; onEnded: () => void }) {
+function Player({ src, auth, cover, onEnded }: { src: string; auth?: string; cover?: string; onEnded: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState('');
 
@@ -46,7 +47,7 @@ function Player({ src, cover, onEnded }: { src: string; cover?: string; onEnded:
             return;
           }
           const hls = new Hls({ maxBufferLength: 30 });
-          hls.loadSource(hlsUrl(src));
+          hls.loadSource(hlsUrl(src, auth));
           hls.attachMedia(video);
           hls.on(Hls.Events.ERROR, (_e, data) => {
             if (data.fatal) setError('视频加载失败，请切换线路或重试');
@@ -60,12 +61,12 @@ function Player({ src, cover, onEnded }: { src: string; cover?: string; onEnded:
       };
     }
 
-    video.src = isHls ? hlsUrl(src) : src;
+    video.src = isHls ? hlsUrl(src, auth) : src;
     return () => {
       video.removeAttribute('src');
       video.load();
     };
-  }, [src]);
+  }, [src, auth]);
 
   return (
     <div className='relative w-full overflow-hidden rounded-xl bg-black'>
@@ -153,7 +154,7 @@ function PlayContent() {
     [maxEp]
   );
 
-  const src = play?.video_url || '';
+  const src = play?.url || '';
 
   return (
     <PageLayout activePath='/huangguo'>
@@ -172,6 +173,7 @@ function PlayContent() {
           <Player
             key={`${id}-${ep}`}
             src={src}
+            auth={play?.auth}
             cover={detail?.cover}
             onEnded={() => switchEpisode(ep + 1)}
           />

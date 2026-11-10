@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { huangguoApi } from '@/lib/huangguo/server';
+import { huangguoApi, huangguoPlayback } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -42,29 +42,22 @@ export async function GET(req: NextRequest) {
       path = `/api/videos/${int(sp.get('id'), 0)}`;
       break;
     case 'play':
-      path = `/api/videos/${int(sp.get('id'), 0)}/play?ep=${int(sp.get('ep'), 1)}&page_texts=0`;
       break;
     default:
       return bad('未知操作');
   }
+  if (action === 'play') {
+    try {
+      const info = await huangguoPlayback(int(sp.get('id'), 0), int(sp.get('ep'), 1));
+      return NextResponse.json({ ok: true, data: info }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (e) {
+      return NextResponse.json({ ok: false, message: (e as Error).message }, { status: 502 });
+    }
+  }
   try {
     const data = await huangguoApi(path);
-    if (action === 'play') {
-      const info = data as { video_url?: string };
-      if (!info?.video_url) {
-        return NextResponse.json(
-          {
-            ok: false,
-            message: process.env.HUANGGUO_USERNAME
-              ? '上游未返回播放地址，账号可能已失效'
-              : '黄果播放需登录：请配置 HUANGGUO_USERNAME / HUANGGUO_PASSWORD',
-          },
-          { status: 502 }
-        );
-      }
-    }
     return NextResponse.json({ ok: true, data }, {
-      headers: { 'Cache-Control': action === 'play' ? 'no-store' : 'public, s-maxage=60' },
+      headers: { 'Cache-Control': 'public, s-maxage=60' },
     });
   } catch (e) {
     return NextResponse.json({ ok: false, message: (e as Error).message }, { status: 502 });

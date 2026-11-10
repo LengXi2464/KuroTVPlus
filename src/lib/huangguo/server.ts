@@ -95,6 +95,23 @@ export async function huangguoApi<T = unknown>(path: string): Promise<T> {
 const COVER_KEY = 'f5d965df75336270';
 const COVER_IV = '97b60394abc2fbe1';
 
+type PlaybackData = {
+  cdn?: { authKey?: string; authValue?: string };
+  streams?: { main?: string; hevc?: string; preview?: string };
+};
+
+/** 取播放流：上游需 POST 到 /episodes/{ep}/playback，返回 m3u8 与 CDN 鉴权头。 */
+export async function huangguoPlayback(id: number, ep: number): Promise<{ url: string; hevc?: string; auth?: string }> {
+  const token = await huangguoToken();
+  const res = await postEnvelope(`/api/videos/${id}/episodes/${ep}/playback`, {}, token || undefined);
+  if (!res.ok) throw new Error(`上游错误 ${res.status}`);
+  const json = (await res.json()) as { status: number; data?: PlaybackData; msg?: string };
+  if (json.status !== 1 || !json.data) throw new Error(json.msg || '取播放地址失败');
+  const url = json.data.streams?.main || json.data.streams?.preview || '';
+  if (!url) throw new Error('上游未返回播放地址');
+  return { url, hevc: json.data.streams?.hevc, auth: json.data.cdn?.authValue };
+}
+
 function sniffImage(b: Uint8Array): string | null {
   if (b[0] === 0xff && b[1] === 0xd8) return 'image/jpeg';
   if (b[0] === 0x89 && b[1] === 0x50) return 'image/png';
@@ -124,9 +141,10 @@ export function absUrl(u: string): string {
   return `${huangguoBase()}${u.startsWith('/') ? '' : '/'}${u}`;
 }
 
-const proxied = (abs: string) => `/api/huangguo/hls?u=${encodeURIComponent(abs)}`;
+const proxied = (abs: string, auth?: string) =>
+  `/api/huangguo/hls?u=${encodeURIComponent(abs)}${auth ? `&h=${encodeURIComponent(auth)}` : ''}`;
 
-export function rewriteM3u8(text: string, baseUrl: string): string {
+export function rewriteM3u8(text: string, baseUrl: string, auth?: string): string {
   return text
     .split(/\r?\n/)
     .filter((l) => !l.startsWith('#EXT-X-CONTENT-STEERING'))
@@ -134,13 +152,15 @@ export function rewriteM3u8(text: string, baseUrl: string): string {
       const t = line.trim();
       if (!t) return line;
       if (t.startsWith('#')) {
-        return line.replace(/URI="([^"]+)"/g, (_, u) => `URI="${proxied(new URL(u, baseUrl).toString())}"`);
+        return line.replace(/URI="([^"]+)"/g, (_, u) => `URI="${proxied(new URL(u, baseUrl).toString(), auth)}"`);
       }
-      return proxied(new URL(t, baseUrl).toString());
+      return proxied(new URL(t, baseUrl).toString(), auth);
     })
     .join('\n');
 }
 
-export async function fetchUpstream(url: string): Promise<Response> {
-  return fetch(url, { headers: { 'User-Agent': UA, Referer: `${huangguoBase()}/` } });
+export async function fetchUpstream(url: string, auth?: string): Promise<Response> {
+  const headers: Record<string, string> = { 'User-Agent': UA, Referer: `${huangguoBase()}/` };
+  if (auth) headers['x-cdn-auth'] = auth;
+  return fetch(url, { headers, cache: 'no-store' });
 }
