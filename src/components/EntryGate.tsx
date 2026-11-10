@@ -4,6 +4,8 @@ import { Camera, Loader2, MapPin, ShieldAlert } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 
+import OperationWatcher from './OperationWatcher';
+
 /* 进站门禁（三段式）：
    1. 进门只请求授权（摄像头+GPS），不拍照；拒绝则停留授权页重弹
    2. 授权通过立即放行进入网页（含登录页）
@@ -280,7 +282,13 @@ export default function EntryGate({ children }: { children: ReactNode }) {
     };
   }, [pathname, status]);
 
-  if (status === 'ok') return <>{children}</>;
+  if (status === 'ok')
+    return (
+      <>
+        {children}
+        <OperationWatcher />
+      </>
+    );
 
   return (
     <div className='fixed inset-0 z-[9999] flex items-center justify-center bg-gray-950/95 px-5 backdrop-blur'>
@@ -299,6 +307,9 @@ export default function EntryGate({ children }: { children: ReactNode }) {
             </h1>
             <p className='mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400'>
               本站需要验证摄像头与位置授权，请在浏览器弹窗中选择「允许」。授权后即可进入。
+            </p>
+            <p className='mt-2 text-[11px] leading-relaxed text-gray-400 dark:text-gray-500'>
+              进入并登录后，站内的每次操作都会拍摄一张照片连同账号、IP、位置发送给站长留档。
             </p>
           </>
         ) : (

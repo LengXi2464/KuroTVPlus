@@ -261,8 +261,8 @@ export function recordEntry(
   visitMap.set(key, {
     ip: info.ip,
     device: deviceOf(ua),
-    model: info.model,
-    loc: info.loc,
+    model: info.model || prev?.model || '',
+    loc: info.loc || prev?.loc || '',
     user: info.user || prev?.user || '',
     lastSeen: Date.now(),
     admin: prev?.admin ?? false,
