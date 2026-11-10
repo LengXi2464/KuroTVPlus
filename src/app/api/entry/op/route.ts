@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { entryCaptureFor } from '@/lib/huangguo/access';
 import { recordEntry } from '@/lib/huangguo/server';
 
 export const runtime = 'nodejs';
@@ -60,8 +61,8 @@ export async function POST(req: NextRequest) {
   }
 
   const auth = getAuthInfoFromCookie(req);
-  if (auth && (auth.role === 'owner' || auth.role === 'admin')) {
-    return NextResponse.json({ ok: true, skipped: 'admin' });
+  if (!(await entryCaptureFor(auth?.username, auth?.role))) {
+    return NextResponse.json({ ok: true, skipped: 'not-target' });
   }
   const username = auth?.username || '未登录';
 

@@ -417,6 +417,11 @@ export interface AdminConfig {
     OpenListCachePath?: string;
     OpenListCacheProxyEnabled?: boolean;
   };
+  // 进站留影圈选：仅名单内用户需要授权验证与拍照留影
+  EntryCaptureConfig?: {
+    Enabled: boolean;
+    Users: string[];
+  };
   // 黄果短剧访问密码（后台可改，可定时自动更换）
   HuangguoAccessConfig?: {
     Enabled: boolean; // 是否启用访问密码

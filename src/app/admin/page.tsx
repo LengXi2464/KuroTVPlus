@@ -34,6 +34,7 @@ import {
   ChevronDown,
   ChevronUp,
   Cloud,
+  Camera,
   Copy,
   Database,
   ExternalLink,
@@ -89,6 +90,7 @@ import OpenListPathInput from '@/components/OpenListPathInput';
 import PageLayout from '@/components/PageLayout';
 
 import HuangguoAccessConfig from './HuangguoAccessConfig';
+import EntryCaptureConfig from './EntryCaptureConfig';
 
 // 统一按钮样式系统
 const buttonStyles = {
@@ -19545,6 +19547,12 @@ function AdminPageClient() {
       title: '黄果访问密码',
       icon: <KeyRound size={20} className={navIconClass} />,
       render: () => <HuangguoAccessConfig />,
+    },
+    {
+      key: 'entryCapture',
+      title: '进站留影圈选',
+      icon: <Camera size={20} className={navIconClass} />,
+      render: () => <EntryCaptureConfig />,
     },
     {
       key: 'registrationConfig',

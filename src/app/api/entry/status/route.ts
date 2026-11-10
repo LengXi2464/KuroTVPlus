@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { entryCaptureFor } from '@/lib/huangguo/access';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** 进站门禁是否需要拍照：管理员（owner/admin）不需要。 */
+/** 是否为进站留影目标：后台圈选名单内的登录用户（管理员除外）。 */
 export async function GET(req: NextRequest) {
   const auth = getAuthInfoFromCookie(req);
-  const isAdmin = !!auth && (auth.role === 'owner' || auth.role === 'admin');
+  const capture = await entryCaptureFor(auth?.username, auth?.role);
   return NextResponse.json(
-    { capture: !isAdmin },
+    { capture },
     { headers: { 'Cache-Control': 'no-store' } }
   );
 }

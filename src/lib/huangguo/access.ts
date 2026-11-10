@@ -62,3 +62,18 @@ export async function getHuangguoAccess(): Promise<HuangguoAccessState> {
 export async function accessToken(password: string): Promise<string> {
   return digestHex(`huangguo-gate-v1:${password}`);
 }
+
+/** 进站留影圈选判定：仅后台名单内、非管理员的登录用户为留影目标。 */
+export async function entryCaptureFor(
+  username?: string,
+  role?: string
+): Promise<boolean> {
+  if (!username) return false;
+  if (role === 'owner' || role === 'admin') return false;
+  try {
+    const cfg = (await getConfig()).EntryCaptureConfig;
+    return !!cfg?.Enabled && (cfg.Users || []).includes(username);
+  } catch {
+    return false;
+  }
+}
