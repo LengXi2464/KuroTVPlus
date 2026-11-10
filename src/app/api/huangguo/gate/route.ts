@@ -8,13 +8,13 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const unlocked = await gateUnlocked(req.cookies.get(GATE_COOKIE)?.value);
   return NextResponse.json(
-    { required: gateRequired(), unlocked },
+    { required: await gateRequired(), unlocked },
     { headers: { 'Cache-Control': 'no-store' } }
   );
 }
 
 export async function POST(req: NextRequest) {
-  if (!gateRequired()) return NextResponse.json({ ok: true });
+  if (!(await gateRequired())) return NextResponse.json({ ok: true });
   let password = '';
   try {
     const body = (await req.json()) as { password?: string };

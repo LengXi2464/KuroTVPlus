@@ -735,6 +735,17 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     adminConfig.LiveRefreshIntervalHours
   );
 
+  // 黄果访问密码配置默认值（历史配置无该字段时补齐）
+  if (!adminConfig.HuangguoAccessConfig) {
+    adminConfig.HuangguoAccessConfig = {
+      Enabled: false,
+      CustomPassword: '',
+      AutoRotate: false,
+      RotateHours: 24,
+      Seed: '',
+    };
+  }
+
   if (adminConfig.OpenListConfig) {
     // 兼容已废弃的「离线下载独立 OpenList 源」字段（仅存在于旧配置里）
     const ol = adminConfig.OpenListConfig as typeof adminConfig.OpenListConfig & {

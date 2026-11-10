@@ -417,6 +417,15 @@ export interface AdminConfig {
     OpenListCachePath?: string;
     OpenListCacheProxyEnabled?: boolean;
   };
+  // 黄果短剧访问密码（后台可改，可定时自动更换）
+  HuangguoAccessConfig?: {
+    Enabled: boolean; // 是否启用访问密码
+    CustomPassword: string; // 自定义固定密码（非空时优先，且不参与轮换）
+    AutoRotate: boolean; // 是否按周期自动更换密码
+    RotateHours: number; // 自动更换周期（小时），默认 24
+    Seed: string; // 轮换种子，保存时自动生成
+    UpdatedAt?: number; // 后台最近一次保存时间（存在即视为后台接管）
+  };
   AnimeSubscriptionConfig?: {
     Enabled: boolean; // 是否启用追番功能
     DownloadTool?: 'aria2' | 'qBittorrent' | 'Transmission'; // 追番订阅全局下载方式

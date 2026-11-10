@@ -41,6 +41,7 @@ import {
   FolderOpen,
   Globe,
   Info,
+  KeyRound,
   Mail,
   Monitor,
   Palette,
@@ -86,6 +87,8 @@ import CorrectDialog from '@/components/CorrectDialog';
 import DataMigration from '@/components/DataMigration';
 import OpenListPathInput from '@/components/OpenListPathInput';
 import PageLayout from '@/components/PageLayout';
+
+import HuangguoAccessConfig from './HuangguoAccessConfig';
 
 // 统一按钮样式系统
 const buttonStyles = {
@@ -19536,6 +19539,12 @@ function AdminPageClient() {
       render: () => (
         <SiteConfigComponent config={config} refreshConfig={fetchConfig} />
       ),
+    },
+    {
+      key: 'huangguoAccess',
+      title: '黄果访问密码',
+      icon: <KeyRound size={20} className={navIconClass} />,
+      render: () => <HuangguoAccessConfig />,
     },
     {
       key: 'registrationConfig',

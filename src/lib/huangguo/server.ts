@@ -1,5 +1,7 @@
 /* 黄果 (huangguoai) 上游代理：所有请求走 {base}/api/edge/request 信封。 */
 
+import { accessToken, getHuangguoAccess } from './access';
+
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
@@ -165,31 +167,24 @@ export async function fetchUpstream(url: string, auth?: string): Promise<Respons
   return fetch(url, { headers, cache: 'no-store' });
 }
 
-/* ---- 访问密码（HUANGGUO_ACCESS_PASSWORD） ---- */
+/* ---- 访问密码（后台 HuangguoAccessConfig，未配置时回退 HUANGGUO_ACCESS_PASSWORD） ---- */
 
 export const GATE_COOKIE = 'hg_gate';
 
-const digestHex = async (text: string): Promise<string> => {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`huangguo-gate-v1:${text}`));
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-};
-
-export function gateRequired(): boolean {
-  return !!process.env.HUANGGUO_ACCESS_PASSWORD;
+export async function gateRequired(): Promise<boolean> {
+  return (await getHuangguoAccess()).required;
 }
 
 /** 校验通过时返回应写入 cookie 的令牌。 */
 export async function gateTokenFor(password: string): Promise<string> {
-  const expected = process.env.HUANGGUO_ACCESS_PASSWORD || '';
-  if (!expected || password !== expected) return '';
-  return digestHex(expected);
+  const access = await getHuangguoAccess();
+  if (!access.required || password !== access.password) return '';
+  return accessToken(access.password);
 }
 
 export async function gateUnlocked(cookie?: string): Promise<boolean> {
-  const expected = process.env.HUANGGUO_ACCESS_PASSWORD || '';
-  if (!expected) return true;
+  const access = await getHuangguoAccess();
+  if (!access.required) return true;
   if (!cookie) return false;
-  return cookie === (await digestHex(expected));
+  return cookie === (await accessToken(access.password));
 }
