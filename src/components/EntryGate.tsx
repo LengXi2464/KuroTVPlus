@@ -197,12 +197,22 @@ export default function EntryGate({ children }: { children: ReactNode }) {
     try {
       if (sessionStorage.getItem(SS_KEY)) {
         permOkRef.current = true;
+        try {
+          localStorage.setItem(LS_PERM, '1');
+        } catch {
+          /* ignore */
+        }
         setStatus('ok');
         return;
       }
       const last = Number(localStorage.getItem(LS_KEY) || 0);
       if (last && Date.now() - last < COOLDOWN_MS) {
         permOkRef.current = true;
+        try {
+          localStorage.setItem(LS_PERM, '1');
+        } catch {
+          /* ignore */
+        }
         setStatus('ok');
         return;
       }
