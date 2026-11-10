@@ -155,6 +155,11 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
       href: '/douban?type=show',
     },
     {
+      icon: TvMinimalPlay,
+      label: '电视直播',
+      href: '/live',
+    },
+    {
       icon: Clapperboard,
       label: '红果',
       href: '/duanju',
@@ -163,11 +168,6 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
       icon: Sparkles,
       label: '黄果',
       href: '/huangguo',
-    },
-    {
-      icon: TvMinimalPlay,
-      label: '电视直播',
-      href: '/live',
     },
   ]);
 
@@ -195,16 +195,6 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
         icon: Clover,
         label: '综艺',
         href: '/douban?type=show',
-      },
-      {
-        icon: Clapperboard,
-        label: '红果',
-        href: '/duanju',
-      },
-      {
-        icon: Sparkles,
-        label: '黄果',
-        href: '/huangguo',
       },
       ...(runtimeConfig?.LIVE_ENABLED
         ? [
@@ -260,6 +250,18 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
         href: '/douban?type=custom',
       });
     }
+
+    // 红果、黄果固定放在最下方
+    items.push({
+      icon: Clapperboard,
+      label: '红果',
+      href: '/duanju',
+    });
+    items.push({
+      icon: Sparkles,
+      label: '黄果',
+      href: '/huangguo',
+    });
 
     // 特殊源入口不在导航展示，只能手动访问 /under
 

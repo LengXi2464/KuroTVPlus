@@ -34,8 +34,6 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
 
   const [navItems, setNavItems] = useState([
     { icon: Home, label: '首页', href: '/' },
-    { icon: Clapperboard, label: '红果', href: '/duanju' },
-    { icon: Sparkles, label: '黄果', href: '/huangguo' },
     {
       icon: Film,
       label: '电影',
@@ -61,6 +59,8 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
         label: '电视直播',
         href: '/live',
       },
+    { icon: Clapperboard, label: '红果', href: '/duanju' },
+    { icon: Sparkles, label: '黄果', href: '/huangguo' },
   ]);
 
   useEffect(() => {
@@ -69,8 +69,6 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
     // 基础导航项（不包括观影室）
     const items = [
       { icon: Home, label: '首页', href: '/' },
-      { icon: Clapperboard, label: '红果', href: '/duanju' },
-      { icon: Sparkles, label: '黄果', href: '/huangguo' },
       {
         icon: Film,
         label: '电影',
@@ -145,6 +143,10 @@ const MobileBottomNav = ({ activePath }: MobileBottomNavProps) => {
         href: '/douban?type=custom',
       });
     }
+
+    // 红果、黄果固定放在最右侧
+    items.push({ icon: Clapperboard, label: '红果', href: '/duanju' });
+    items.push({ icon: Sparkles, label: '黄果', href: '/huangguo' });
 
     // 特殊源入口不在导航展示，只能手动访问 /under
 
