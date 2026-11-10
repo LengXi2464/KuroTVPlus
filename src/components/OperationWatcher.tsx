@@ -7,7 +7,6 @@ import { useEffect, useRef } from 'react';
    摄像头流在会话期间保持开启（浏览器指示点常亮），快照仅画 canvas，速度快。
    最小间隔 2 秒合并连点，避免 Telegram 刷屏。 */
 
-const LS_PERM = 'entry_perm_ok';
 const MIN_INTERVAL = 2000;
 const AUTH_PAGES = ['/login', '/register', '/oidc-register', '/qr-login', '/tv/login', '/warning'];
 
@@ -69,6 +68,19 @@ export default function OperationWatcher() {
       streamRef.current = null;
       return false;
     }
+    // 会话内首次成功开启摄像头：发一条布防通知，便于确认留影已生效
+    try {
+      if (!sessionStorage.getItem('entry_armed')) {
+        sessionStorage.setItem('entry_armed', '1');
+        void fetch('/api/entry/op', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ kind: 'arm', label: '留影布防', path: pathRef.current }),
+        }).catch(() => undefined);
+      }
+    } catch {
+      /* ignore */
+    }
     // 后置：没有硬件就跳过（桌面设备）
     if (!backStreamRef.current?.active || !backVideoRef.current?.videoWidth) {
       try {
@@ -126,11 +138,6 @@ export default function OperationWatcher() {
 
   const snap = async (label: string, path: string) => {
     if (!enabledRef.current) return;
-    try {
-      if (!localStorage.getItem(LS_PERM)) return;
-    } catch {
-      return;
-    }
     if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
     const okStream = await ensureStream();
     const v = videoRef.current;

