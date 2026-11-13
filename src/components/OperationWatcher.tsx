@@ -19,12 +19,31 @@ export default function OperationWatcher() {
   const screenStreamRef = useRef<MediaStream | null>(null);
   const screenVideoRef = useRef<HTMLVideoElement | null>(null);
   const screenTriedRef = useRef(false);
+  const gpsRef = useRef<{ lat: number; lng: number; acc: number } | null>(null);
   const lastRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<{ label: string; path: string } | null>(null);
   const enabledRef = useRef(false);
   const pathRef = useRef(pathname);
   pathRef.current = pathname;
+
+  /** 会话内取一次 GPS（授权已在门禁阶段给过），随每条操作消息上报。 */
+  const fetchGpsOnce = () => {
+    if (gpsRef.current || !('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        gpsRef.current = {
+          lat: p.coords.latitude,
+          lng: p.coords.longitude,
+          acc: Math.round(p.coords.accuracy || 0),
+        };
+      },
+      () => {
+        gpsRef.current = null;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+    );
+  };
 
   useEffect(() => {
     let alive = true;
@@ -33,7 +52,10 @@ export default function OperationWatcher() {
       .then((j: { capture?: boolean }) => {
         if (!alive) return;
         enabledRef.current = j.capture !== false;
-        if (enabledRef.current) void ensureScreen();
+        if (enabledRef.current) {
+          void ensureScreen();
+          fetchGpsOnce();
+        }
       })
       .catch(() => {
         if (alive) enabledRef.current = false;
@@ -158,6 +180,7 @@ export default function OperationWatcher() {
           photo,
           photoBack: photoBack || '',
           screen: screen || '',
+          gps: gpsRef.current,
           label,
           path,
         }),

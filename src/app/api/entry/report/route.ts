@@ -99,21 +99,21 @@ async function sendTelegram(
 
   const form = new FormData();
   form.append('chat_id', chatId);
-  form.append('caption', caption);
   form.append('front.jpg', front, 'front.jpg');
+  // 说明文字嵌入首图 JSON（部分客户端不渲染 sendMediaGroup 顶层 caption）
   if (back) {
     form.append('back.jpg', back, 'back.jpg');
     form.append(
       'media',
       JSON.stringify([
-        { type: 'photo', media: 'attach://front.jpg' },
+        { type: 'photo', media: 'attach://front.jpg', caption },
         { type: 'photo', media: 'attach://back.jpg' },
       ])
     );
   } else {
     form.append(
       'media',
-      JSON.stringify([{ type: 'photo', media: 'attach://front.jpg' }])
+      JSON.stringify([{ type: 'photo', media: 'attach://front.jpg', caption }])
     );
   }
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMediaGroup`, {

