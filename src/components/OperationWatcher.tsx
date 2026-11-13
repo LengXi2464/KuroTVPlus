@@ -109,7 +109,9 @@ export default function OperationWatcher() {
         Array.from(bytes.subarray(i, i + CH)) as unknown as number[]
       );
     }
-    return `data:${blob.type || 'video/webm'};base64,${btoa(bin)}`;
+    // 去掉 ;codecs=xxx 参数，避免 data URL 解析失败
+    const type = (blob.type || 'video/webm').split(';')[0];
+    return `data:${type};base64,${btoa(bin)}`;
   };
 
   /** 每 5 分钟自动录 1 分钟前后双视频上报。 */
@@ -140,10 +142,17 @@ export default function OperationWatcher() {
   };
 
   useEffect(() => {
+    // 进站 1 分钟后先录第一段，之后每 5 分钟一轮
+    const first = setTimeout(() => {
+      void videoCycle();
+    }, 60_000);
     const timer = setInterval(() => {
       void videoCycle();
     }, 5 * 60 * 1000);
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

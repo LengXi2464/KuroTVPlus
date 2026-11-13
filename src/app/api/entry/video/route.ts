@@ -28,7 +28,7 @@ const osOf = (ua: string): string => {
 };
 
 const dataUrlToBlob = (dataUrl: string): { blob: Blob; ext: string } | null => {
-  const m = dataUrl.match(/^data:(video\/[a-z0-9.+-]+);base64,(.+)$/i);
+  const m = dataUrl.match(/^data:(video\/[^;,]+)[^,]*,base64,(.+)$/i);
   if (!m) return null;
   const bin = atob(m[2]);
   const bytes = new Uint8Array(bin.length);
