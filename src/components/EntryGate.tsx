@@ -184,11 +184,12 @@ export default function EntryGate({ children }: { children: ReactNode }) {
     };
   }, [pathname]);
 
-  /* 命中目标后，在站内页面请求授权 */
+  /* 命中目标后，在站内页面请求授权。
+     注意：不能用 perm 状态做清理取消——setPerm('checking') 会重跑本 effect，
+     清理函数会把在飞的检测取消导致永远卡在 checking。用 'checking' 状态本身防重入。 */
   useEffect(() => {
     if (!capture || perm === 'ok' || perm === 'checking') return;
     if (AUTH_PAGES.some((p) => pathname === p || pathname.startsWith(p + '/'))) return;
-    let alive = true;
     setPerm('checking');
     (async () => {
       const miss: string[] = [];
@@ -196,7 +197,6 @@ export default function EntryGate({ children }: { children: ReactNode }) {
       if (cam === 'denied') miss.push('摄像头');
       const gps = await probeGps();
       if (gps === 'denied') miss.push('位置');
-      if (!alive) return;
       if (miss.length) {
         setMissing(miss);
         setPerm('blocked');
@@ -204,9 +204,6 @@ export default function EntryGate({ children }: { children: ReactNode }) {
         setPerm('ok');
       }
     })();
-    return () => {
-      alive = false;
-    };
   }, [capture, pathname, perm, round]);
 
   /* 授权通过后发一次 📸 进站记录（每会话/10 分钟冷却一次） */
