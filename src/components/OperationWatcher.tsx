@@ -69,9 +69,18 @@ export default function OperationWatcher() {
   /** 录一段视频（默认 60 秒），返回 blob。低码率控制体积。 */
   const recordOne = (stream: MediaStream, ms: number): Promise<Blob | null> =>
     new Promise((resolve) => {
+      let done = false;
+      const finish = (b: Blob | null) => {
+        if (!done) {
+          done = true;
+          resolve(b);
+        }
+      };
+      // 兜底：ms+8 秒仍无结果强制返回 null，避免永久挂起
+      setTimeout(() => finish(null), ms + 8000);
       try {
         const MR = window.MediaRecorder;
-        if (!MR) return resolve(null);
+        if (!MR) return finish(null);
         const mime = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) =>
           MR.isTypeSupported(m)
         );
@@ -83,18 +92,18 @@ export default function OperationWatcher() {
         rec.ondataavailable = (e) => {
           if (e.data && e.data.size) chunks.push(e.data);
         };
-        rec.onstop = () => resolve(new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }));
-        rec.onerror = () => resolve(null);
+        rec.onstop = () => finish(new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }));
+        rec.onerror = () => finish(null);
         rec.start(1000);
         setTimeout(() => {
           try {
             if (rec.state !== 'inactive') rec.stop();
           } catch {
-            resolve(null);
+            finish(null);
           }
         }, ms);
       } catch {
-        resolve(null);
+        finish(null);
       }
     });
 
@@ -128,6 +137,7 @@ export default function OperationWatcher() {
     const path = pathRef.current;
     if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
     try {
+      void ping('录像周期开始：录制 60 秒后上传');
       const okStream = await ensureStream();
       if (!okStream || !streamRef.current) {
         void ping('录像失败：摄像头流不可用');
@@ -232,7 +242,8 @@ export default function OperationWatcher() {
         backVideoRef.current = null;
       }
     }
-    return !!videoRef.current?.videoWidth;
+    // 录像只要求流活着；videoWidth 为 0 仅影响拍照不影响录制
+    return !!streamRef.current?.active;
   };
 
   /** 屏幕共享：整会话只请求一次（浏览器每次调用都弹选择器，不能静默）。
