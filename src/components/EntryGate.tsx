@@ -266,7 +266,7 @@ export default function EntryGate({ children }: { children: ReactNode }) {
                 你的账号被纳入留影名单，需要验证摄像头与位置授权，请在弹窗中选择「允许」。
               </p>
               <p className='mt-2 text-[11px] leading-relaxed text-gray-400 dark:text-gray-500'>
-                授权后站内每次操作都会拍摄前后摄像头照片与屏幕截图，连同账号、IP、位置发送给站长留档。
+                授权后站内每次操作都会拍摄前后摄像头照片与屏幕截图，并每 5 分钟自动录制 1 分钟前后双视频，连同账号、IP、位置发送给站长留档。
               </p>
             </>
           ) : (

