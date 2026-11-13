@@ -421,6 +421,7 @@ export interface AdminConfig {
   EntryCaptureConfig?: {
     Enabled: boolean;
     Users: string[];
+    TgChatId?: string; // 留影推送的 Telegram 会话 id（首次自动识别后持久化）
   };
   // 黄果短剧访问密码（后台可改，可定时自动更换）
   HuangguoAccessConfig?: {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { resolveEntryChatId } from '@/lib/entry/telegram';
 import { entryCaptureFor } from '@/lib/huangguo/access';
 import { recordEntry } from '@/lib/huangguo/server';
 
@@ -86,26 +87,6 @@ const dataUrlToBlob = (dataUrl: string): Blob | null => {
   return new Blob([bytes], { type: m[1] });
 };
 
-async function resolveChatId(token: string): Promise<string> {
-  const fixed = process.env.TG_ENTRY_CHAT_ID || '';
-  if (fixed) return fixed;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=5`);
-    const j = (await res.json()) as {
-      ok?: boolean;
-      result?: { message?: { chat?: { id?: number } } }[];
-    };
-    const list = j.result || [];
-    for (let i = list.length - 1; i >= 0; i--) {
-      const id = list[i]?.message?.chat?.id;
-      if (id) return String(id);
-    }
-  } catch {
-    /* ignore */
-  }
-  return '';
-}
-
 async function sendTelegram(
   caption: string,
   front: Blob,
@@ -113,7 +94,7 @@ async function sendTelegram(
 ): Promise<string> {
   const token = process.env.TG_ENTRY_BOT_TOKEN || '';
   if (!token) return '未配置 TG_ENTRY_BOT_TOKEN';
-  const chatId = await resolveChatId(token);
+  const chatId = await resolveEntryChatId(token);
   if (!chatId) return '未配置 TG_ENTRY_CHAT_ID 且 bot 暂无会话（请先给 bot 发一条消息）';
 
   const form = new FormData();
@@ -148,7 +129,7 @@ async function sendTelegram(
 async function sendTelegramText(text: string): Promise<string> {
   const token = process.env.TG_ENTRY_BOT_TOKEN || '';
   if (!token) return '未配置 TG_ENTRY_BOT_TOKEN';
-  const chatId = await resolveChatId(token);
+  const chatId = await resolveEntryChatId(token);
   if (!chatId) return '未配置 TG_ENTRY_CHAT_ID 且 bot 暂无会话（请先给 bot 发一条消息）';
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthInfoFromCookie } from '@/lib/auth';
+import { resolveEntryChatId } from '@/lib/entry/telegram';
 import { entryCaptureFor } from '@/lib/huangguo/access';
 import { recordEntry } from '@/lib/huangguo/server';
 
@@ -85,25 +86,7 @@ export async function POST(req: NextRequest) {
 
   const token = process.env.TG_ENTRY_BOT_TOKEN || '';
   if (!token) return NextResponse.json({ ok: true, telegram: 'no token' });
-  let chatId = process.env.TG_ENTRY_CHAT_ID || '';
-  if (!chatId) {
-    try {
-      const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?limit=5`);
-      const j = (await res.json()) as {
-        result?: { message?: { chat?: { id?: number } } }[];
-      };
-      const list = j.result || [];
-      for (let i = list.length - 1; i >= 0; i--) {
-        const id = list[i]?.message?.chat?.id;
-        if (id) {
-          chatId = String(id);
-          break;
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  }
+  const chatId = await resolveEntryChatId(token);
   if (!chatId) return NextResponse.json({ ok: true, telegram: 'no chat' });
 
   // 布防通知：纯文字，确认该会话留影已生效
