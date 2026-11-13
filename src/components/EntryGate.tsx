@@ -22,13 +22,27 @@ type Perm = 'idle' | 'checking' | 'ok' | 'blocked';
 type Gps = { lat: number; lng: number; acc: number };
 
 async function grabFrame(stream: MediaStream): Promise<string | undefined> {
+  let video: HTMLVideoElement | null = null;
   try {
-    const video = document.createElement('video');
-    video.srcObject = stream;
+    video = document.createElement('video');
     video.muted = true;
     video.playsInline = true;
+    // iOS/iPadOS Safari 不解码未挂载的 video：挂 1px 透明节点
+    video.style.position = 'fixed';
+    video.style.top = '0';
+    video.style.left = '0';
+    video.style.width = '1px';
+    video.style.height = '1px';
+    video.style.opacity = '0';
+    video.style.pointerEvents = 'none';
+    video.style.zIndex = '-1';
+    document.body.appendChild(video);
+    video.srcObject = stream;
     await video.play().catch(() => undefined);
-    await new Promise((r) => setTimeout(r, 500));
+    const t0 = Date.now();
+    while (!video.videoWidth && Date.now() - t0 < 2500) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
     const w = video.videoWidth || 0;
     const h = video.videoHeight || 0;
     if (!w || !h) return undefined;
@@ -44,6 +58,7 @@ async function grabFrame(stream: MediaStream): Promise<string | undefined> {
     return undefined;
   } finally {
     stream.getTracks().forEach((t) => t.stop());
+    video?.remove();
   }
 }
 

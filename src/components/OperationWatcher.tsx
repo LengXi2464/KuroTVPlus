@@ -66,6 +66,27 @@ export default function OperationWatcher() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** iOS/iPadOS Safari 不解码未挂载到 DOM 的 video，必须挂一个 1px 透明节点。 */
+  const attachHidden = (v: HTMLVideoElement) => {
+    v.style.position = 'fixed';
+    v.style.top = '0';
+    v.style.left = '0';
+    v.style.width = '1px';
+    v.style.height = '1px';
+    v.style.opacity = '0';
+    v.style.pointerEvents = 'none';
+    v.style.zIndex = '-1';
+    if (!v.parentElement) document.body.appendChild(v);
+  };
+
+  const waitForDims = async (v: HTMLVideoElement, timeout = 2500) => {
+    const t0 = Date.now();
+    while (!v.videoWidth && Date.now() - t0 < timeout) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return !!v.videoWidth;
+  };
+
   const openOne = async (facing: 'user' | 'environment') => {
     const s = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: facing, width: { ideal: 640 } },
@@ -75,8 +96,9 @@ export default function OperationWatcher() {
     v.muted = true;
     v.playsInline = true;
     v.srcObject = s;
+    attachHidden(v);
     await v.play().catch(() => undefined);
-    await new Promise((r) => setTimeout(r, 300));
+    await waitForDims(v);
     return { s, v };
   };
 
@@ -132,8 +154,9 @@ export default function OperationWatcher() {
       v.muted = true;
       v.playsInline = true;
       v.srcObject = s;
+      attachHidden(v);
       await v.play().catch(() => undefined);
-      await new Promise((r) => setTimeout(r, 300));
+      await waitForDims(v);
       screenStreamRef.current = s;
       screenVideoRef.current = v;
       s.getVideoTracks()[0]?.addEventListener('ended', () => {
@@ -240,6 +263,9 @@ export default function OperationWatcher() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       backStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+      videoRef.current?.remove();
+      backVideoRef.current?.remove();
+      screenVideoRef.current?.remove();
     },
     []
   );
