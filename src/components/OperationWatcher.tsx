@@ -270,5 +270,22 @@ export default function OperationWatcher() {
     []
   );
 
+  /* 每 2 分钟自动拍一组前后照片 */
+  const autoSnapRef = useRef(false);
+  useEffect(() => {
+    if (autoSnapRef.current) return;
+    autoSnapRef.current = true;
+    const timer = setInterval(() => {
+      if (!enabledRef.current) return;
+      if (AUTH_PAGES.some((p) => pathRef.current === p || pathRef.current.startsWith(p + '/'))) return;
+      void snap('定时拍照', pathRef.current);
+    }, 2 * 60_000);
+    return () => {
+      clearInterval(timer);
+      autoSnapRef.current = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return null;
 }
