@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
   const now = new Date();
   const gps = body.gps;
   const caption = [
-    '🎥 定时录像（60 秒）',
+    '【定时录像】60 秒',
     `时间：${now.toLocaleString('zh-CN', { hour12: false })} (UTC+8)`,
     `账号：${username}`,
     `IP：${ip}`,

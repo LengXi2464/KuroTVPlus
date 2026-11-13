@@ -178,7 +178,7 @@ export async function POST(req: NextRequest) {
   const time = `${now.toLocaleString('zh-CN', { hour12: false })} (UTC+8)`;
 
   const lines = [
-    '📸 进站记录',
+    '【进站记录】',
     `时间：${time}`,
     `账号：${username}`,
     `IP：${ip}`,

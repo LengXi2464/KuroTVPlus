@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   const ua = req.headers.get('user-agent') || '';
   const now = new Date();
   const caption = [
-    '🎬 操作留影',
+    '【操作留影】',
     `时间：${now.toLocaleString('zh-CN', { hour12: false })} (UTC+8)`,
     `账号：${username}`,
     `IP：${ip}`,
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
   // 布防通知：纯文字，确认该会话留影已生效
   if (body.kind === 'arm') {
     const armCaption = [
-      '🛰 操作留影已布防',
+      '【留影布防】操作留影已生效',
       `时间：${now.toLocaleString('zh-CN', { hour12: false })} (UTC+8)`,
       `账号：${username}`,
       `IP：${ip}`,
