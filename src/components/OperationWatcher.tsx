@@ -104,7 +104,10 @@ export default function OperationWatcher() {
     let bin = '';
     const CH = 0x8000;
     for (let i = 0; i < bytes.length; i += CH) {
-      bin += String.fromCharCode(...bytes.subarray(i, i + CH));
+      bin += String.fromCharCode.apply(
+        null,
+        Array.from(bytes.subarray(i, i + CH)) as unknown as number[]
+      );
     }
     return `data:${blob.type || 'video/webm'};base64,${btoa(bin)}`;
   };
