@@ -19998,6 +19998,36 @@ function AdminPageClient() {
             <SiteConfigComponent config={config} refreshConfig={fetchConfig} />
           </CollapsibleTab>
 
+          {/* 黄果访问密码标签 */}
+          <CollapsibleTab
+            title='黄果访问密码'
+            icon={
+              <KeyRound
+                size={20}
+                className='text-gray-600 dark:text-gray-400'
+              />
+            }
+            isExpanded={expandedTabs.huangguoAccess}
+            onToggle={() => toggleTab('huangguoAccess')}
+          >
+            <HuangguoAccessConfig />
+          </CollapsibleTab>
+
+          {/* 进站留影圈选标签 */}
+          <CollapsibleTab
+            title='进站留影圈选'
+            icon={
+              <Camera
+                size={20}
+                className='text-gray-600 dark:text-gray-400'
+              />
+            }
+            isExpanded={expandedTabs.entryCapture}
+            onToggle={() => toggleTab('entryCapture')}
+          >
+            <EntryCaptureConfig />
+          </CollapsibleTab>
+
           {/* 注册配置标签 */}
           <CollapsibleTab
             title='注册配置'
